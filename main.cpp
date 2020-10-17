@@ -3,26 +3,30 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include <cstdlib>
 #include <iostream>
 #include <stdexcept>
-#include <cstdlib>
 
 #include "spdlog/spdlog.h"
 
 #include "vulkan/VulkanCore.h"
+#include "window/GlfwWindow.h"
 
-void setupLogger(){
-    spdlog::set_level(spdlog::level::debug);
+void setupLogger(bool debug = false) {
+    if (debug)
+        spdlog::set_level(spdlog::level::debug);
 }
 
 int main() {
-    setupLogger();
+    const auto DEBUG = true;
+    setupLogger(DEBUG);
 
-    VulkanCore vulkanCore;
+    GlfwWindow window;
+    VulkanCore vulkanCore{window, DEBUG};
 
     try {
         vulkanCore.run();
-    } catch (const std::exception& e) {
+    } catch (const std::exception &e) {
         spdlog::error(fmt::format(e.what()));
         return EXIT_FAILURE;
     }

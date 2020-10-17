@@ -24,6 +24,10 @@ using Window = std::unique_ptr<GLFWwindow, DestroyglfwWin>;
 class GlfwWindow {
 private:
     Window window;
+    std::string windowName;
+
+public:
+    [[nodiscard]] const std::string &getWindowName() const;
 
 public:
     explicit GlfwWindow(const std::string& windowName = "VulkanApp", int width = 800, int height = 600);

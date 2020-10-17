@@ -26,7 +26,11 @@ hunter_add_package(fmt)
 find_package(fmt CONFIG REQUIRED)
 hunter_add_package(spdlog)
 find_package(spdlog CONFIG REQUIRED)
-add_compile_definitions(SPDLOG_FMT_EXTERNAL)
+
+
+add_compile_definitions(SPDLOG_FMT_EXTERNAL
+        VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
+        )
 
 add_executable(VulkanApp main.cpp
         vulkan/VulkanCore.cpp vulkan/VulkanCore.h

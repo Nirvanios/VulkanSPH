@@ -16,12 +16,17 @@
 class VulkanCore {
 
 public:
+    explicit VulkanCore(GlfwWindow &window, bool debug = false);
     void run();
 private:
-    GlfwWindow window = GlfwWindow{};
+    bool debug;
+    GlfwWindow &window;
+    vk::UniqueInstance instance;
     void initVulkan();
     void mainLoop();
     void cleanup();
+
+    void createInstance();
 };
 
 #endif//VULKANAPP_VULKANCORE_H
