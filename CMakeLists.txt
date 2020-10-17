@@ -33,6 +33,7 @@ add_compile_definitions(SPDLOG_FMT_EXTERNAL
         )
 
 add_executable(VulkanApp main.cpp
+        Utilities.h
         vulkan/VulkanCore.cpp vulkan/VulkanCore.h
         window/GlfwWindow.cpp window/GlfwWindow.h)
 target_link_libraries(VulkanApp
