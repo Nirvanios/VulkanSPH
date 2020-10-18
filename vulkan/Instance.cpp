@@ -120,3 +120,7 @@ vk::DebugUtilsMessengerCreateInfoEXT Instance::getDebugMessengerCreateInfo() {
 const vk::Instance &Instance::getInstance() const {
     return instance.get();
 }
+Instance::~Instance() {
+    debugMessenger.release();
+    instance.release();
+}

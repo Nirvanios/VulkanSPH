@@ -12,6 +12,7 @@ using UniqueDebugUtilsMessengerEXTDynamic = vk::UniqueHandle<vk::DebugUtilsMesse
 class Instance {
 public:
     explicit Instance(const std::string &appName = "", bool debug = false);
+    virtual ~Instance();
     [[nodiscard]] const vk::Instance &getInstance() const;
 
 private:

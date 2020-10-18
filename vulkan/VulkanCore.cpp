@@ -11,7 +11,7 @@
 
 
 void VulkanCore::initVulkan() {
-    instance = Instance{window.getWindowName(), debug};
+    instance = std::make_shared<Instance>(window.getWindowName(), debug);
     pickPhysicalDevice();
 }
 
@@ -31,7 +31,7 @@ VulkanCore::VulkanCore(GlfwWindow &window, bool debug) : debug(debug), window(wi
     initVulkan();
 }
 void VulkanCore::pickPhysicalDevice() {
-    auto devices = instance.getInstance().enumeratePhysicalDevices();
+    auto devices = instance->getInstance().enumeratePhysicalDevices();
     if (devices.empty()) {
         throw std::runtime_error("Failed to find GPUs with Vulkan support!");
     }

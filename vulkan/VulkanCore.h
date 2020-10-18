@@ -29,7 +29,7 @@ private:
         }
     };
 
-    Instance instance;
+    std::shared_ptr<Instance> instance;
 
     vk::PhysicalDevice physicalDevice;
 
