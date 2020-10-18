@@ -14,6 +14,7 @@ public:
     explicit Instance(const std::string &appName = "", bool debug = false);
     virtual ~Instance();
     [[nodiscard]] const vk::Instance &getInstance() const;
+    const std::vector<const char *> &getValidationLayers() const;
 
 private:
     std::vector<const char*> validationLayers = {

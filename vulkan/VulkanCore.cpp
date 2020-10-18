@@ -13,6 +13,7 @@
 void VulkanCore::initVulkan() {
     instance = std::make_shared<Instance>(window.getWindowName(), debug);
     pickPhysicalDevice();
+    createLogicalDevice();
 }
 
 void VulkanCore::run() {
@@ -36,35 +37,58 @@ void VulkanCore::pickPhysicalDevice() {
         throw std::runtime_error("Failed to find GPUs with Vulkan support!");
     }
     auto it = std::find_if(devices.begin(), devices.end(),
-                           [](const vk::PhysicalDevice &device) {
-                               auto properties = device.getProperties();
-                               auto features = device.getFeatures();
+                           [](const vk::PhysicalDevice &phyDevice) {
+                               auto properties = phyDevice.getProperties();
+                               auto features = phyDevice.getFeatures();
                                return properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu &&
                                       features.geometryShader &&
-                                       VulkanCore::findQueueFamilies(device).isComplete();
+                                       VulkanCore::findQueueFamilies(phyDevice).isComplete();
                            });
 
     if (it == devices.end()) {
         throw std::runtime_error("Failed to find suitable GPU!");
     }
-    for (const auto &device : devices) {
-        if (device == *it)
-            spdlog::info(fmt::format("Available GPU: {}.<-- SELECTED", device.getProperties().deviceName));
+    physicalDevice = *it;
+    for (const auto &availableDevice : devices) {
+        if (availableDevice == *it)
+            spdlog::info(fmt::format("Available GPU: {}.<-- SELECTED", availableDevice.getProperties().deviceName));
         else
-            spdlog::info(fmt::format("Available GPU: {}.", device.getProperties().deviceName));
+            spdlog::info(fmt::format("Available GPU: {}.", availableDevice.getProperties().deviceName));
     }
 }
 
-VulkanCore::QueueFamilyIndices VulkanCore::findQueueFamilies(vk::PhysicalDevice device) {
+VulkanCore::QueueFamilyIndices VulkanCore::findQueueFamilies(const vk::PhysicalDevice &device) {
     QueueFamilyIndices indices;
 
     uint32_t i = 0;
     auto queueFamilies = device.getQueueFamilyProperties();
     std::for_each(queueFamilies.begin(), queueFamilies.end(),
-                  [&i , &indices](const vk::QueueFamilyProperties &property){
-        if (property.queueFlags & vk::QueueFlagBits::eGraphics)
-            indices.graphicsFamily = i;
-        ++i;
-    });
+                  [&i, &indices](const vk::QueueFamilyProperties &property) {
+                      if (property.queueFlags & vk::QueueFlagBits::eGraphics)
+                          indices.graphicsFamily = i;
+                      ++i;
+                  });
     return indices;
+}
+void VulkanCore::createLogicalDevice() {
+    auto indices = findQueueFamilies(physicalDevice);
+    auto priority = 1.0f;
+    vk::DeviceQueueCreateInfo queueCreateInfo{.queueFamilyIndex = indices.graphicsFamily.value(),
+                                              .queueCount = 1,
+                                              .pQueuePriorities = &priority};
+    vk::PhysicalDeviceFeatures deviceFeatures{};
+    vk::DeviceCreateInfo createInfo{.queueCreateInfoCount = 1,
+                         .pQueueCreateInfos = &queueCreateInfo,
+                         .enabledExtensionCount = 0,
+                         .pEnabledFeatures = &deviceFeatures};
+
+    if (debug) {
+        createInfo.enabledLayerCount = static_cast<uint32_t>(instance->getValidationLayers().size());
+        createInfo.ppEnabledLayerNames = instance->getValidationLayers().data();
+    } else {
+        createInfo.enabledLayerCount = 0;
+    }
+    device = physicalDevice.createDeviceUnique(createInfo);
+
+    graphicsQueue = device.get().getQueue(indices.graphicsFamily.value(), 0);
 }

@@ -30,8 +30,10 @@ private:
     };
 
     std::shared_ptr<Instance> instance;
-
+    vk::UniqueSurfaceKHR surface;
     vk::PhysicalDevice physicalDevice;
+    vk::UniqueDevice device;
+    vk::Queue graphicsQueue;
 
     bool debug;
     GlfwWindow &window;
@@ -41,7 +43,9 @@ private:
     void cleanup();
 
     void pickPhysicalDevice();
-    static QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device);
+    static QueueFamilyIndices findQueueFamilies(const vk::PhysicalDevice &device);
+
+    void createLogicalDevice();
 
 };
 

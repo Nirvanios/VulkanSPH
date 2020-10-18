@@ -124,3 +124,6 @@ Instance::~Instance() {
     debugMessenger.release();
     instance.release();
 }
+const std::vector<const char *> &Instance::getValidationLayers() const {
+    return validationLayers;
+}
