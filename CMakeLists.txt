@@ -35,6 +35,6 @@ add_compile_definitions(SPDLOG_FMT_EXTERNAL
 add_executable(VulkanApp main.cpp
         Utilities.h
         vulkan/VulkanCore.cpp vulkan/VulkanCore.h
-        window/GlfwWindow.cpp window/GlfwWindow.h vulkan/Instance.cpp vulkan/Instance.h)
+        window/GlfwWindow.cpp window/GlfwWindow.h vulkan/Instance.cpp vulkan/Instance.h vulkan/Device.cpp vulkan/Device.h)
 target_link_libraries(VulkanApp
         ${Vulkan_LIBRARIES} glfw spdlog::spdlog imgui::imgui fmt::fmt)
