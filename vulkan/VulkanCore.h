@@ -29,6 +29,7 @@ private:
     vk::UniqueSurfaceKHR surface;
 
     vk::Queue graphicsQueue;
+    vk::Queue presentQueue;
 
     bool debug;
     GlfwWindow &window;
@@ -37,6 +38,7 @@ private:
     void mainLoop();
     void cleanup();
 
+    void createSurface();
 };
 
 #endif//VULKANAPP_VULKANCORE_H

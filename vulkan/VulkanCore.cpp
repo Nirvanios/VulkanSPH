@@ -12,8 +12,11 @@
 
 void VulkanCore::initVulkan() {
     instance = std::make_shared<Instance>(window.getWindowName(), debug);
-    device = std::make_shared<Device>(instance, debug);
+    createSurface();
+    spdlog::debug("Created surface.");
+    device = std::make_shared<Device>(instance, surface, debug);
     graphicsQueue = device->getGraphicsQueue();
+    presentQueue = device->getPresentQueue();
 }
 
 void VulkanCore::run() {
@@ -31,4 +34,12 @@ VulkanCore::VulkanCore(GlfwWindow &window, bool debug) : debug(debug), window(wi
     spdlog::debug("Vulkan initialization...");
     initVulkan();
     spdlog::debug("Vulkan OK.");
+}
+void VulkanCore::createSurface() {
+    VkSurfaceKHR tmpSurface;
+    if (glfwCreateWindowSurface(instance->getInstance(), window.getWindow().get(), nullptr, &tmpSurface) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create window surface!");
+    }
+    vk::ObjectDestroy<vk::Instance, vk::DispatchLoaderStatic> surfaceDeleter(instance->getInstance());
+    surface = vk::UniqueSurfaceKHR{tmpSurface, surfaceDeleter};
 }
