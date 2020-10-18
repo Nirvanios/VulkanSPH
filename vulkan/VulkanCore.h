@@ -7,13 +7,14 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include <cstdlib>
 #include <iostream>
 #include <stdexcept>
-#include <cstdlib>
 
 #include "../window/GlfwWindow.h"
 #include "Device.h"
 #include "Instance.h"
+#include "Swapchain.h"
 
 
 class VulkanCore {
@@ -21,12 +22,12 @@ class VulkanCore {
 public:
     explicit VulkanCore(GlfwWindow &window, bool debug = false);
     void run();
+
 private:
-
-
     std::shared_ptr<Instance> instance;
     std::shared_ptr<Device> device;
     vk::UniqueSurfaceKHR surface;
+    std::shared_ptr<Swapchain> swapchain;
 
     vk::Queue graphicsQueue;
     vk::Queue presentQueue;

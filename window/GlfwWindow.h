@@ -11,30 +11,28 @@
 #include <GLFW/glfw3.h>
 
 
-struct DestroyglfwWin{
+struct DestroyglfwWin {
 
-    void operator()(GLFWwindow* ptr){
+    void operator()(GLFWwindow *ptr) {
         glfwDestroyWindow(ptr);
     }
-
 };
 
 using Window = std::unique_ptr<GLFWwindow, DestroyglfwWin>;
 
 class GlfwWindow {
+public:
+    [[nodiscard]] const std::string &getWindowName() const;
+    explicit GlfwWindow(const std::string &windowName = "VulkanApp", int width = 800, int height = 600);
+    virtual ~GlfwWindow();
+    [[nodiscard]] const Window &getWindow() const;
+    int getWidth() const;
+    int getHeight() const;
+
 private:
     Window window;
     std::string windowName;
-
-public:
-    [[nodiscard]] const std::string &getWindowName() const;
-
-public:
-    explicit GlfwWindow(const std::string& windowName = "VulkanApp", int width = 800, int height = 600);
-    virtual ~GlfwWindow();
-    [[nodiscard]] const Window &getWindow() const;
-
-private:
+    int width, height;
     void cleanUp();
 };
 

@@ -47,7 +47,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     return VK_FALSE;
 }
 
-Instance::Instance(const std::string &appName, bool debug) : appName(appName), debug(debug){
+Instance::Instance(const std::string &appName, bool debug) : appName(appName), debug(debug) {
     createInstance();
     spdlog::debug("Created vulkan instance.");
     setupDebugMessenger();
@@ -87,7 +87,7 @@ bool Instance::checkValidationLayerSupport() {
                    [](const char *const c) { return std::string{c}; });
 
     return std::any_of(availableLayers.begin(), availableLayers.end(), [layerNames](const auto &layerProperties) {
-      return Utilities::isIn(std::string(layerProperties.layerName), layerNames);
+        return Utilities::isIn(std::string(layerProperties.layerName), layerNames);
     });
 }
 

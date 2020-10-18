@@ -11,14 +11,6 @@
 
 
 class Device {
-public:
-    explicit Device(std::shared_ptr<Instance> instance, const vk::UniqueSurfaceKHR &surface, bool debug = false);
-
-    [[nodiscard]] vk::Queue getGraphicsQueue() const;
-    [[nodiscard]] vk::Queue getPresentQueue() const;
-    [[nodiscard]] const vk::PhysicalDevice &getPhysicalDevice() const;
-    [[nodiscard]] const vk::UniqueDevice &getDevice() const;
-
 private:
     struct QueueFamilyIndices {
         std::optional<uint32_t> graphicsFamily;
@@ -28,6 +20,9 @@ private:
             return graphicsFamily.has_value() && presentFamily.has_value();
         }
     };
+
+    const std::vector<const char *> deviceExtensions = {
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
     QueueFamilyIndices indices;
 
@@ -40,9 +35,19 @@ private:
     std::shared_ptr<Instance> instance;
 
     void pickPhysicalDevice();
-    QueueFamilyIndices findQueueFamilies(const vk::PhysicalDevice &device) const ;
 
     void createLogicalDevice();
+    bool checkDeviceExtensionSupport(const vk::PhysicalDevice &device);
+
+public:
+    explicit Device(std::shared_ptr<Instance> instance, const vk::UniqueSurfaceKHR &surface, bool debug = false);
+
+    [[nodiscard]] vk::Queue getGraphicsQueue() const;
+    [[nodiscard]] vk::Queue getPresentQueue() const;
+    [[nodiscard]] const vk::PhysicalDevice &getPhysicalDevice() const;
+    [[nodiscard]] const vk::UniqueDevice &getDevice() const;
+
+    [[nodiscard]] static QueueFamilyIndices findQueueFamilies(const vk::PhysicalDevice &device, const vk::UniqueSurfaceKHR &surface);
 };
 
 

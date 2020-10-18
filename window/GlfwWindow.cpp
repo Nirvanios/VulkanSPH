@@ -7,6 +7,8 @@
 #include "GlfwWindow.h"
 
 GlfwWindow::GlfwWindow(const std::string& windowName, const int width, const int height){
+    this->width = width;
+    this->height = height;
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
@@ -27,4 +29,10 @@ GlfwWindow::~GlfwWindow() {
 }
 const std::string &GlfwWindow::getWindowName() const {
     return windowName;
+}
+int GlfwWindow::getWidth() const {
+    return width;
+}
+int GlfwWindow::getHeight() const {
+    return height;
 }

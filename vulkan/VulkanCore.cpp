@@ -17,24 +17,29 @@ void VulkanCore::initVulkan() {
     device = std::make_shared<Device>(instance, surface, debug);
     graphicsQueue = device->getGraphicsQueue();
     presentQueue = device->getPresentQueue();
+    swapchain = std::make_shared<Swapchain>(device, surface, window.getWidth(), window.getHeight());
 }
 
 void VulkanCore::run() {
     mainLoop();
     cleanup();
 }
+
 void VulkanCore::mainLoop() {
     while (!glfwWindowShouldClose(window.getWindow().get())) {
         glfwPollEvents();
     }
 }
+
 void VulkanCore::cleanup() {
 }
+
 VulkanCore::VulkanCore(GlfwWindow &window, bool debug) : debug(debug), window(window) {
     spdlog::debug("Vulkan initialization...");
     initVulkan();
     spdlog::debug("Vulkan OK.");
 }
+
 void VulkanCore::createSurface() {
     VkSurfaceKHR tmpSurface;
     if (glfwCreateWindowSurface(instance->getInstance(), window.getWindow().get(), nullptr, &tmpSurface) != VK_SUCCESS) {

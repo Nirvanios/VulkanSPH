@@ -17,9 +17,8 @@ public:
     const std::vector<const char *> &getValidationLayers() const;
 
 private:
-    std::vector<const char*> validationLayers = {
-            "VK_LAYER_KHRONOS_validation"
-    };
+    std::vector<const char *> validationLayers = {
+            "VK_LAYER_KHRONOS_validation"};
 
     vk::UniqueInstance instance;
     UniqueDebugUtilsMessengerEXTDynamic debugMessenger;
@@ -31,7 +30,6 @@ private:
     [[nodiscard]] std::vector<const char *> getRequiredExtensions() const;
     void setupDebugMessenger();
     static vk::DebugUtilsMessengerCreateInfoEXT getDebugMessengerCreateInfo();
-
 };
 
 

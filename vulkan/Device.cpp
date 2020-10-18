@@ -5,7 +5,9 @@
 #include <algorithm>
 #include <utility>
 
+#include "../Utilities.h"
 #include "Device.h"
+#include "Swapchain.h"
 #include <set>
 #include <spdlog/spdlog.h>
 
@@ -27,9 +29,17 @@ void Device::pickPhysicalDevice() {
                            [this](const vk::PhysicalDevice &phyDevice) {
                                auto properties = phyDevice.getProperties();
                                auto features = phyDevice.getFeatures();
+                               auto extensionsSupported = checkDeviceExtensionSupport(phyDevice);
+                               auto swapchainAdequate = false;
+                               if (extensionsSupported) {
+                                   auto swapchainSupportDetails = Swapchain::querySwapChainSupport(phyDevice, surface);
+                                   swapchainAdequate = !swapchainSupportDetails.formats.empty() && !swapchainSupportDetails.presentModes.empty();
+                               }
                                return properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu &&
                                       features.geometryShader &&
-                                      findQueueFamilies(phyDevice).isComplete();
+                                      findQueueFamilies(phyDevice, surface).isComplete() &&
+                                      extensionsSupported &&
+                                      swapchainAdequate;
                            });
 
     if (it == devices.end()) {
@@ -44,13 +54,13 @@ void Device::pickPhysicalDevice() {
     }
 }
 
-Device::QueueFamilyIndices Device::findQueueFamilies(const vk::PhysicalDevice &device) const {
+Device::QueueFamilyIndices Device::findQueueFamilies(const vk::PhysicalDevice &device, const vk::UniqueSurfaceKHR &surface) {
     QueueFamilyIndices indices;
 
     uint32_t i = 0;
     auto queueFamilies = device.getQueueFamilyProperties();
     std::for_each(queueFamilies.begin(), queueFamilies.end(),
-                  [&i, &indices, &device, this](const vk::QueueFamilyProperties &property) {
+                  [&i, &indices, &device, &surface](const vk::QueueFamilyProperties &property) {
                       auto presentSupport = device.getSurfaceSupportKHR(i, surface.get());
                       if (property.queueFlags & vk::QueueFlagBits::eGraphics)
                           indices.graphicsFamily = i;
@@ -63,7 +73,7 @@ Device::QueueFamilyIndices Device::findQueueFamilies(const vk::PhysicalDevice &d
 }
 
 void Device::createLogicalDevice() {
-    indices = findQueueFamilies(physicalDevice);
+    indices = findQueueFamilies(physicalDevice, surface);
     auto priority = 1.0f;
     std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
@@ -76,7 +86,8 @@ void Device::createLogicalDevice() {
     vk::PhysicalDeviceFeatures deviceFeatures{};
     vk::DeviceCreateInfo createInfo{.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
                                     .pQueueCreateInfos = queueCreateInfos.data(),
-                                    .enabledExtensionCount = 0,
+                                    .enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size()),
+                                    .ppEnabledExtensionNames = deviceExtensions.data(),
                                     .pEnabledFeatures = &deviceFeatures};
 
     if (debug) {
@@ -101,4 +112,14 @@ const vk::PhysicalDevice &Device::getPhysicalDevice() const {
 }
 const vk::UniqueDevice &Device::getDevice() const {
     return device;
+}
+bool Device::checkDeviceExtensionSupport(const vk::PhysicalDevice &device) {
+    auto availableExtensions = device.enumerateDeviceExtensionProperties();
+    std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+
+    for (const auto &extension : availableExtensions) {
+        requiredExtensions.erase(extension.extensionName);
+    }
+
+    return requiredExtensions.empty();
 }
