@@ -21,6 +21,14 @@ public:
     explicit VulkanCore(GlfwWindow &window, bool debug = false);
     void run();
 private:
+    struct QueueFamilyIndices {
+        std::optional<uint32_t> graphicsFamily;
+
+        [[nodiscard]] bool isComplete() const{
+            return graphicsFamily.has_value();
+        }
+    };
+
     Instance instance;
 
     vk::PhysicalDevice physicalDevice;
@@ -33,6 +41,7 @@ private:
     void cleanup();
 
     void pickPhysicalDevice();
+    static QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device);
 
 };
 

@@ -27,12 +27,12 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         default:
             break;
     }
-    auto msg = fmt::format("Validation layer[{}]: {}", msgType, pCallbackData->pMessage);
+    auto msg = fmt::format("[Validation layer] [{}]: {}", msgType, pCallbackData->pMessage);
 
     switch (messageSeverity) {
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-            spdlog::info(msg);
+            //spdlog::info(msg);
             break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
             spdlog::warn(msg);
@@ -111,7 +111,7 @@ void Instance::setupDebugMessenger() {
 
 vk::DebugUtilsMessengerCreateInfoEXT Instance::getDebugMessengerCreateInfo() {
     return vk::DebugUtilsMessengerCreateInfoEXT{
-            .messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError |
+            .messageSeverity = /*vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo |*/ vk::DebugUtilsMessageSeverityFlagBitsEXT::eError |
                                vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning,
             .messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation,
             .pfnUserCallback = debugCallback,
