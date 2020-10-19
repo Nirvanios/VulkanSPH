@@ -13,7 +13,9 @@
 
 #include "../window/GlfwWindow.h"
 #include "Device.h"
+#include "Framebuffers.h"
 #include "Instance.h"
+#include "Pipeline.h"
 #include "Swapchain.h"
 
 
@@ -28,6 +30,8 @@ private:
     std::shared_ptr<Device> device;
     vk::UniqueSurfaceKHR surface;
     std::shared_ptr<Swapchain> swapchain;
+    std::shared_ptr<Pipeline> pipeline;
+    std::shared_ptr<Framebuffers> framebuffers;
 
     vk::Queue graphicsQueue;
     vk::Queue presentQueue;

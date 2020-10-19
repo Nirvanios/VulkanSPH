@@ -18,6 +18,8 @@ void VulkanCore::initVulkan() {
     graphicsQueue = device->getGraphicsQueue();
     presentQueue = device->getPresentQueue();
     swapchain = std::make_shared<Swapchain>(device, surface, window.getWidth(), window.getHeight());
+    pipeline = std::make_shared<Pipeline>(device, swapchain);
+    framebuffers = std::make_shared<Framebuffers>(device, swapchain, pipeline->getRenderPass());
 }
 
 void VulkanCore::run() {

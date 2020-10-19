@@ -12,6 +12,7 @@
 class Pipeline {
 public:
     Pipeline(std::shared_ptr<Device> device, std::shared_ptr<Swapchain> swapchain);
+    const vk::RenderPass &getRenderPass() const;
 
 private:
     void createGraphicsPipeline();

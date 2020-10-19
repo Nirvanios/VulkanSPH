@@ -154,3 +154,6 @@ void Pipeline::createRenderPass() {
 
     renderPass = device->getDevice()->createRenderPassUnique(renderPassCreateInfo);
 }
+const vk::RenderPass &Pipeline::getRenderPass() const {
+    return renderPass.get();
+}
