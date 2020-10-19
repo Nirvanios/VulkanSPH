@@ -17,9 +17,10 @@ struct SwapChainSupportDetails {
 class Swapchain {
 
 public:
-    const vk::UniqueSwapchainKHR &getSwapchain() const;
-    const vk::Extent2D &getSwapchainExtent() const;
-    vk::Format getSwapchainImageFormat() const;
+    [[nodiscard]] const vk::UniqueSwapchainKHR &getSwapchain() const;
+    [[nodiscard]] const vk::Extent2D &getSwapchainExtent() const;
+    [[nodiscard]] vk::Format getSwapchainImageFormat() const;
+    [[nodiscard]] const std::vector<vk::UniqueImageView> &getSwapChainImageViews() const;
 
     Swapchain(std::shared_ptr<Device> device, const vk::UniqueSurfaceKHR &surface, int width, int height);
     static SwapChainSupportDetails querySwapChainSupport(vk::PhysicalDevice physicalDevice, const vk::UniqueSurfaceKHR &surface);

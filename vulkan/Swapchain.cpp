@@ -124,3 +124,6 @@ const vk::Extent2D &Swapchain::getSwapchainExtent() const {
 vk::Format Swapchain::getSwapchainImageFormat() const {
     return swapchainImageFormat;
 }
+const std::vector<vk::UniqueImageView> &Swapchain::getSwapChainImageViews() const {
+    return swapChainImageViews;
+}
