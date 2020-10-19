@@ -18,6 +18,8 @@ class Swapchain {
 
 public:
     const vk::UniqueSwapchainKHR &getSwapchain() const;
+    const vk::Extent2D &getSwapchainExtent() const;
+    vk::Format getSwapchainImageFormat() const;
 
     Swapchain(std::shared_ptr<Device> device, const vk::UniqueSurfaceKHR &surface, int width, int height);
     static SwapChainSupportDetails querySwapChainSupport(vk::PhysicalDevice physicalDevice, const vk::UniqueSurfaceKHR &surface);

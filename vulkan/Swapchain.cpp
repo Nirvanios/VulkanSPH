@@ -3,6 +3,7 @@
 //
 
 #include "Swapchain.h"
+#include <spdlog/spdlog.h>
 
 
 SwapChainSupportDetails Swapchain::querySwapChainSupport(vk::PhysicalDevice physicalDevice, const vk::UniqueSurfaceKHR &surface) {
@@ -90,7 +91,9 @@ void Swapchain::createSwapchain() {
 
 Swapchain::Swapchain(std::shared_ptr<Device> device, const vk::UniqueSurfaceKHR &surface, int width, int height) : device(device), surface(surface), width(width), height(height) {
     createSwapchain();
+    spdlog::debug("Created swapchain.");
     createImageViews();
+    spdlog::debug("Created imageviews.");
 }
 
 const vk::UniqueSwapchainKHR &Swapchain::getSwapchain() const {
@@ -114,4 +117,10 @@ void Swapchain::createImageViews() {
         swapChainImageViews.emplace_back(device->getDevice()->createImageViewUnique(createInfo));
     }
 
+}
+const vk::Extent2D &Swapchain::getSwapchainExtent() const {
+    return swapchainExtent;
+}
+vk::Format Swapchain::getSwapchainImageFormat() const {
+    return swapchainImageFormat;
 }
