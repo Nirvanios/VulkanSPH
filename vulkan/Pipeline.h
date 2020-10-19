@@ -23,6 +23,9 @@ private:
     vk::UniquePipelineLayout pipelineLayout;
     vk::UniquePipeline pipeline;
 
+public:
+    const vk::UniquePipeline &getPipeline() const;
+private:
     std::shared_ptr<Device> device;
     std::shared_ptr<Swapchain> swapchain;
 };

@@ -32,6 +32,8 @@ private:
     std::shared_ptr<Swapchain> swapchain;
     std::shared_ptr<Pipeline> pipeline;
     std::shared_ptr<Framebuffers> framebuffers;
+    vk::UniqueCommandPool commandPool;
+    std::vector<vk::UniqueCommandBuffer> commandBuffers;
 
     vk::Queue graphicsQueue;
     vk::Queue presentQueue;
@@ -44,6 +46,10 @@ private:
     void cleanup();
 
     void createSurface();
+
+    void createCommandPool();
+    void createCommandBuffers();
+
 };
 
 #endif//VULKANAPP_VULKANCORE_H

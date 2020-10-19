@@ -15,6 +15,9 @@ public:
 private:
     std::vector<vk::UniqueFramebuffer> swapchainFramebuffers;
 
+public:
+    const std::vector<vk::UniqueFramebuffer> &getSwapchainFramebuffers() const;
+private:
     std::shared_ptr<Swapchain> swapchain;
     std::shared_ptr<Device> device;
     const vk::RenderPass &renderpass;

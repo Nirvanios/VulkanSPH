@@ -157,3 +157,6 @@ void Pipeline::createRenderPass() {
 const vk::RenderPass &Pipeline::getRenderPass() const {
     return renderPass.get();
 }
+const vk::UniquePipeline &Pipeline::getPipeline() const {
+    return pipeline;
+}

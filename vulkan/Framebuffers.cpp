@@ -25,3 +25,6 @@ void Framebuffers::createFramebuffers() {
         swapchainFramebuffers.emplace_back(device->getDevice()->createFramebufferUnique(framebufferInfo));
     }
 }
+const std::vector<vk::UniqueFramebuffer> &Framebuffers::getSwapchainFramebuffers() const {
+    return swapchainFramebuffers;
+}
