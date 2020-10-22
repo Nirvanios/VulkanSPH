@@ -11,9 +11,9 @@ Framebuffers::Framebuffers(std::shared_ptr<Device> device, std::shared_ptr<Swapc
 }
 
 void Framebuffers::createFramebuffers() {
-    for (const auto &swapchainImageView : swapchain->getSwapChainImageViews()) {
+    for (size_t i = 0; i < swapchain->getSwapChainImageViews().size(); i++) {
         vk::ImageView attachments[] = {
-                swapchainImageView.get()};
+                swapchain->getSwapChainImageViews()[i].get()};
 
         vk::FramebufferCreateInfo framebufferInfo{.renderPass = renderpass,
                                                   .attachmentCount = 1,

@@ -24,7 +24,8 @@ void VulkanCore::initVulkan() {
     spdlog::debug("Created command pool");
     createCommandBuffers();
     spdlog::debug("Created command buffers");
-
+    createSemaphores();
+    spdlog::debug("Created semaphores.");
 }
 
 void VulkanCore::run() {
@@ -35,7 +36,10 @@ void VulkanCore::run() {
 void VulkanCore::mainLoop() {
     while (!glfwWindowShouldClose(window.getWindow().get())) {
         glfwPollEvents();
+        drawFrame();
     }
+
+    device->getDevice()->waitIdle();
 }
 
 void VulkanCore::cleanup() {
@@ -73,7 +77,8 @@ void VulkanCore::createCommandBuffers() {
     int i = 0;
     auto &swapchainFramebuffers = framebuffers->getSwapchainFramebuffers();
     for (auto &commandBuffer : commandBuffers) {
-        vk::CommandBufferBeginInfo beginInfo{.pInheritanceInfo = nullptr};
+        vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse,
+                                             .pInheritanceInfo = nullptr};
 
         commandBuffer->begin(beginInfo);
 
@@ -82,15 +87,47 @@ void VulkanCore::createCommandBuffers() {
                                                     .framebuffer = swapchainFramebuffers[i].get(),
                                                     .renderArea = {.offset = {0, 0},
                                                                    .extent = swapchain->getSwapchainExtent()},
-        .clearValueCount = 1,
-        .pClearValues = &clearValue};
+                                                    .clearValueCount = 1,
+                                                    .pClearValues = &clearValue};
 
         commandBuffer->beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
         commandBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline->getPipeline().get());
-        commandBuffer->draw(3,1,0,0);
+        commandBuffer->draw(3, 1, 0, 0);
         commandBuffer->endRenderPass();
 
         commandBuffer->end();
-
+        ++i;
     }
+}
+void VulkanCore::createSemaphores() {
+    vk::SemaphoreCreateInfo semaphoreCreateInfo{};
+
+    imageAvailableSemaphore = device->getDevice()->createSemaphoreUnique(semaphoreCreateInfo);
+    renderFinishedSemaphore = device->getDevice()->createSemaphoreUnique(semaphoreCreateInfo);
+}
+void VulkanCore::drawFrame() {
+    uint32_t imageindex = device->getDevice()->acquireNextImageKHR(swapchain->getSwapchain().get(), UINT64_MAX, imageAvailableSemaphore.get(), nullptr);
+    std::array<vk::Semaphore, 1> waitSemaphores{imageAvailableSemaphore.get()};
+    std::array<vk::Semaphore, 1> signalSemaphores{renderFinishedSemaphore.get()};
+    std::array<vk::PipelineStageFlags, 1> waitStages{vk::PipelineStageFlagBits::eColorAttachmentOutput};
+    std::array<vk::SwapchainKHR, 1> swapchains{swapchain->getSwapchain().get()};
+
+    vk::SubmitInfo submitInfo{.waitSemaphoreCount = 1,
+                              .pWaitSemaphores = waitSemaphores.data(),
+                              .pWaitDstStageMask = waitStages.data(),
+                              .commandBufferCount = 1,
+                              .pCommandBuffers = &commandBuffers[imageindex].get(),
+                              .signalSemaphoreCount = 1,
+                              .pSignalSemaphores = signalSemaphores.data()};
+
+    graphicsQueue.submit(submitInfo, nullptr);
+
+    vk::PresentInfoKHR presentInfo{.waitSemaphoreCount = 1,
+                                   .pWaitSemaphores = signalSemaphores.data(),
+                                   .swapchainCount = 1,
+                                   .pSwapchains = swapchains.data(),
+                                   .pImageIndices = &imageindex,
+                                   .pResults = nullptr};
+
+    presentQueue.presentKHR(presentInfo);
 }

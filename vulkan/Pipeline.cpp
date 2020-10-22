@@ -90,7 +90,7 @@ void Pipeline::createGraphicsPipeline() {
                                                                .pAttachments = &colorBlendAttachmentState,
                                                                .blendConstants = std::array<float, 4>{0.0f, 0.0f, 0.0f, 0.0f}};
 
-/*
+    /*
     std::array<vk::DynamicState, 2> dynamicStates{vk::DynamicState::eViewport,
                                                   vk::DynamicState::eLineWidth};
 
@@ -147,10 +147,19 @@ void Pipeline::createRenderPass() {
                                               .colorAttachmentCount = 1,
                                               .pColorAttachments = &colorAttachmentReference};
 
+    vk::SubpassDependency dependency{.srcSubpass = VK_SUBPASS_EXTERNAL,
+                                     .dstSubpass = 0,
+                                     .srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
+                                     .dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
+                                     .dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite};
+
     vk::RenderPassCreateInfo renderPassCreateInfo{.attachmentCount = 1,
                                                   .pAttachments = &colorAttachment,
                                                   .subpassCount = 1,
-                                                  .pSubpasses = &subpassDescription};
+                                                  .pSubpasses = &subpassDescription,
+                                                  .dependencyCount = 1,
+                                                  .pDependencies = &dependency};
+
 
     renderPass = device->getDevice()->createRenderPassUnique(renderPassCreateInfo);
 }

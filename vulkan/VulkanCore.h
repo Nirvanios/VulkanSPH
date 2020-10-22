@@ -35,6 +35,8 @@ private:
     vk::UniqueCommandPool commandPool;
     std::vector<vk::UniqueCommandBuffer> commandBuffers;
 
+    vk::UniqueSemaphore imageAvailableSemaphore, renderFinishedSemaphore;
+
     vk::Queue graphicsQueue;
     vk::Queue presentQueue;
 
@@ -49,6 +51,9 @@ private:
 
     void createCommandPool();
     void createCommandBuffers();
+
+    void drawFrame();
+    void createSemaphores();
 
 };
 
