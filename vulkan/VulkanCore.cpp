@@ -112,17 +112,15 @@ void VulkanCore::createSyncObjects() {
     }
 }
 void VulkanCore::drawFrame() {
-    device->getDevice()->waitForFences(inFlightFences[currentFrame].get(), VK_TRUE, UINT64_MAX);
-
-    uint32_t imageindex = device->getDevice()->acquireNextImageKHR(swapchain->getSwapchain().get(), UINT64_MAX, imageAvailableSemaphore[currentFrame].get(), nullptr);
     std::array<vk::Semaphore, 1> waitSemaphores{imageAvailableSemaphore[currentFrame].get()};
     std::array<vk::Semaphore, 1> signalSemaphores{renderFinishedSemaphore[currentFrame].get()};
     std::array<vk::PipelineStageFlags, 1> waitStages{vk::PipelineStageFlagBits::eColorAttachmentOutput};
     std::array<vk::SwapchainKHR, 1> swapchains{swapchain->getSwapchain().get()};
 
 
+    device->getDevice()->waitForFences(inFlightFences[currentFrame].get(), VK_TRUE, UINT64_MAX);
+    uint32_t imageindex = device->getDevice()->acquireNextImageKHR(swapchain->getSwapchain().get(), UINT64_MAX, imageAvailableSemaphore[currentFrame].get(), nullptr);
     device->getDevice()->waitForFences(imagesInFlight[imageindex], VK_TRUE, UINT64_MAX);
-
     imagesInFlight[imageindex] = inFlightFences[currentFrame].get();
 
 
@@ -133,10 +131,6 @@ void VulkanCore::drawFrame() {
                               .pCommandBuffers = &commandBuffers[imageindex].get(),
                               .signalSemaphoreCount = 1,
                               .pSignalSemaphores = signalSemaphores.data()};
-
-    device->getDevice()->resetFences(inFlightFences[currentFrame].get());
-    graphicsQueue.submit(submitInfo, inFlightFences[currentFrame].get());
-
     vk::PresentInfoKHR presentInfo{.waitSemaphoreCount = 1,
                                    .pWaitSemaphores = signalSemaphores.data(),
                                    .swapchainCount = 1,
@@ -144,6 +138,8 @@ void VulkanCore::drawFrame() {
                                    .pImageIndices = &imageindex,
                                    .pResults = nullptr};
 
+    device->getDevice()->resetFences(inFlightFences[currentFrame].get());
+    graphicsQueue.submit(submitInfo, inFlightFences[currentFrame].get());
     presentQueue.presentKHR(presentInfo);
 
     currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
