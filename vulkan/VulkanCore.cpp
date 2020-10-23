@@ -24,7 +24,7 @@ void VulkanCore::initVulkan() {
     spdlog::debug("Created command pool");
     createCommandBuffers();
     spdlog::debug("Created command buffers");
-    createSemaphores();
+    createSyncObjects();
     spdlog::debug("Created semaphores.");
 }
 
@@ -99,18 +99,32 @@ void VulkanCore::createCommandBuffers() {
         ++i;
     }
 }
-void VulkanCore::createSemaphores() {
-    vk::SemaphoreCreateInfo semaphoreCreateInfo{};
+void VulkanCore::createSyncObjects() {
+    for ([[maybe_unused]] const auto &image : swapchain->getSwapChainImageViews()) {
+        imagesInFlight.emplace_back(device->getDevice()->createFence({.flags = vk::FenceCreateFlagBits::eSignaled}));
+    }
+    imagesInFlight.resize(swapchain->getSwapChainImageViews().size());
 
-    imageAvailableSemaphore = device->getDevice()->createSemaphoreUnique(semaphoreCreateInfo);
-    renderFinishedSemaphore = device->getDevice()->createSemaphoreUnique(semaphoreCreateInfo);
+    for (auto i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        imageAvailableSemaphore.emplace_back(device->getDevice()->createSemaphoreUnique({}));
+        renderFinishedSemaphore.emplace_back(device->getDevice()->createSemaphoreUnique({}));
+        inFlightFences.emplace_back(device->getDevice()->createFenceUnique({.flags = vk::FenceCreateFlagBits::eSignaled}));
+    }
 }
 void VulkanCore::drawFrame() {
-    uint32_t imageindex = device->getDevice()->acquireNextImageKHR(swapchain->getSwapchain().get(), UINT64_MAX, imageAvailableSemaphore.get(), nullptr);
-    std::array<vk::Semaphore, 1> waitSemaphores{imageAvailableSemaphore.get()};
-    std::array<vk::Semaphore, 1> signalSemaphores{renderFinishedSemaphore.get()};
+    device->getDevice()->waitForFences(inFlightFences[currentFrame].get(), VK_TRUE, UINT64_MAX);
+
+    uint32_t imageindex = device->getDevice()->acquireNextImageKHR(swapchain->getSwapchain().get(), UINT64_MAX, imageAvailableSemaphore[currentFrame].get(), nullptr);
+    std::array<vk::Semaphore, 1> waitSemaphores{imageAvailableSemaphore[currentFrame].get()};
+    std::array<vk::Semaphore, 1> signalSemaphores{renderFinishedSemaphore[currentFrame].get()};
     std::array<vk::PipelineStageFlags, 1> waitStages{vk::PipelineStageFlagBits::eColorAttachmentOutput};
     std::array<vk::SwapchainKHR, 1> swapchains{swapchain->getSwapchain().get()};
+
+
+    device->getDevice()->waitForFences(imagesInFlight[imageindex], VK_TRUE, UINT64_MAX);
+
+    imagesInFlight[imageindex] = inFlightFences[currentFrame].get();
+
 
     vk::SubmitInfo submitInfo{.waitSemaphoreCount = 1,
                               .pWaitSemaphores = waitSemaphores.data(),
@@ -120,7 +134,8 @@ void VulkanCore::drawFrame() {
                               .signalSemaphoreCount = 1,
                               .pSignalSemaphores = signalSemaphores.data()};
 
-    graphicsQueue.submit(submitInfo, nullptr);
+    device->getDevice()->resetFences(inFlightFences[currentFrame].get());
+    graphicsQueue.submit(submitInfo, inFlightFences[currentFrame].get());
 
     vk::PresentInfoKHR presentInfo{.waitSemaphoreCount = 1,
                                    .pWaitSemaphores = signalSemaphores.data(),
@@ -130,4 +145,6 @@ void VulkanCore::drawFrame() {
                                    .pResults = nullptr};
 
     presentQueue.presentKHR(presentInfo);
+
+    currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }

@@ -26,6 +26,9 @@ public:
     void run();
 
 private:
+    const int MAX_FRAMES_IN_FLIGHT = 2;
+    int currentFrame = 0;
+
     std::shared_ptr<Instance> instance;
     std::shared_ptr<Device> device;
     vk::UniqueSurfaceKHR surface;
@@ -35,7 +38,9 @@ private:
     vk::UniqueCommandPool commandPool;
     std::vector<vk::UniqueCommandBuffer> commandBuffers;
 
-    vk::UniqueSemaphore imageAvailableSemaphore, renderFinishedSemaphore;
+    std::vector<vk::UniqueSemaphore> imageAvailableSemaphore, renderFinishedSemaphore;
+    std::vector<vk::UniqueFence> inFlightFences;
+    std::vector<vk::Fence> imagesInFlight;
 
     vk::Queue graphicsQueue;
     vk::Queue presentQueue;
@@ -53,7 +58,7 @@ private:
     void createCommandBuffers();
 
     void drawFrame();
-    void createSemaphores();
+    void createSyncObjects();
 
 };
 
