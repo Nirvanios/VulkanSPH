@@ -5,6 +5,7 @@
 #ifndef VULKANAPP_SWAPCHAIN_H
 #define VULKANAPP_SWAPCHAIN_H
 
+#include "../window/GlfwWindow.h"
 #include "Device.h"
 #include <vector>
 #include <vulkan/vulkan.hpp>
@@ -22,7 +23,10 @@ public:
     [[nodiscard]] vk::Format getSwapchainImageFormat() const;
     [[nodiscard]] const std::vector<vk::UniqueImageView> &getSwapChainImageViews() const;
 
-    Swapchain(std::shared_ptr<Device> device, const vk::UniqueSurfaceKHR &surface, int width, int height);
+    void createSwapchain();
+    void createImageViews();
+
+    Swapchain(std::shared_ptr<Device> device, const vk::UniqueSurfaceKHR &surface, const GlfwWindow &window);
     static SwapChainSupportDetails querySwapChainSupport(vk::PhysicalDevice physicalDevice, const vk::UniqueSurfaceKHR &surface);
     static vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR> &availableFormats);
     static vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &availablePresentModes);
@@ -38,11 +42,9 @@ private:
 
 
     std::shared_ptr<Device> device;
+    const GlfwWindow &window;
     const vk::UniqueSurfaceKHR &surface;
-    int width, height;
 
-    void createSwapchain();
-    void createImageViews();
 };
 
 

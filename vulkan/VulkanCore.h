@@ -17,6 +17,7 @@
 #include "Instance.h"
 #include "Pipeline.h"
 #include "Swapchain.h"
+#include "Types.h"
 
 
 class VulkanCore {
@@ -26,8 +27,15 @@ public:
     void run();
 
 private:
+    const std::vector<Vertex> vertices = {
+            {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+            {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+            {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+    };
+
     const int MAX_FRAMES_IN_FLIGHT = 2;
     int currentFrame = 0;
+    bool framebufferResized = false;
 
     std::shared_ptr<Instance> instance;
     std::shared_ptr<Device> device;
@@ -40,7 +48,7 @@ private:
 
     std::vector<vk::UniqueSemaphore> imageAvailableSemaphore, renderFinishedSemaphore;
     std::vector<vk::UniqueFence> inFlightFences;
-    std::vector<vk::Fence> imagesInFlight;
+    std::vector<vk::Fence> imagesInFlight; //TODO optional
 
     vk::Queue graphicsQueue;
     vk::Queue presentQueue;
@@ -60,6 +68,11 @@ private:
     void drawFrame();
     void createSyncObjects();
 
+    void recreateSwapchain();
+
+public:
+    bool isFramebufferResized() const;
+    void setFramebufferResized(bool framebufferResized);
 };
 
 #endif//VULKANAPP_VULKANCORE_H

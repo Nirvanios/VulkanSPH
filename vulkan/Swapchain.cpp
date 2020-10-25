@@ -53,6 +53,8 @@ void Swapchain::createSwapchain() {
     auto surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
     swapchainImageFormat = surfaceFormat.format;
     auto presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+    int width, height;
+    glfwGetFramebufferSize(window.getWindow().get(), &width, &height);
     swapchainExtent = chooseSwapExtent(swapChainSupport.capabilities, width, height);
 
     uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
@@ -86,10 +88,11 @@ void Swapchain::createSwapchain() {
     }
     swapchain = device->getDevice()->createSwapchainKHRUnique(createInfo);
 
+    swapchainImages.clear();
     swapchainImages = device->getDevice()->getSwapchainImagesKHR(swapchain.get());
 }
 
-Swapchain::Swapchain(std::shared_ptr<Device> device, const vk::UniqueSurfaceKHR &surface, int width, int height) : device(device), surface(surface), width(width), height(height) {
+Swapchain::Swapchain(std::shared_ptr<Device> device, const vk::UniqueSurfaceKHR &surface,const GlfwWindow &window) : device(device), window(window), surface(surface) {
     createSwapchain();
     spdlog::debug("Created swapchain.");
     createImageViews();
@@ -101,6 +104,7 @@ const vk::UniqueSwapchainKHR &Swapchain::getSwapchain() const {
 }
 
 void Swapchain::createImageViews() {
+    swapChainImageViews.clear();
     for (const auto &swapchainImage : swapchainImages) {
         vk::ImageViewCreateInfo createInfo{.image = swapchainImage,
                                            .viewType = vk::ImageViewType::e2D,

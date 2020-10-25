@@ -51,6 +51,7 @@ void Device::pickPhysicalDevice() {
             spdlog::info(fmt::format("Available GPU: {}.<-- SELECTED", availableDevice.getProperties().deviceName));
         else
             spdlog::info(fmt::format("Available GPU: {}.", availableDevice.getProperties().deviceName));
+
     }
 }
 

@@ -10,6 +10,11 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+enum class CallbackTypes{
+    eFramebufferSize,
+    eMouse
+};
+
 
 struct DestroyglfwWin {
 
@@ -26,8 +31,10 @@ public:
     explicit GlfwWindow(const std::string &windowName = "VulkanApp", int width = 800, int height = 600);
     virtual ~GlfwWindow();
     [[nodiscard]] const Window &getWindow() const;
-    int getWidth() const;
-    int getHeight() const;
+    [[nodiscard]] int getWidth() const;
+    [[nodiscard]] int getHeight() const;
+    void setFramebufferCallback();
+    void checkMinimized();
 
 private:
     Window window;

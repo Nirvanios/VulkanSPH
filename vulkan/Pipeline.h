@@ -14,9 +14,10 @@ public:
     Pipeline(std::shared_ptr<Device> device, std::shared_ptr<Swapchain> swapchain);
     const vk::RenderPass &getRenderPass() const;
 
-private:
     void createGraphicsPipeline();
     void createRenderPass();
+
+private:
     vk::UniqueShaderModule createShaderModule(const std::string &code);
 
     vk::UniqueRenderPass renderPass;

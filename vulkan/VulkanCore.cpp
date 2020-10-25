@@ -9,15 +9,15 @@
 #include "../Utilities.h"
 #include "VulkanCore.h"
 
-
 void VulkanCore::initVulkan() {
+    glfwSetWindowUserPointer(window.getWindow().get(), this);
     instance = std::make_shared<Instance>(window.getWindowName(), debug);
     createSurface();
     spdlog::debug("Created surface.");
     device = std::make_shared<Device>(instance, surface, debug);
     graphicsQueue = device->getGraphicsQueue();
     presentQueue = device->getPresentQueue();
-    swapchain = std::make_shared<Swapchain>(device, surface, window.getWidth(), window.getHeight());
+    swapchain = std::make_shared<Swapchain>(device, surface, window);
     pipeline = std::make_shared<Pipeline>(device, swapchain);
     framebuffers = std::make_shared<Framebuffers>(device, swapchain, pipeline->getRenderPass());
     createCommandPool();
@@ -36,8 +36,10 @@ void VulkanCore::run() {
 void VulkanCore::mainLoop() {
     while (!glfwWindowShouldClose(window.getWindow().get())) {
         glfwPollEvents();
+        //glfwWaitEvents();
         drawFrame();
     }
+
 
     device->getDevice()->waitIdle();
 }
@@ -67,6 +69,7 @@ void VulkanCore::createCommandPool() {
     commandPool = device->getDevice()->createCommandPoolUnique(commandPoolCreateInfo);
 }
 void VulkanCore::createCommandBuffers() {
+    commandBuffers.clear();
     commandBuffers.resize(framebuffers->getSwapchainFramebuffers().size());
     vk::CommandBufferAllocateInfo bufferAllocateInfo{.commandPool = commandPool.get(),
                                                      .level = vk::CommandBufferLevel::ePrimary,
@@ -116,11 +119,19 @@ void VulkanCore::drawFrame() {
     std::array<vk::Semaphore, 1> signalSemaphores{renderFinishedSemaphore[currentFrame].get()};
     std::array<vk::PipelineStageFlags, 1> waitStages{vk::PipelineStageFlagBits::eColorAttachmentOutput};
     std::array<vk::SwapchainKHR, 1> swapchains{swapchain->getSwapchain().get()};
+    vk::Result result;
+    uint32_t  imageindex;
 
+    result = device->getDevice()->waitForFences(inFlightFences[currentFrame].get(), VK_TRUE, UINT64_MAX);
+    try {
+        result = device->getDevice()->acquireNextImageKHR(swapchain->getSwapchain().get(), UINT64_MAX, imageAvailableSemaphore[currentFrame].get(), nullptr, &imageindex);
+    }
+    catch (const std::exception &e) {
+        recreateSwapchain();
+        return;
+    }
 
-    device->getDevice()->waitForFences(inFlightFences[currentFrame].get(), VK_TRUE, UINT64_MAX);
-    uint32_t imageindex = device->getDevice()->acquireNextImageKHR(swapchain->getSwapchain().get(), UINT64_MAX, imageAvailableSemaphore[currentFrame].get(), nullptr);
-    device->getDevice()->waitForFences(imagesInFlight[imageindex], VK_TRUE, UINT64_MAX);
+    result = device->getDevice()->waitForFences(imagesInFlight[imageindex], VK_TRUE, UINT64_MAX);
     imagesInFlight[imageindex] = inFlightFences[currentFrame].get();
 
 
@@ -140,7 +151,32 @@ void VulkanCore::drawFrame() {
 
     device->getDevice()->resetFences(inFlightFences[currentFrame].get());
     graphicsQueue.submit(submitInfo, inFlightFences[currentFrame].get());
-    presentQueue.presentKHR(presentInfo);
+
+    try {
+        result = presentQueue.presentKHR(presentInfo);
+    } catch (const vk::OutOfDateKHRError &e) {
+        recreateSwapchain();
+    }
 
     currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+
+
+}
+void VulkanCore::recreateSwapchain() {
+    window.checkMinimized();
+    device->getDevice().get().waitIdle();
+
+    swapchain->createSwapchain();
+    swapchain->createImageViews();
+    pipeline->createRenderPass();
+    pipeline->createGraphicsPipeline();
+    framebuffers->createFramebuffers();
+    createCommandBuffers();
+}
+
+bool VulkanCore::isFramebufferResized() const {
+    return framebufferResized;
+}
+void VulkanCore::setFramebufferResized(bool framebufferResized) {
+    VulkanCore::framebufferResized = framebufferResized;
 }

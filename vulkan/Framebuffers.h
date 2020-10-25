@@ -12,17 +12,16 @@ class Framebuffers {
 public:
     Framebuffers(std::shared_ptr<Device> device, std::shared_ptr<Swapchain> swapchain, const vk::RenderPass &renderPass);
 
-private:
-    std::vector<vk::UniqueFramebuffer> swapchainFramebuffers;
+    void createFramebuffers();
 
-public:
     const std::vector<vk::UniqueFramebuffer> &getSwapchainFramebuffers() const;
 private:
     std::shared_ptr<Swapchain> swapchain;
     std::shared_ptr<Device> device;
     const vk::RenderPass &renderpass;
 
-    void createFramebuffers();
+    std::vector<vk::UniqueFramebuffer> swapchainFramebuffers;
+
 
 };
 

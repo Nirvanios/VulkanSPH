@@ -3,16 +3,18 @@
 //
 
 #include "spdlog/spdlog.h"
+#include "Callbacks.h"
 
 #include "GlfwWindow.h"
 
-GlfwWindow::GlfwWindow(const std::string& windowName, const int width, const int height){
+GlfwWindow::GlfwWindow(const std::string &windowName, const int width, const int height) {
     this->width = width;
     this->height = height;
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     window = std::unique_ptr<GLFWwindow, DestroyglfwWin>(glfwCreateWindow(width, height, windowName.c_str(), nullptr, nullptr));
+    glfwSetFramebufferSizeCallback(window.get(), framebufferResizeCallback);
     this->windowName = windowName;
     spdlog::debug(fmt::format("Creating window \"{}\". Size: {}x{}.", windowName, width, height));
 }
@@ -35,4 +37,16 @@ int GlfwWindow::getWidth() const {
 }
 int GlfwWindow::getHeight() const {
     return height;
+}
+
+void GlfwWindow::setFramebufferCallback(){
+    glfwSetFramebufferSizeCallback(window.get(), framebufferResizeCallback);
+}
+void GlfwWindow::checkMinimized() {
+    int width = 0, height = 0;
+    glfwGetFramebufferSize(window.get(), &width, &height);
+    while (width == 0 || height == 0) {
+        glfwGetFramebufferSize(window.get(), &width, &height);
+        glfwWaitEvents();
+    }
 }
