@@ -64,7 +64,7 @@ void Instance::createInstance() {
                                       .applicationVersion = VK_MAKE_VERSION(0, 0, 1),
                                       .pEngineName = "No Engine",
                                       .engineVersion = VK_MAKE_VERSION(0, 0, 0),
-                                      .apiVersion = VK_API_VERSION_1_2};
+                                      .apiVersion = VK_API_VERSION_1_1};
     vk::InstanceCreateInfo createInfo{.pApplicationInfo = &appInfo,
                                       .enabledExtensionCount = static_cast<uint32_t>(extensions.size()),
                                       .ppEnabledExtensionNames = extensions.data()};

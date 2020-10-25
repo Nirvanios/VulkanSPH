@@ -5,7 +5,8 @@
 #include "Pipeline.h"
 #include "../Utilities.h"
 #include <spdlog/spdlog.h>
-#include <zconf.h>
+
+
 Pipeline::Pipeline(std::shared_ptr<Device> device, std::shared_ptr<Swapchain> swapchain) {
     this->device = device;
     this->swapchain = swapchain;
