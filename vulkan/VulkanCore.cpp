@@ -4,6 +4,7 @@
 
 #include <algorithm>
 
+#include "glm/gtc/matrix_transform.hpp"
 #include "spdlog/spdlog.h"
 
 #include "../Utilities.h"
@@ -20,8 +21,12 @@ void VulkanCore::initVulkan() {
     swapchain = std::make_shared<Swapchain>(device, surface, window);
     pipeline = std::make_shared<Pipeline>(device, swapchain);
     framebuffers = std::make_shared<Framebuffers>(device, swapchain, pipeline->getRenderPass());
-    createVertexBuffer();
     createCommandPool();
+    createVertexBuffer();
+    createIndexBuffer();
+    createUniformBuffers();
+    createDescriptorPool();
+    createDescriptorSet();
     spdlog::debug("Created command pool");
     createCommandBuffers();
     spdlog::debug("Created command buffers");
@@ -45,8 +50,7 @@ void VulkanCore::mainLoop() {
     device->getDevice()->waitIdle();
 }
 
-void VulkanCore::cleanup() {
-}
+void VulkanCore::cleanup() {}
 
 VulkanCore::VulkanCore(GlfwWindow &window, bool debug) : debug(debug), window(window) {
     spdlog::debug("Vulkan initialization...");
@@ -83,23 +87,24 @@ void VulkanCore::createCommandBuffers() {
     std::array<vk::DeviceSize, 1> offsets{0};
     auto &swapchainFramebuffers = framebuffers->getSwapchainFramebuffers();
     for (auto &commandBuffer : commandBuffers) {
-        vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse,
-                                             .pInheritanceInfo = nullptr};
+        vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse, .pInheritanceInfo = nullptr};
 
         commandBuffer->begin(beginInfo);
 
         vk::ClearValue clearValue{std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f}};
         vk::RenderPassBeginInfo renderPassBeginInfo{.renderPass = pipeline->getRenderPass(),
                                                     .framebuffer = swapchainFramebuffers[i].get(),
-                                                    .renderArea = {.offset = {0, 0},
-                                                                   .extent = swapchain->getSwapchainExtent()},
+                                                    .renderArea = {.offset = {0, 0}, .extent = swapchain->getSwapchainExtent()},
                                                     .clearValueCount = 1,
                                                     .pClearValues = &clearValue};
 
         commandBuffer->beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
         commandBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline->getPipeline().get());
-        commandBuffer->bindVertexBuffers(0, 1, vertexBuffers.data(),  offsets.data());
-        commandBuffer->draw(vertices.size(), 1, 0, 0);
+        commandBuffer->bindVertexBuffers(0, 1, vertexBuffers.data(), offsets.data());
+        commandBuffer->bindIndexBuffer(indexBuffer.get(), 0, vk::IndexType::eUint16);
+        commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline->getPipelineLayout().get(), 0, 1, &descriptorSets[i].get(), 0, nullptr);
+        commandBuffer->drawIndexed(indices.size(), 1, 0, 0, 0);
+        //commandBuffer->draw(vertices.size(), 1, 0, 0);
         commandBuffer->endRenderPass();
 
         commandBuffer->end();
@@ -128,11 +133,13 @@ void VulkanCore::drawFrame() {
 
     result = device->getDevice()->waitForFences(inFlightFences[currentFrame].get(), VK_TRUE, UINT64_MAX);
     try {
-        result = device->getDevice()->acquireNextImageKHR(swapchain->getSwapchain().get(), UINT64_MAX, imageAvailableSemaphore[currentFrame].get(), nullptr, &imageindex);
+        result = device->getDevice()->acquireNextImageKHR(swapchain->getSwapchain().get(), UINT64_MAX, imageAvailableSemaphore[currentFrame].get(), nullptr,
+                                                          &imageindex);
     } catch (const std::exception &e) {
         recreateSwapchain();
         return;
     }
+    updateUniformBuffers(imageindex);
 
     result = device->getDevice()->waitForFences(imagesInFlight[imageindex], VK_TRUE, UINT64_MAX);
     imagesInFlight[imageindex] = inFlightFences[currentFrame].get();
@@ -157,9 +164,7 @@ void VulkanCore::drawFrame() {
 
     try {
         result = presentQueue.presentKHR(presentInfo);
-    } catch (const vk::OutOfDateKHRError &e) {
-        recreateSwapchain();
-    }
+    } catch (const vk::OutOfDateKHRError &e) { recreateSwapchain(); }
 
     currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
@@ -172,43 +177,142 @@ void VulkanCore::recreateSwapchain() {
     pipeline->createRenderPass();
     pipeline->createGraphicsPipeline();
     framebuffers->createFramebuffers();
+    createUniformBuffers();
+    createDescriptorPool();
+    createDescriptorSet();
     createCommandBuffers();
 }
 
-bool VulkanCore::isFramebufferResized() const {
-    return framebufferResized;
-}
-void VulkanCore::setFramebufferResized(bool framebufferResized) {
-    VulkanCore::framebufferResized = framebufferResized;
-}
+bool VulkanCore::isFramebufferResized() const { return framebufferResized; }
+
+void VulkanCore::setFramebufferResized(bool framebufferResized) { VulkanCore::framebufferResized = framebufferResized; }
+
 void VulkanCore::createVertexBuffer() {
-    vk::BufferCreateInfo bufferCreateInfo{.size = sizeof(vertices[0]) * vertices.size(),
-                                          .usage = vk::BufferUsageFlagBits::eVertexBuffer,
-                                          .sharingMode = vk::SharingMode::eExclusive};
+    auto size = sizeof(vertices[0]) * vertices.size();
+    vk::UniqueBuffer stagingBuffer;
+    vk::UniqueDeviceMemory stagingBufferMemory;
+    createBuffer(size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible,
+                 stagingBuffer, stagingBufferMemory);
 
-    vertexBuffer = device->getDevice()->createBufferUnique(bufferCreateInfo);
+    auto data = device->getDevice()->mapMemory(stagingBufferMemory.get(), 0, size);
+    memcpy(data, vertices.data(), size);
+    device->getDevice()->unmapMemory(stagingBufferMemory.get());
 
-    auto memRequirements = device->getDevice()->getBufferMemoryRequirements(vertexBuffer.get());
-    auto memProperties = device->getPhysicalDevice().getMemoryProperties();
-    vk::MemoryAllocateInfo allocateInfo{.allocationSize = memRequirements.size,
-                                        .memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)};
-
-    vertexBufferMemory = device->getDevice()->allocateMemoryUnique(allocateInfo);
-    device->getDevice()->bindBufferMemory(vertexBuffer.get(), vertexBufferMemory.get(), 0);
-
-    auto data = device->getDevice()->mapMemory(vertexBufferMemory.get(), 0, bufferCreateInfo.size);
-    memcpy(data, vertices.data(), bufferCreateInfo.size);
-    device->getDevice()->unmapMemory(vertexBufferMemory.get());
+    createBuffer(size, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal, vertexBuffer,
+                 vertexBufferMemory);
+    copyBuffer(stagingBuffer, vertexBuffer, size);
 }
+
+
 uint32_t VulkanCore::findMemoryType(uint32_t typeFilter, const vk::MemoryPropertyFlags &properties) {
     auto memProperties = device->getPhysicalDevice().getMemoryProperties();
     uint32_t i = 0;
     for (const auto &type : memProperties.memoryTypes) {
-        if ((typeFilter & (1 << i)) && (type.propertyFlags & properties)) {
-            return i;
-        }
+        if ((typeFilter & (1 << i)) && (type.propertyFlags & properties)) { return i; }
         ++i;
     }
 
     throw std::runtime_error("failed to find suitable memory type!");
+}
+void VulkanCore::createBuffer(vk::DeviceSize size, const vk::BufferUsageFlags &usage, const vk::MemoryPropertyFlags &properties, vk::UniqueBuffer &buffer,
+                              vk::UniqueDeviceMemory &memory) {
+
+    vk::BufferCreateInfo bufferCreateInfo{.size = size, .usage = usage, .sharingMode = vk::SharingMode::eExclusive};
+
+    buffer = device->getDevice()->createBufferUnique(bufferCreateInfo);
+
+    auto memRequirements = device->getDevice()->getBufferMemoryRequirements(buffer.get());
+    auto memProperties = device->getPhysicalDevice().getMemoryProperties();
+    vk::MemoryAllocateInfo allocateInfo{.allocationSize = memRequirements.size, .memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties)};
+
+    memory = device->getDevice()->allocateMemoryUnique(allocateInfo);
+    device->getDevice()->bindBufferMemory(buffer.get(), memory.get(), 0);
+}
+void VulkanCore::copyBuffer(const vk::UniqueBuffer &srcBuffer, const vk::UniqueBuffer &dstBuffer, vk::DeviceSize size) {
+    vk::CommandBufferAllocateInfo allocateInfo{.commandPool = commandPool.get(), .level = vk::CommandBufferLevel::ePrimary, .commandBufferCount = 1};
+    auto commandBuffer = device->getDevice()->allocateCommandBuffersUnique(allocateInfo);
+
+    vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit};
+    commandBuffer[0]->begin(beginInfo);
+
+    vk::BufferCopy copyRegion{.srcOffset = 0, .dstOffset = 0, .size = size};
+
+    commandBuffer[0]->copyBuffer(srcBuffer.get(), dstBuffer.get(), 1, &copyRegion);
+    commandBuffer[0]->end();
+
+    vk::SubmitInfo submitInfo{.commandBufferCount = 1, .pCommandBuffers = &commandBuffer[0].get()};
+
+    graphicsQueue.submit(1, &submitInfo, nullptr);
+    graphicsQueue.waitIdle();
+}
+void VulkanCore::createIndexBuffer() {
+    auto size = sizeof(indices[0]) * indices.size();
+    vk::UniqueBuffer stagingBuffer;
+    vk::UniqueDeviceMemory stagingBufferMemory;
+    createBuffer(size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible,
+                 stagingBuffer, stagingBufferMemory);
+
+    auto data = device->getDevice()->mapMemory(stagingBufferMemory.get(), 0, size);
+    memcpy(data, indices.data(), size);
+    device->getDevice()->unmapMemory(stagingBufferMemory.get());
+
+    createBuffer(size, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal, indexBuffer,
+                 indexBufferMemory);
+    copyBuffer(stagingBuffer, indexBuffer, size);
+}
+void VulkanCore::createUniformBuffers() {
+    vk::DeviceSize size = sizeof(UniformBufferObject);
+
+    for (const auto &swapImage : swapchain->getSwapChainImageViews()) {
+        unifromsBuffers.emplace_back();
+        uniformBufferMemories.emplace_back();
+        createBuffer(size, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+                     unifromsBuffers.back(), uniformBufferMemories.back());
+    }
+}
+void VulkanCore::updateUniformBuffers(uint32_t currentImage) {
+    static auto startTime = std::chrono::high_resolution_clock::now();
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+    UniformBufferObject ubo{.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+                            .view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+                            .proj = glm::perspective(glm::radians(45.0f),
+                                                     swapchain->getSwapchainExtent().width / static_cast<float>(swapchain->getSwapchainExtent().height), 0.1f,
+                                                     10.f)};
+    ubo.proj[1][1] *= -1;
+    auto data = device->getDevice()->mapMemory(uniformBufferMemories[currentImage].get(), 0, sizeof(ubo));
+    memcpy(data, &ubo, sizeof(ubo));
+    device->getDevice()->unmapMemory(uniformBufferMemories[currentImage].get());
+}
+void VulkanCore::createDescriptorPool() {
+    vk::DescriptorPoolSize poolSize{.descriptorCount = static_cast<uint32_t>(swapchain->getSwapChainImageViews().size())};
+    vk::DescriptorPoolCreateInfo poolCreateInfo{
+            .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+            .maxSets = static_cast<uint32_t>(swapchain->getSwapChainImageViews().size()),
+            .poolSizeCount = 1,
+            .pPoolSizes = &poolSize,
+    };
+    descriptorPool = device->getDevice()->createDescriptorPoolUnique(poolCreateInfo);
+}
+void VulkanCore::createDescriptorSet() {
+    std::vector<vk::DescriptorSetLayout> layouts(swapchain->getSwapChainImageViews().size(), pipeline->getDescriptorSetLayout().get());
+    vk::DescriptorSetAllocateInfo allocateInfo{.descriptorPool = descriptorPool.get(),
+                                               .descriptorSetCount = static_cast<uint32_t>(swapchain->getSwapChainImageViews().size()),
+                                               .pSetLayouts = layouts.data()};
+
+    descriptorSets.resize(swapchain->getSwapChainImageViews().size());
+    descriptorSets = device->getDevice()->allocateDescriptorSetsUnique(allocateInfo);
+
+    for (size_t i = 0; i < descriptorSets.size(); i++) {
+        vk::DescriptorBufferInfo bufferInfo{.buffer = unifromsBuffers[i].get(), .offset = 0, .range = sizeof(UniformBufferObject)};
+        vk::WriteDescriptorSet writeDescriptorSet{.dstSet = descriptorSets[i].get(),
+                                                  .dstBinding = 0,
+                                                  .dstArrayElement = 0,
+                                                  .descriptorCount = 1,
+                                                  .descriptorType = vk::DescriptorType::eUniformBuffer,
+                                                  .pImageInfo = nullptr,
+                                                  .pBufferInfo = &bufferInfo,
+                                                  .pTexelBufferView = nullptr};
+        device->getDevice()->updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
+    }
 }

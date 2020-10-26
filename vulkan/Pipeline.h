@@ -13,20 +13,21 @@ class Pipeline {
 public:
     Pipeline(std::shared_ptr<Device> device, std::shared_ptr<Swapchain> swapchain);
     const vk::RenderPass &getRenderPass() const;
-
+    const vk::UniquePipeline &getPipeline() const;
+    const vk::UniqueDescriptorSetLayout &getDescriptorSetLayout() const;
     void createGraphicsPipeline();
     void createRenderPass();
+    const vk::UniquePipelineLayout &getPipelineLayout() const;
 
 private:
     vk::UniqueShaderModule createShaderModule(const std::string &code);
+    void createDescriptorSetLayout();
 
     vk::UniqueRenderPass renderPass;
     vk::UniquePipelineLayout pipelineLayout;
     vk::UniquePipeline pipeline;
+    vk::UniqueDescriptorSetLayout descriptorSetLayout;
 
-public:
-    const vk::UniquePipeline &getPipeline() const;
-private:
     std::shared_ptr<Device> device;
     std::shared_ptr<Swapchain> swapchain;
 };

@@ -28,10 +28,20 @@ public:
 
 private:
     const std::vector<Vertex> vertices = {
-            {.pos = {0.0f, -1.0f}, .color = {1.0f, 1.0f, 1.0f}},
-            {.pos = {1.0f, 1.0f}, .color = {1.0f, 1.0f, 1.0f}},
-            {.pos = {-1.0f, 1.0f}, .color = {1.0f, 1.0f, 1.0f}}
+            {.pos = {-0.5f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
+            {.pos = {0.5f, -0.5f}, .color = {0.0f, 1.0f, 0.0f}},
+            {.pos = {0.5f, 0.5f}, .color = {0.0f, 0.0f, 1.0f}},
+            {.pos = {-0.5f, 0.5f}, .color = {1.0f, 1.0f, 1.0f}}
     };
+    const std::vector<uint16_t> indices = {
+            0, 1, 2, 2, 3, 0
+    };
+    struct UniformBufferObject {
+        glm::mat4 model;
+        glm::mat4 view;
+        glm::mat4 proj;
+    };
+
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
     int currentFrame = 0;
@@ -54,7 +64,14 @@ private:
     vk::Queue presentQueue;
 
     vk::UniqueBuffer vertexBuffer;
+    vk::UniqueBuffer indexBuffer;
+    std::vector<vk::UniqueBuffer> unifromsBuffers;
     vk::UniqueDeviceMemory vertexBufferMemory;
+    vk::UniqueDeviceMemory indexBufferMemory;
+    std::vector<vk::UniqueDeviceMemory> uniformBufferMemories;
+
+    vk::UniqueDescriptorPool descriptorPool;
+    std::vector<vk::UniqueDescriptorSet> descriptorSets;
 
     bool debug;
     GlfwWindow &window;
@@ -65,13 +82,20 @@ private:
 
     void createSurface();
 
+    void createBuffer(vk::DeviceSize size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& properties, vk::UniqueBuffer &buffer, vk::UniqueDeviceMemory &memory);
+    void copyBuffer(const vk::UniqueBuffer &srcBuffer, const vk::UniqueBuffer &dstBuffer, vk::DeviceSize size);
     void createVertexBuffer();
+    void createIndexBuffer();
+    void createUniformBuffers();
     uint32_t findMemoryType(uint32_t typeFilter, const vk::MemoryPropertyFlags &properties);
 
     void createCommandPool();
     void createCommandBuffers();
+    void createDescriptorPool();
+    void createDescriptorSet();
 
     void drawFrame();
+    void updateUniformBuffers(uint32_t currentImage);
     void createSyncObjects();
 
     void recreateSwapchain();

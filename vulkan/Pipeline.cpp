@@ -13,6 +13,7 @@ Pipeline::Pipeline(std::shared_ptr<Device> device, std::shared_ptr<Swapchain> sw
     this->swapchain = swapchain;
     createRenderPass();
     spdlog::debug("Created renderpass.");
+    createDescriptorSetLayout();
     createGraphicsPipeline();
     spdlog::debug("Created pipeline.");
 }
@@ -26,13 +27,9 @@ void Pipeline::createGraphicsPipeline() {
     auto bindingDescription = Vertex::getBindingDescription();
     auto attributeDescriptions = Vertex::getAttributeDescriptions();
 
-    vk::PipelineShaderStageCreateInfo vertexStageCreateInfo{.stage = vk::ShaderStageFlagBits::eVertex,
-                                                            .module = vertShaderModule.get(),
-                                                            .pName = "main"};
+    vk::PipelineShaderStageCreateInfo vertexStageCreateInfo{.stage = vk::ShaderStageFlagBits::eVertex, .module = vertShaderModule.get(), .pName = "main"};
 
-    vk::PipelineShaderStageCreateInfo fragmentStageCreateInfo{.stage = vk::ShaderStageFlagBits::eFragment,
-                                                              .module = fragShaderModule.get(),
-                                                              .pName = "main"};
+    vk::PipelineShaderStageCreateInfo fragmentStageCreateInfo{.stage = vk::ShaderStageFlagBits::eFragment, .module = fragShaderModule.get(), .pName = "main"};
 
     std::array<vk::PipelineShaderStageCreateInfo, 2> shaderStages{vertexStageCreateInfo, fragmentStageCreateInfo};
 
@@ -41,8 +38,7 @@ void Pipeline::createGraphicsPipeline() {
                                                                  .vertexAttributeDescriptionCount = attributeDescriptions.size(),
                                                                  .pVertexAttributeDescriptions = attributeDescriptions.data()};
 
-    vk::PipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo{.topology = vk::PrimitiveTopology::eTriangleList,
-                                                                     .primitiveRestartEnable = VK_FALSE};
+    vk::PipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo{.topology = vk::PrimitiveTopology::eTriangleList, .primitiveRestartEnable = VK_FALSE};
 
     vk::Viewport viewport{.x = 0.0f,
                           .y = 0.0f,
@@ -51,20 +47,15 @@ void Pipeline::createGraphicsPipeline() {
                           .minDepth = 0.0f,
                           .maxDepth = 1.0f};
 
-    vk::Rect2D scissor{.offset = {.x = 0,
-                                  .y = 0},
-                       .extent = swapchain->getSwapchainExtent()};
+    vk::Rect2D scissor{.offset = {.x = 0, .y = 0}, .extent = swapchain->getSwapchainExtent()};
 
-    vk::PipelineViewportStateCreateInfo viewportStateCreateInfo{.viewportCount = 1,
-                                                                .pViewports = &viewport,
-                                                                .scissorCount = 1,
-                                                                .pScissors = &scissor};
+    vk::PipelineViewportStateCreateInfo viewportStateCreateInfo{.viewportCount = 1, .pViewports = &viewport, .scissorCount = 1, .pScissors = &scissor};
 
     vk::PipelineRasterizationStateCreateInfo rasterizationStateCreateInfo{.depthClampEnable = VK_FALSE,
                                                                           .rasterizerDiscardEnable = VK_FALSE,
                                                                           .polygonMode = vk::PolygonMode::eFill,
                                                                           .cullMode = vk::CullModeFlagBits::eBack,
-                                                                          .frontFace = vk::FrontFace::eClockwise,
+                                                                          .frontFace = vk::FrontFace::eCounterClockwise,
                                                                           .depthBiasEnable = VK_FALSE,
                                                                           .depthBiasConstantFactor = 0.0f,
                                                                           .depthBiasClamp = 0.0f,
@@ -78,15 +69,15 @@ void Pipeline::createGraphicsPipeline() {
                                                                       .alphaToCoverageEnable = VK_FALSE,
                                                                       .alphaToOneEnable = VK_FALSE};
 
-    vk::PipelineColorBlendAttachmentState colorBlendAttachmentState{
-            .blendEnable = VK_FALSE,
-            .srcColorBlendFactor = vk::BlendFactor::eOne,
-            .dstColorBlendFactor = vk::BlendFactor::eZero,
-            .colorBlendOp = vk::BlendOp::eAdd,
-            .srcAlphaBlendFactor = vk::BlendFactor::eOne,
-            .dstAlphaBlendFactor = vk::BlendFactor::eZero,
-            .alphaBlendOp = vk::BlendOp::eAdd,
-            .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA};
+    vk::PipelineColorBlendAttachmentState colorBlendAttachmentState{.blendEnable = VK_FALSE,
+                                                                    .srcColorBlendFactor = vk::BlendFactor::eOne,
+                                                                    .dstColorBlendFactor = vk::BlendFactor::eZero,
+                                                                    .colorBlendOp = vk::BlendOp::eAdd,
+                                                                    .srcAlphaBlendFactor = vk::BlendFactor::eOne,
+                                                                    .dstAlphaBlendFactor = vk::BlendFactor::eZero,
+                                                                    .alphaBlendOp = vk::BlendOp::eAdd,
+                                                                    .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+                                                                                      vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA};
 
     vk::PipelineColorBlendStateCreateInfo blendStateCreateInfo{.logicOpEnable = VK_FALSE,
                                                                .logicOp = vk::LogicOp::eCopy,
@@ -102,11 +93,10 @@ void Pipeline::createGraphicsPipeline() {
                                                               .pDynamicStates = dynamicStates.data()};
 */
 
-    vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo{
-            .setLayoutCount = 0,
-            .pSetLayouts = nullptr,
-            .pushConstantRangeCount = 0,
-            .pPushConstantRanges = nullptr};
+    vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo{.setLayoutCount = 1,
+                                                          .pSetLayouts = &descriptorSetLayout.get(),
+                                                          .pushConstantRangeCount = 0,
+                                                          .pPushConstantRanges = nullptr};
 
     pipelineLayout = device->getDevice()->createPipelineLayoutUnique(pipelineLayoutCreateInfo);
 
@@ -129,8 +119,7 @@ void Pipeline::createGraphicsPipeline() {
     pipeline = device->getDevice()->createGraphicsPipelineUnique(nullptr, pipelineCreateInfo);
 }
 vk::UniqueShaderModule Pipeline::createShaderModule(const std::string &code) {
-    vk::ShaderModuleCreateInfo createInfo{.codeSize = code.size(),
-                                          .pCode = reinterpret_cast<const uint32_t *>(code.data())};
+    vk::ShaderModuleCreateInfo createInfo{.codeSize = code.size(), .pCode = reinterpret_cast<const uint32_t *>(code.data())};
 
     return device->getDevice()->createShaderModuleUnique(createInfo);
 }
@@ -144,8 +133,7 @@ void Pipeline::createRenderPass() {
                                               .initialLayout = vk::ImageLayout::eUndefined,
                                               .finalLayout = vk::ImageLayout::ePresentSrcKHR};
 
-    vk::AttachmentReference colorAttachmentReference{.attachment = 0,
-                                                     .layout = vk::ImageLayout::eColorAttachmentOptimal};
+    vk::AttachmentReference colorAttachmentReference{.attachment = 0, .layout = vk::ImageLayout::eColorAttachmentOptimal};
 
     vk::SubpassDescription subpassDescription{.pipelineBindPoint = vk::PipelineBindPoint::eGraphics,
                                               .colorAttachmentCount = 1,
@@ -167,9 +155,20 @@ void Pipeline::createRenderPass() {
 
     renderPass = device->getDevice()->createRenderPassUnique(renderPassCreateInfo);
 }
-const vk::RenderPass &Pipeline::getRenderPass() const {
-    return renderPass.get();
+
+void Pipeline::createDescriptorSetLayout() {
+    vk::DescriptorSetLayoutBinding uboLayoutBinding{.binding = 0,
+                                                    .descriptorType = vk::DescriptorType::eUniformBuffer,
+                                                    .descriptorCount = 1,
+                                                    .stageFlags = vk::ShaderStageFlagBits::eVertex,
+                                                    .pImmutableSamplers = nullptr};
+
+    vk::DescriptorSetLayoutCreateInfo layoutCreateInfo{.bindingCount = 1, .pBindings = &uboLayoutBinding};
+
+    descriptorSetLayout = device->getDevice()->createDescriptorSetLayoutUnique(layoutCreateInfo);
 }
-const vk::UniquePipeline &Pipeline::getPipeline() const {
-    return pipeline;
-}
+
+const vk::RenderPass &Pipeline::getRenderPass() const { return renderPass.get(); }
+const vk::UniquePipeline &Pipeline::getPipeline() const { return pipeline; }
+const vk::UniqueDescriptorSetLayout &Pipeline::getDescriptorSetLayout() const { return descriptorSetLayout; }
+const vk::UniquePipelineLayout &Pipeline::getPipelineLayout() const { return pipelineLayout; }
