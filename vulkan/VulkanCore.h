@@ -28,9 +28,9 @@ public:
 
 private:
     const std::vector<Vertex> vertices = {
-            {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-            {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-            {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+            {.pos = {0.0f, -1.0f}, .color = {1.0f, 1.0f, 1.0f}},
+            {.pos = {1.0f, 1.0f}, .color = {1.0f, 1.0f, 1.0f}},
+            {.pos = {-1.0f, 1.0f}, .color = {1.0f, 1.0f, 1.0f}}
     };
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -53,6 +53,9 @@ private:
     vk::Queue graphicsQueue;
     vk::Queue presentQueue;
 
+    vk::UniqueBuffer vertexBuffer;
+    vk::UniqueDeviceMemory vertexBufferMemory;
+
     bool debug;
     GlfwWindow &window;
 
@@ -61,6 +64,9 @@ private:
     void cleanup();
 
     void createSurface();
+
+    void createVertexBuffer();
+    uint32_t findMemoryType(uint32_t typeFilter, const vk::MemoryPropertyFlags &properties);
 
     void createCommandPool();
     void createCommandBuffers();

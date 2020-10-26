@@ -4,6 +4,7 @@
 
 #include "Pipeline.h"
 #include "../Utilities.h"
+#include "Types.h"
 #include <spdlog/spdlog.h>
 
 
@@ -22,6 +23,8 @@ void Pipeline::createGraphicsPipeline() {
 
     auto vertShaderModule = createShaderModule(vertShaderCode);
     auto fragShaderModule = createShaderModule(fragShaderCode);
+    auto bindingDescription = Vertex::getBindingDescription();
+    auto attributeDescriptions = Vertex::getAttributeDescriptions();
 
     vk::PipelineShaderStageCreateInfo vertexStageCreateInfo{.stage = vk::ShaderStageFlagBits::eVertex,
                                                             .module = vertShaderModule.get(),
@@ -33,10 +36,10 @@ void Pipeline::createGraphicsPipeline() {
 
     std::array<vk::PipelineShaderStageCreateInfo, 2> shaderStages{vertexStageCreateInfo, fragmentStageCreateInfo};
 
-    vk::PipelineVertexInputStateCreateInfo vertexInputCreateInfo{.vertexBindingDescriptionCount = 0,
-                                                                 .pVertexBindingDescriptions = nullptr,
-                                                                 .vertexAttributeDescriptionCount = 0,
-                                                                 .pVertexAttributeDescriptions = nullptr};
+    vk::PipelineVertexInputStateCreateInfo vertexInputCreateInfo{.vertexBindingDescriptionCount = 1,
+                                                                 .pVertexBindingDescriptions = &bindingDescription,
+                                                                 .vertexAttributeDescriptionCount = attributeDescriptions.size(),
+                                                                 .pVertexAttributeDescriptions = attributeDescriptions.data()};
 
     vk::PipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo{.topology = vk::PrimitiveTopology::eTriangleList,
                                                                      .primitiveRestartEnable = VK_FALSE};

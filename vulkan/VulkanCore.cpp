@@ -20,6 +20,7 @@ void VulkanCore::initVulkan() {
     swapchain = std::make_shared<Swapchain>(device, surface, window);
     pipeline = std::make_shared<Pipeline>(device, swapchain);
     framebuffers = std::make_shared<Framebuffers>(device, swapchain, pipeline->getRenderPass());
+    createVertexBuffer();
     createCommandPool();
     spdlog::debug("Created command pool");
     createCommandBuffers();
@@ -78,6 +79,8 @@ void VulkanCore::createCommandBuffers() {
     commandBuffers = device->getDevice()->allocateCommandBuffersUnique(bufferAllocateInfo);
 
     int i = 0;
+    std::array<vk::Buffer, 1> vertexBuffers{vertexBuffer.get()};
+    std::array<vk::DeviceSize, 1> offsets{0};
     auto &swapchainFramebuffers = framebuffers->getSwapchainFramebuffers();
     for (auto &commandBuffer : commandBuffers) {
         vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse,
@@ -95,7 +98,8 @@ void VulkanCore::createCommandBuffers() {
 
         commandBuffer->beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
         commandBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline->getPipeline().get());
-        commandBuffer->draw(3, 1, 0, 0);
+        commandBuffer->bindVertexBuffers(0, 1, vertexBuffers.data(),  offsets.data());
+        commandBuffer->draw(vertices.size(), 1, 0, 0);
         commandBuffer->endRenderPass();
 
         commandBuffer->end();
@@ -120,13 +124,12 @@ void VulkanCore::drawFrame() {
     std::array<vk::PipelineStageFlags, 1> waitStages{vk::PipelineStageFlagBits::eColorAttachmentOutput};
     std::array<vk::SwapchainKHR, 1> swapchains{swapchain->getSwapchain().get()};
     vk::Result result;
-    uint32_t  imageindex;
+    uint32_t imageindex;
 
     result = device->getDevice()->waitForFences(inFlightFences[currentFrame].get(), VK_TRUE, UINT64_MAX);
     try {
         result = device->getDevice()->acquireNextImageKHR(swapchain->getSwapchain().get(), UINT64_MAX, imageAvailableSemaphore[currentFrame].get(), nullptr, &imageindex);
-    }
-    catch (const std::exception &e) {
+    } catch (const std::exception &e) {
         recreateSwapchain();
         return;
     }
@@ -159,8 +162,6 @@ void VulkanCore::drawFrame() {
     }
 
     currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-
-
 }
 void VulkanCore::recreateSwapchain() {
     window.checkMinimized();
@@ -179,4 +180,35 @@ bool VulkanCore::isFramebufferResized() const {
 }
 void VulkanCore::setFramebufferResized(bool framebufferResized) {
     VulkanCore::framebufferResized = framebufferResized;
+}
+void VulkanCore::createVertexBuffer() {
+    vk::BufferCreateInfo bufferCreateInfo{.size = sizeof(vertices[0]) * vertices.size(),
+                                          .usage = vk::BufferUsageFlagBits::eVertexBuffer,
+                                          .sharingMode = vk::SharingMode::eExclusive};
+
+    vertexBuffer = device->getDevice()->createBufferUnique(bufferCreateInfo);
+
+    auto memRequirements = device->getDevice()->getBufferMemoryRequirements(vertexBuffer.get());
+    auto memProperties = device->getPhysicalDevice().getMemoryProperties();
+    vk::MemoryAllocateInfo allocateInfo{.allocationSize = memRequirements.size,
+                                        .memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)};
+
+    vertexBufferMemory = device->getDevice()->allocateMemoryUnique(allocateInfo);
+    device->getDevice()->bindBufferMemory(vertexBuffer.get(), vertexBufferMemory.get(), 0);
+
+    auto data = device->getDevice()->mapMemory(vertexBufferMemory.get(), 0, bufferCreateInfo.size);
+    memcpy(data, vertices.data(), bufferCreateInfo.size);
+    device->getDevice()->unmapMemory(vertexBufferMemory.get());
+}
+uint32_t VulkanCore::findMemoryType(uint32_t typeFilter, const vk::MemoryPropertyFlags &properties) {
+    auto memProperties = device->getPhysicalDevice().getMemoryProperties();
+    uint32_t i = 0;
+    for (const auto &type : memProperties.memoryTypes) {
+        if ((typeFilter & (1 << i)) && (type.propertyFlags & properties)) {
+            return i;
+        }
+        ++i;
+    }
+
+    throw std::runtime_error("failed to find suitable memory type!");
 }
