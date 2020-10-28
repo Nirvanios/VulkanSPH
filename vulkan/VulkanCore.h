@@ -28,14 +28,14 @@ public:
 
 private:
     const std::vector<Vertex> vertices = {
-            {.pos = {-0.5f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
-            {.pos = {0.5f, -0.5f}, .color = {0.0f, 1.0f, 0.0f}},
-            {.pos = {0.5f, 0.5f}, .color = {0.0f, 0.0f, 1.0f}},
-            {.pos = {-0.5f, 0.5f}, .color = {1.0f, 1.0f, 1.0f}}
+            {.pos = {-0.5f, -0.5f, -1.0f}, .color = {1.0f, 0.0f, 0.0f}},  {.pos = {0.5f, -0.5f, -1.0f}, .color = {1.0f, 0.0f, 0.0f}},
+            {.pos = {0.5f, 0.5f, -1.0f}, .color = {1.0f, 0.0f, 0.0f}},    {.pos = {-0.5f, 0.5f, -1.0f}, .color = {1.0f, 0.0f, 0.0f}},
+
+            {.pos = {-0.5f, -0.5f, -0.5f}, .color = {0.0f, 0.0f, 1.0f}}, {.pos = {0.5f, -0.5f, -0.5f}, .color = {0.0f, 0.0f, 1.0f}},
+            {.pos = {0.5f, 0.5f, -0.5f}, .color = {0.0f, 0.0f, 1.0f}},   {.pos = {-0.5f, 0.5f, -0.5f}, .color = {0.0f, 0.0f, 1.0f}},
+
     };
-    const std::vector<uint16_t> indices = {
-            0, 1, 2, 2, 3, 0
-    };
+    const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
     struct UniformBufferObject {
         glm::mat4 model;
         glm::mat4 view;
@@ -58,7 +58,7 @@ private:
 
     std::vector<vk::UniqueSemaphore> imageAvailableSemaphore, renderFinishedSemaphore;
     std::vector<vk::UniqueFence> inFlightFences;
-    std::vector<vk::Fence> imagesInFlight; //TODO optional
+    std::vector<vk::Fence> imagesInFlight;//TODO optional
 
     vk::Queue graphicsQueue;
     vk::Queue presentQueue;
@@ -73,6 +73,10 @@ private:
     vk::UniqueDescriptorPool descriptorPool;
     std::vector<vk::UniqueDescriptorSet> descriptorSets;
 
+    vk::UniqueImage depthImage;
+    vk::UniqueDeviceMemory depthImageMemory;
+    vk::UniqueImageView depthImageView;
+
     bool debug;
     GlfwWindow &window;
 
@@ -82,7 +86,8 @@ private:
 
     void createSurface();
 
-    void createBuffer(vk::DeviceSize size, const vk::BufferUsageFlags& usage, const vk::MemoryPropertyFlags& properties, vk::UniqueBuffer &buffer, vk::UniqueDeviceMemory &memory);
+    void createBuffer(vk::DeviceSize size, const vk::BufferUsageFlags &usage, const vk::MemoryPropertyFlags &properties, vk::UniqueBuffer &buffer,
+                      vk::UniqueDeviceMemory &memory);
     void copyBuffer(const vk::UniqueBuffer &srcBuffer, const vk::UniqueBuffer &dstBuffer, vk::DeviceSize size);
     void createVertexBuffer();
     void createIndexBuffer();
@@ -93,6 +98,16 @@ private:
     void createCommandBuffers();
     void createDescriptorPool();
     void createDescriptorSet();
+
+    void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, const vk::ImageUsageFlags &usage,
+                     const vk::MemoryPropertyFlags &properties, vk::UniqueImage &image, vk::UniqueDeviceMemory &imageMemory);
+    vk::UniqueImageView createImageView(const vk::UniqueImage &image, vk::Format format, const vk::ImageAspectFlags &aspectFlags);
+    void transitionImageLayout(const vk::UniqueImage &image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
+
+    void createDepthResources();
+    vk::Format findSupportedFormat(const std::vector<vk::Format> &candidates, vk::ImageTiling tiling, const vk::FormatFeatureFlags &features);
+    vk::Format findDepthFormat();
+    bool hasStencilComponent(vk::Format format);
 
     void drawFrame();
     void updateUniformBuffers(uint32_t currentImage);

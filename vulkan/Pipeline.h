@@ -11,7 +11,7 @@
 
 class Pipeline {
 public:
-    Pipeline(std::shared_ptr<Device> device, std::shared_ptr<Swapchain> swapchain);
+    Pipeline(std::shared_ptr<Device> device, std::shared_ptr<Swapchain> swapchain, vk::Format depthFormat);
     const vk::RenderPass &getRenderPass() const;
     const vk::UniquePipeline &getPipeline() const;
     const vk::UniqueDescriptorSetLayout &getDescriptorSetLayout() const;
@@ -30,6 +30,7 @@ private:
 
     std::shared_ptr<Device> device;
     std::shared_ptr<Swapchain> swapchain;
+    vk::Format depthFormat;
 };
 
 

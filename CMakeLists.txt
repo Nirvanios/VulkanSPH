@@ -34,6 +34,8 @@ find_package(spdlog CONFIG REQUIRED)
 
 add_compile_definitions(SPDLOG_FMT_EXTERNAL
         VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
+        GLM_FORCE_RADIANS
+        GLM_FORCE_DEPTH_ZERO_TO_ONE
         )
 
 add_executable(VulkanApp main.cpp

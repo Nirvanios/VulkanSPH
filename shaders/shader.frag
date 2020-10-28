@@ -1,4 +1,4 @@
-#version 450
+#version 4504(fragColo
 #extension GL_ARB_separate_shader_objects : enable
 
 layout(location = 0) out vec4 outColor;

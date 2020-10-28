@@ -10,7 +10,7 @@
 
 class Framebuffers {
 public:
-    Framebuffers(std::shared_ptr<Device> device, std::shared_ptr<Swapchain> swapchain, const vk::RenderPass &renderPass);
+    Framebuffers(std::shared_ptr<Device> device, std::shared_ptr<Swapchain> swapchain, const vk::RenderPass &renderPass, const vk::UniqueImageView &depthImageView);
 
     void createFramebuffers();
 
@@ -19,6 +19,7 @@ private:
     std::shared_ptr<Swapchain> swapchain;
     std::shared_ptr<Device> device;
     const vk::RenderPass &renderpass;
+    const vk::UniqueImageView &depthImageView;
 
     std::vector<vk::UniqueFramebuffer> swapchainFramebuffers;
 

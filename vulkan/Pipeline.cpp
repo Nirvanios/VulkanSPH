@@ -8,7 +8,8 @@
 #include <spdlog/spdlog.h>
 
 
-Pipeline::Pipeline(std::shared_ptr<Device> device, std::shared_ptr<Swapchain> swapchain) {
+Pipeline::Pipeline(std::shared_ptr<Device> device, std::shared_ptr<Swapchain> swapchain, vk::Format depthFormat) {
+    this->depthFormat = depthFormat;
     this->device = device;
     this->swapchain = swapchain;
     createRenderPass();
@@ -100,6 +101,12 @@ void Pipeline::createGraphicsPipeline() {
 
     pipelineLayout = device->getDevice()->createPipelineLayoutUnique(pipelineLayoutCreateInfo);
 
+    vk::PipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo{.depthTestEnable = VK_TRUE,
+    .depthWriteEnable = VK_TRUE,
+    .depthCompareOp = vk::CompareOp::eLess,
+    .depthBoundsTestEnable = VK_FALSE,
+    .stencilTestEnable = VK_FALSE};
+
     vk::GraphicsPipelineCreateInfo pipelineCreateInfo{.stageCount = 2,
                                                       .pStages = shaderStages.data(),
                                                       .pVertexInputState = &vertexInputCreateInfo,
@@ -107,7 +114,7 @@ void Pipeline::createGraphicsPipeline() {
                                                       .pViewportState = &viewportStateCreateInfo,
                                                       .pRasterizationState = &rasterizationStateCreateInfo,
                                                       .pMultisampleState = &multisampleStateCreateInfo,
-                                                      .pDepthStencilState = nullptr,
+                                                      .pDepthStencilState = &depthStencilStateCreateInfo,
                                                       .pColorBlendState = &blendStateCreateInfo,
                                                       .pDynamicState = nullptr,
                                                       .layout = pipelineLayout.get(),
@@ -135,6 +142,17 @@ void Pipeline::createRenderPass() {
 
     vk::AttachmentReference colorAttachmentReference{.attachment = 0, .layout = vk::ImageLayout::eColorAttachmentOptimal};
 
+    vk::AttachmentDescription depthAttachment{.format = depthFormat,
+            .samples = vk::SampleCountFlagBits::e1,
+            .loadOp = vk::AttachmentLoadOp::eClear,
+            .storeOp = vk::AttachmentStoreOp::eDontCare,
+            .stencilLoadOp = vk::AttachmentLoadOp::eDontCare,
+            .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
+            .initialLayout = vk::ImageLayout::eUndefined,
+            .finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal};
+
+    vk::AttachmentReference depthReference{.attachment = 1, .layout = vk::ImageLayout::eDepthStencilAttachmentOptimal};
+
     vk::SubpassDescription subpassDescription{.pipelineBindPoint = vk::PipelineBindPoint::eGraphics,
                                               .colorAttachmentCount = 1,
                                               .pColorAttachments = &colorAttachmentReference};
@@ -145,8 +163,9 @@ void Pipeline::createRenderPass() {
                                      .dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
                                      .dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite};
 
-    vk::RenderPassCreateInfo renderPassCreateInfo{.attachmentCount = 1,
-                                                  .pAttachments = &colorAttachment,
+    std::array<vk::AttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
+    vk::RenderPassCreateInfo renderPassCreateInfo{.attachmentCount = attachments.size(),
+                                                  .pAttachments = attachments.data(),
                                                   .subpassCount = 1,
                                                   .pSubpasses = &subpassDescription,
                                                   .dependencyCount = 1,
