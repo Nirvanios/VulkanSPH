@@ -102,10 +102,10 @@ void Pipeline::createGraphicsPipeline() {
     pipelineLayout = device->getDevice()->createPipelineLayoutUnique(pipelineLayoutCreateInfo);
 
     vk::PipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo{.depthTestEnable = VK_TRUE,
-    .depthWriteEnable = VK_TRUE,
-    .depthCompareOp = vk::CompareOp::eLess,
-    .depthBoundsTestEnable = VK_FALSE,
-    .stencilTestEnable = VK_FALSE};
+                                                                        .depthWriteEnable = VK_TRUE,
+                                                                        .depthCompareOp = vk::CompareOp::eLess,
+                                                                        .depthBoundsTestEnable = VK_FALSE,
+                                                                        .stencilTestEnable = VK_FALSE};
 
     vk::GraphicsPipelineCreateInfo pipelineCreateInfo{.stageCount = 2,
                                                       .pStages = shaderStages.data(),
@@ -123,7 +123,7 @@ void Pipeline::createGraphicsPipeline() {
                                                       .basePipelineHandle = nullptr,
                                                       .basePipelineIndex = -1};
 
-    pipeline = device->getDevice()->createGraphicsPipelineUnique(nullptr, pipelineCreateInfo);
+    pipeline = device->getDevice()->createGraphicsPipelineUnique(nullptr, pipelineCreateInfo).value;
 }
 vk::UniqueShaderModule Pipeline::createShaderModule(const std::string &code) {
     vk::ShaderModuleCreateInfo createInfo{.codeSize = code.size(), .pCode = reinterpret_cast<const uint32_t *>(code.data())};
@@ -143,19 +143,20 @@ void Pipeline::createRenderPass() {
     vk::AttachmentReference colorAttachmentReference{.attachment = 0, .layout = vk::ImageLayout::eColorAttachmentOptimal};
 
     vk::AttachmentDescription depthAttachment{.format = depthFormat,
-            .samples = vk::SampleCountFlagBits::e1,
-            .loadOp = vk::AttachmentLoadOp::eClear,
-            .storeOp = vk::AttachmentStoreOp::eDontCare,
-            .stencilLoadOp = vk::AttachmentLoadOp::eDontCare,
-            .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
-            .initialLayout = vk::ImageLayout::eUndefined,
-            .finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal};
+                                              .samples = vk::SampleCountFlagBits::e1,
+                                              .loadOp = vk::AttachmentLoadOp::eClear,
+                                              .storeOp = vk::AttachmentStoreOp::eDontCare,
+                                              .stencilLoadOp = vk::AttachmentLoadOp::eDontCare,
+                                              .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
+                                              .initialLayout = vk::ImageLayout::eUndefined,
+                                              .finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal};
 
     vk::AttachmentReference depthReference{.attachment = 1, .layout = vk::ImageLayout::eDepthStencilAttachmentOptimal};
 
     vk::SubpassDescription subpassDescription{.pipelineBindPoint = vk::PipelineBindPoint::eGraphics,
                                               .colorAttachmentCount = 1,
-                                              .pColorAttachments = &colorAttachmentReference};
+                                              .pColorAttachments = &colorAttachmentReference,
+                                              .pDepthStencilAttachment = &depthReference};
 
     vk::SubpassDependency dependency{.srcSubpass = VK_SUBPASS_EXTERNAL,
                                      .dstSubpass = 0,
