@@ -12,6 +12,7 @@
 #include <stdexcept>
 
 #include "../window/GlfwWindow.h"
+#include "Buffer.h"
 #include "Device.h"
 #include "Framebuffers.h"
 #include "Instance.h"
@@ -58,17 +59,15 @@ private:
 
     std::vector<vk::UniqueSemaphore> imageAvailableSemaphore, renderFinishedSemaphore;
     std::vector<vk::UniqueFence> inFlightFences;
-    std::vector<vk::Fence> imagesInFlight;//TODO optional
+    std::vector<std::optional<vk::Fence>> imagesInFlight;
 
     vk::Queue graphicsQueue;
     vk::Queue presentQueue;
 
-    vk::UniqueBuffer vertexBuffer;
-    vk::UniqueBuffer indexBuffer;
-    std::vector<vk::UniqueBuffer> unifromsBuffers;
-    vk::UniqueDeviceMemory vertexBufferMemory;
-    vk::UniqueDeviceMemory indexBufferMemory;
-    std::vector<vk::UniqueDeviceMemory> uniformBufferMemories;
+    std::shared_ptr<Buffer> vertexBuffer;
+    std::shared_ptr<Buffer> indexBuffer;
+    std::vector<std::shared_ptr<Buffer>> unifromsBuffers;
+
 
     vk::UniqueDescriptorPool descriptorPool;
     std::vector<vk::UniqueDescriptorSet> descriptorSets;
@@ -86,13 +85,9 @@ private:
 
     void createSurface();
 
-    void createBuffer(vk::DeviceSize size, const vk::BufferUsageFlags &usage, const vk::MemoryPropertyFlags &properties, vk::UniqueBuffer &buffer,
-                      vk::UniqueDeviceMemory &memory);
-    void copyBuffer(const vk::UniqueBuffer &srcBuffer, const vk::UniqueBuffer &dstBuffer, vk::DeviceSize size);
     void createVertexBuffer();
     void createIndexBuffer();
     void createUniformBuffers();
-    uint32_t findMemoryType(uint32_t typeFilter, const vk::MemoryPropertyFlags &properties);
 
     void createCommandPool();
     void createCommandBuffers();

@@ -29,6 +29,7 @@ public:
         return buffer;
     };
 
+
     template<typename T, typename Container = std::vector<T>>
     static bool isIn(T value, Container &&container) {
         return std::any_of(container.begin(), container.end(), [value](const auto &a) { return value == a; });
