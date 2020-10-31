@@ -8,6 +8,7 @@
 #include <memory>
 
 #define GLFW_INCLUDE_VULKAN
+#include "ObservableWindow.h"
 #include <GLFW/glfw3.h>
 
 enum class CallbackTypes{
@@ -25,7 +26,7 @@ struct DestroyglfwWin {
 
 using Window = std::unique_ptr<GLFWwindow, DestroyglfwWin>;
 
-class GlfwWindow {
+class GlfwWindow : public ObservableWindow{
 public:
     [[nodiscard]] const std::string &getWindowName() const;
     explicit GlfwWindow(const std::string &windowName = "VulkanApp", int width = 800, int height = 600);
@@ -40,6 +41,9 @@ private:
     Window window;
     std::string windowName;
     int width, height;
+
+    static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
     void cleanUp();
 };
 

@@ -13,7 +13,7 @@
 #include "VulkanUtils.h"
 
 void VulkanCore::initVulkan() {
-    glfwSetWindowUserPointer(window.getWindow().get(), this);
+    //glfwSetWindowUserPointer(window.getWindow().get(), this);
     instance = std::make_shared<Instance>(window.getWindowName(), debug);
     createSurface();
     spdlog::debug("Created surface.");
@@ -38,8 +38,12 @@ void VulkanCore::initVulkan() {
 }
 
 void VulkanCore::run() {
+    auto a = window.subscribeToKeyEvents([](KeyMessage message) {
+        if (message.action == KeyAction::Release) spdlog::info(message.key);
+    });
     mainLoop();
     cleanup();
+    a.unsubscribe();
 }
 
 void VulkanCore::mainLoop() {
@@ -142,8 +146,7 @@ void VulkanCore::drawFrame() {
     }
     updateUniformBuffers(imageindex);
 
-    if(imagesInFlight[imageindex].has_value())
-        device->getDevice()->waitForFences(imagesInFlight[imageindex].value(), VK_TRUE, UINT64_MAX);
+    if (imagesInFlight[imageindex].has_value()) device->getDevice()->waitForFences(imagesInFlight[imageindex].value(), VK_TRUE, UINT64_MAX);
     //inFlightFences[currentFrame].swap(imagesInFlight[imageindex].value());
     imagesInFlight[imageindex] = inFlightFences[currentFrame].get();
 
@@ -192,24 +195,27 @@ void VulkanCore::setFramebufferResized(bool framebufferResized) { VulkanCore::fr
 
 void VulkanCore::createVertexBuffer() {
     vertexBuffer = std::make_shared<Buffer>(BufferBuilder()
-                                            .setSize(sizeof(vertices[0]) * vertices.size())
-                                            .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer)
-                                            .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
-                                    device, commandPool, graphicsQueue);
+                                                    .setSize(sizeof(vertices[0]) * vertices.size())
+                                                    .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer)
+                                                    .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
+                                            device, commandPool, graphicsQueue);
     vertexBuffer->fill(vertices);
 }
 
 void VulkanCore::createIndexBuffer() {
     indexBuffer = std::make_shared<Buffer>(BufferBuilder()
-                                                    .setSize(sizeof(indices[0]) * indices.size())
-                                                    .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer)
-                                                    .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
-                                            device, commandPool, graphicsQueue);
+                                                   .setSize(sizeof(indices[0]) * indices.size())
+                                                   .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer)
+                                                   .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
+                                           device, commandPool, graphicsQueue);
     indexBuffer->fill(indices);
 }
 void VulkanCore::createUniformBuffers() {
     vk::DeviceSize size = sizeof(UniformBufferObject);
-    auto builder = BufferBuilder().setSize(size).setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent).setUsageFlags(vk::BufferUsageFlagBits::eUniformBuffer);
+    auto builder = BufferBuilder()
+                           .setSize(size)
+                           .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
+                           .setUsageFlags(vk::BufferUsageFlagBits::eUniformBuffer);
 
     for ([[maybe_unused]] const auto &swapImage : swapchain->getSwapChainImageViews()) {
         unifromsBuffers.emplace_back(std::make_shared<Buffer>(builder, device, commandPool, graphicsQueue));
@@ -298,7 +304,8 @@ void VulkanCore::createImage(uint32_t width, uint32_t height, vk::Format format,
     image = device->getDevice()->createImageUnique(imageCreateInfo);
 
     auto memRequirements = device->getDevice()->getImageMemoryRequirements(image.get());
-    vk::MemoryAllocateInfo allocateInfo{.allocationSize = memRequirements.size, .memoryTypeIndex = VulkanUtils::findMemoryType(device, memRequirements.memoryTypeBits, properties)};
+    vk::MemoryAllocateInfo allocateInfo{.allocationSize = memRequirements.size,
+                                        .memoryTypeIndex = VulkanUtils::findMemoryType(device, memRequirements.memoryTypeBits, properties)};
     imageMemory = device->getDevice()->allocateMemoryUnique(allocateInfo);
     device->getDevice()->bindImageMemory(image.get(), imageMemory.get(), 0);
 }

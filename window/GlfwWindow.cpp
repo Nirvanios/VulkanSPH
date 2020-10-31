@@ -14,7 +14,10 @@ GlfwWindow::GlfwWindow(const std::string &windowName, const int width, const int
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     window = std::unique_ptr<GLFWwindow, DestroyglfwWin>(glfwCreateWindow(width, height, windowName.c_str(), nullptr, nullptr));
+    glfwSetWindowUserPointer(window.get(), this);
     glfwSetFramebufferSizeCallback(window.get(), framebufferResizeCallback);
+    glfwSetKeyCallback(window.get(), GlfwWindow::keyCallback);
+    glfwSetMouseButtonCallback(window.get(), GlfwWindow::mouseButtonCallback);
     this->windowName = windowName;
     spdlog::debug(fmt::format("Creating window \"{}\". Size: {}x{}.", windowName, width, height));
 }
@@ -49,4 +52,14 @@ void GlfwWindow::checkMinimized() {
         glfwGetFramebufferSize(window.get(), &width, &height);
         glfwWaitEvents();
     }
+}
+void GlfwWindow::mouseButtonCallback(GLFWwindow *window, int button, int action, int mods) {
+    const auto windowPtr = reinterpret_cast<GlfwWindow*>(glfwGetWindowUserPointer(window));
+
+    windowPtr->notifyMouse({.button = button, .action = MouseButtonAction{action}, .modifier = Modifier{mods}});
+}
+void GlfwWindow::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+    const auto windowPtr = reinterpret_cast<GlfwWindow*>(glfwGetWindowUserPointer(window));
+
+    windowPtr->notifyKey({.key = key, .scancode = scancode, .action = KeyAction{action}, .modifier = Modifier{mods}});
 }
