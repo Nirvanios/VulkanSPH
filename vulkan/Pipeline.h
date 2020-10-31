@@ -20,7 +20,7 @@ public:
     const vk::UniquePipelineLayout &getPipelineLayout() const;
 
 private:
-    vk::UniqueShaderModule createShaderModule(const std::string &code);
+    vk::UniqueShaderModule createShaderModule(const std::vector<uint32_t> &code);
     void createDescriptorSetLayout();
 
     vk::UniqueRenderPass renderPass;

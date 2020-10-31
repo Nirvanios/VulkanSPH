@@ -4,6 +4,7 @@
 
 #include "Pipeline.h"
 #include "../Utilities.h"
+#include "VulkanUtils.h"
 #include "Types.h"
 #include <spdlog/spdlog.h>
 
@@ -20,11 +21,12 @@ Pipeline::Pipeline(std::shared_ptr<Device> device, std::shared_ptr<Swapchain> sw
 }
 void Pipeline::createGraphicsPipeline() {
     //TODO config
-    auto vertShaderCode = Utilities::readFile("/home/kuro/CLionProjects/VulkanApp/shaders/shader.vert.spv");
-    auto fragShaderCode = Utilities::readFile("/home/kuro/CLionProjects/VulkanApp/shaders/shader.frag.spv");
+    constexpr auto vertexFile = "/home/kuro/CLionProjects/VulkanApp/shaders/shader.vert";
+    constexpr auto fragmentFile = "/home/kuro/CLionProjects/VulkanApp/shaders/shader.frag";
+    auto fragShaderCode = Utilities::readFile(fragmentFile);
 
-    auto vertShaderModule = createShaderModule(vertShaderCode);
-    auto fragShaderModule = createShaderModule(fragShaderCode);
+    auto vertShaderModule = createShaderModule(VulkanUtils::compileShader(vertexFile, shaderc_shader_kind::shaderc_vertex_shader, Utilities::readFile(vertexFile)));
+    auto fragShaderModule = createShaderModule(VulkanUtils::compileShader(vertexFile, shaderc_shader_kind::shaderc_fragment_shader, Utilities::readFile(fragmentFile)));
     auto bindingDescription = Vertex::getBindingDescription();
     auto attributeDescriptions = Vertex::getAttributeDescriptions();
 
@@ -125,8 +127,8 @@ void Pipeline::createGraphicsPipeline() {
 
     pipeline = device->getDevice()->createGraphicsPipelineUnique(nullptr, pipelineCreateInfo).value;
 }
-vk::UniqueShaderModule Pipeline::createShaderModule(const std::string &code) {
-    vk::ShaderModuleCreateInfo createInfo{.codeSize = code.size(), .pCode = reinterpret_cast<const uint32_t *>(code.data())};
+vk::UniqueShaderModule Pipeline::createShaderModule(const std::vector<uint32_t> &code) {
+    vk::ShaderModuleCreateInfo createInfo{.codeSize = code.size() * sizeof(uint32_t), .pCode = code.data()};
 
     return device->getDevice()->createShaderModuleUnique(createInfo);
 }
