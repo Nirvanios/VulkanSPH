@@ -3,9 +3,12 @@
 //
 
 #include "EventDispatchingWindow.h"
-void EventDispatchingWindow::notifyMouse(const MouseMessage &message) {
-    for (auto &[id, listener] : mouseListeners) { listener(message); }
+void EventDispatchingWindow::notifyMouseButton(const MouseButtonMessage &message) {
+    for (auto &[id, listener] : mouseButtonListeners) { listener(message); }
 }
 void EventDispatchingWindow::notifyKey(const KeyMessage &message) {
     for (auto &[id, listener] : keyListeners) { listener(message); }
+}
+void EventDispatchingWindow::notifyMouseMovement(const MouseMovementMessage &message) {
+    for (auto &[id, listener] : mouseMovementListeners) { listener(message); }
 }

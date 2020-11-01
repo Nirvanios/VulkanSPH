@@ -9,8 +9,7 @@
 
 #include "spdlog/spdlog.h"
 
-#include "vulkan/VulkanCore.h"
-#include "window/GlfwWindow.h"
+#include "Renderers/TestRenderer.h"
 
 void setupLogger(bool debug = false) {
     if (debug)
@@ -21,11 +20,10 @@ int main() {
     const auto DEBUG = true;
     setupLogger(DEBUG);
 
-    GlfwWindow window;
-    VulkanCore vulkanCore{window, DEBUG};
+    TestRenderer testRenderer{DEBUG};
 
     try {
-        vulkanCore.run();
+        testRenderer.run();
     } catch (const std::exception &e) {
         spdlog::error(fmt::format(e.what()));
         return EXIT_FAILURE;

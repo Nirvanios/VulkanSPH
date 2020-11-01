@@ -37,10 +37,15 @@ struct KeyMessage {
     Modifier modifier;
 };
 
-struct MouseMessage {
+struct MouseButtonMessage {
     int button;
     MouseButtonAction action;
     Modifier modifier;
+};
+
+struct MouseMovementMessage{
+    double xPosition;
+    double yPosition;
 };
 
 #endif//VULKANAPP_MESSAGES_H

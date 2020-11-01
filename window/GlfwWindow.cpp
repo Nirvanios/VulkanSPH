@@ -18,6 +18,7 @@ GlfwWindow::GlfwWindow(const std::string &windowName, const int width, const int
     glfwSetFramebufferSizeCallback(window.get(), framebufferResizeCallback);
     glfwSetKeyCallback(window.get(), GlfwWindow::keyCallback);
     glfwSetMouseButtonCallback(window.get(), GlfwWindow::mouseButtonCallback);
+    glfwSetCursorPosCallback(window.get(), mousePositionCallback);
     this->windowName = windowName;
     spdlog::debug(fmt::format("Creating window \"{}\". Size: {}x{}.", windowName, width, height));
 }
@@ -56,10 +57,15 @@ void GlfwWindow::checkMinimized() {
 void GlfwWindow::mouseButtonCallback(GLFWwindow *window, int button, int action, int mods) {
     const auto windowPtr = reinterpret_cast<GlfwWindow*>(glfwGetWindowUserPointer(window));
 
-    windowPtr->notifyMouse({.button = button, .action = MouseButtonAction{action}, .modifier = Modifier{mods}});
+    windowPtr->notifyMouseButton({.button = button, .action = MouseButtonAction{action}, .modifier = Modifier{mods}});
 }
 void GlfwWindow::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
     const auto windowPtr = reinterpret_cast<GlfwWindow*>(glfwGetWindowUserPointer(window));
 
     windowPtr->notifyKey({.key = key, .scancode = scancode, .action = KeyAction{action}, .modifier = Modifier{mods}});
+}
+void GlfwWindow::mousePositionCallback(GLFWwindow *window, double xpos, double ypos) {
+    const auto windowPtr = reinterpret_cast<GlfwWindow*>(glfwGetWindowUserPointer(window));
+
+    windowPtr->notifyMouseMovement({.xPosition = xpos, .yPosition = ypos});
 }

@@ -25,7 +25,7 @@ namespace Utilities {
         file.close();
 
         return buffer;
-    };
+    }
 
     template<typename T, typename Container = std::vector<T>>
     inline bool isIn(T value, Container &&container) {
@@ -53,7 +53,7 @@ namespace Utilities {
         std::size_t getNextID() { return id++; }
         std::size_t id = 0;
     };
-};// namespace Utilities
+}// namespace Utilitie
 
 
 #endif//VULKANTEST_UTILITIES_H

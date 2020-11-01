@@ -25,6 +25,7 @@ class VulkanCore {
 
 public:
     explicit VulkanCore(GlfwWindow &window, bool debug = false);
+    void setViewMatrixGetter(std::function<glm::mat4()> getter);
     void run();
 
 private:
@@ -37,16 +38,12 @@ private:
 
     };
     const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
-    struct UniformBufferObject {
-        glm::mat4 model;
-        glm::mat4 view;
-        glm::mat4 proj;
-    };
-
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
     int currentFrame = 0;
     bool framebufferResized = false;
+
+    std::function<glm::mat4()> viewMatrixGetter = [](){return glm::mat4(1.0f);};
 
     std::shared_ptr<Instance> instance;
     std::shared_ptr<Device> device;

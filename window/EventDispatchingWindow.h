@@ -26,31 +26,38 @@ private:
 class EventDispatchingWindow {
 public:
     template<std::invocable<KeyMessage> F>
-    Unsubscriber subscribeToKeyEvents(F callback){
-        auto id = keyIDs.getNextID();
+    [[nodiscard]] Unsubscriber subscribeToKeyEvents(F callback){
+        auto id = IDs.getNextID();
         keyListeners.emplace(id, callback);
         return Unsubscriber([this, id]() {
           keyListeners.erase(id);
         });
     }
-    template<std::invocable<MouseMessage> F>
-    Unsubscriber subscribeToMouseEvents(F callback){
-        auto id = mouseIDs.getNextID();
-        mouseListeners.emplace(id, callback);
-        return Unsubscriber([this, id]() {
-          mouseListeners.erase(id);
+    template<std::invocable<MouseButtonMessage> F>
+    [[nodiscard]] Unsubscriber subscribeToMouseButtonEvents(F callback){
+        auto id = IDs.getNextID();
+        mouseButtonListeners.emplace(id, callback);
+        return Unsubscriber([this, id]() { mouseButtonListeners.erase(id);
+        });
+    }
+    template<std::invocable<MouseMovementMessage> F>
+    [[nodiscard]] Unsubscriber subscribeToMouseMovementEvents(F callback){
+        auto id = IDs.getNextID();
+        mouseMovementListeners.emplace(id, callback);
+        return Unsubscriber([this, id]() { mouseMovementListeners.erase(id);
         });
     }
 
 protected:
-    void notifyMouse(const MouseMessage &message);
+    void notifyMouseButton(const MouseButtonMessage &message);
+    void notifyMouseMovement(const MouseMovementMessage &message);
     void notifyKey(const KeyMessage &message);
 
 private:
-    Utilities::IdGenerator keyIDs{100};
-    Utilities::IdGenerator mouseIDs{100};
+    Utilities::IdGenerator IDs;
     std::unordered_map<int, std::function<void(KeyMessage)>> keyListeners;
-    std::unordered_map<int, std::function<void(MouseMessage)>> mouseListeners;
+    std::unordered_map<int, std::function<void(MouseButtonMessage)>> mouseButtonListeners;
+    std::unordered_map<int, std::function<void(MouseMovementMessage)>> mouseMovementListeners;
 };
 
 

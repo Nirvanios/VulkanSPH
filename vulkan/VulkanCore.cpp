@@ -38,21 +38,15 @@ void VulkanCore::initVulkan() {
 }
 
 void VulkanCore::run() {
-    auto a = window.subscribeToKeyEvents([](KeyMessage message) {
-        if (message.action == KeyAction::Release) spdlog::info(message.key);
-    });
     mainLoop();
     cleanup();
-    a.unsubscribe();
 }
 
 void VulkanCore::mainLoop() {
     while (!glfwWindowShouldClose(window.getWindow().get())) {
         glfwPollEvents();
-        //glfwWaitEvents();
         drawFrame();
     }
-
 
     device->getDevice()->waitIdle();
 }
@@ -222,11 +216,11 @@ void VulkanCore::createUniformBuffers() {
     }
 }
 void VulkanCore::updateUniformBuffers(uint32_t currentImage) {
-    static auto startTime = std::chrono::high_resolution_clock::now();
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-    UniformBufferObject ubo{.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
-                            .view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+//    static auto startTime = std::chrono::high_resolution_clock::now();
+//    auto currentTime = std::chrono::high_resolution_clock::now();
+    // float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+    UniformBufferObject ubo{.model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+                            .view = viewMatrixGetter(),
                             .proj = glm::perspective(glm::radians(45.0f),
                                                      swapchain->getSwapchainExtent().width / static_cast<float>(swapchain->getSwapchainExtent().height), 0.1f,
                                                      10.f)};
@@ -375,3 +369,4 @@ vk::UniqueImageView VulkanCore::createImageView(const vk::UniqueImage &image, vk
             .subresourceRange = {.aspectMask = aspectFlags, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1}};
     return device->getDevice()->createImageViewUnique(viewCreateInfo);
 }
+void VulkanCore::setViewMatrixGetter(std::function<glm::mat4()> getter) { viewMatrixGetter = getter; }
