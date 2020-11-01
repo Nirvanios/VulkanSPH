@@ -2,9 +2,10 @@
 // Created by Igor Frank on 31.10.20.
 //
 
-#ifndef VULKANAPP_OBSERVABLEWINDOW_H
-#define VULKANAPP_OBSERVABLEWINDOW_H
+#ifndef VULKANAPP_EVENTDISPATCHINGWINDOW_H
+#define VULKANAPP_EVENTDISPATCHINGWINDOW_H
 
+#include "../Utilities.h"
 #include "Messages.h"
 #include <concepts>
 #include <functional>
@@ -12,23 +13,6 @@
 #include <utility>
 #include <vector>
 
-class ValuesPool {
-public:
-    explicit ValuesPool(unsigned int size){
-        for (unsigned int i = 0; i < size; ++i) {
-            values.emplace(i);
-        }
-    }
-    [[nodiscard]] int getNextID() {
-        auto id = *values.begin();
-        values.erase(id);
-        return id;
-    }
-    void returnID(int id) { values.insert(id); };
-
-private:
-    std::set<int> values;
-};
 
 class Unsubscriber {
 public:
@@ -39,7 +23,7 @@ private:
     std::function<void()> unsub;
 };
 
-class ObservableWindow {
+class EventDispatchingWindow {
 public:
     template<std::invocable<KeyMessage> F>
     Unsubscriber subscribeToKeyEvents(F callback){
@@ -47,7 +31,6 @@ public:
         keyListeners.emplace(id, callback);
         return Unsubscriber([this, id]() {
           keyListeners.erase(id);
-          keyIDs.returnID(id);
         });
     }
     template<std::invocable<MouseMessage> F>
@@ -56,7 +39,6 @@ public:
         mouseListeners.emplace(id, callback);
         return Unsubscriber([this, id]() {
           mouseListeners.erase(id);
-          mouseIDs.returnID(id);
         });
     }
 
@@ -65,11 +47,11 @@ protected:
     void notifyKey(const KeyMessage &message);
 
 private:
-    ValuesPool keyIDs{100};
-    ValuesPool mouseIDs{100};
+    Utilities::IdGenerator keyIDs{100};
+    Utilities::IdGenerator mouseIDs{100};
     std::unordered_map<int, std::function<void(KeyMessage)>> keyListeners;
     std::unordered_map<int, std::function<void(MouseMessage)>> mouseListeners;
 };
 
 
-#endif//VULKANAPP_OBSERVABLEWINDOW_H
+#endif//VULKANAPP_EVENTDISPATCHINGWINDOW_H

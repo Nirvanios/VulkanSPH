@@ -8,7 +8,7 @@
 #include <memory>
 
 #define GLFW_INCLUDE_VULKAN
-#include "ObservableWindow.h"
+#include "EventDispatchingWindow.h"
 #include <GLFW/glfw3.h>
 
 enum class CallbackTypes{
@@ -26,7 +26,7 @@ struct DestroyglfwWin {
 
 using Window = std::unique_ptr<GLFWwindow, DestroyglfwWin>;
 
-class GlfwWindow : public ObservableWindow{
+class GlfwWindow : public EventDispatchingWindow {
 public:
     [[nodiscard]] const std::string &getWindowName() const;
     explicit GlfwWindow(const std::string &windowName = "VulkanApp", int width = 800, int height = 600);

@@ -20,14 +20,14 @@ enum class KeyAction { Uknown = GLFW_KEY_UNKNOWN, Press = GLFW_PRESS, Repeat = G
 
 enum class MouseButtonAction { Press = GLFW_PRESS, Release = GLFW_RELEASE };
 
-inline Modifier operator|(Modifier left, Modifier right) {
+inline Modifier operator|(Modifier lhs, Modifier rhs) {
     using T = std::underlying_type_t<Modifier>;
-    return static_cast<Modifier>(static_cast<T>(left) | static_cast<T>(right));
+    return static_cast<Modifier>(static_cast<T>(lhs) | static_cast<T>(rhs));
 }
 
-inline Modifier &operator|=(Modifier &left, Modifier &right) {
-    left = left | right;
-    return left;
+inline Modifier &operator|=(Modifier &lhs, Modifier rhs) {
+    lhs = lhs | rhs;
+    return lhs;
 }
 
 struct KeyMessage {

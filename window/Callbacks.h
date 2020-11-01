@@ -7,7 +7,7 @@
 
 #include "../vulkan/VulkanCore.h"
 #include <GLFW/glfw3.h>
-void framebufferResizeCallback(GLFWwindow* window, [[maybe_unused]] int width, [[maybe_unused]] int height) {
+void framebufferResizeCallback(GLFWwindow* window, int ,int) {
     auto app = reinterpret_cast<VulkanCore*>(glfwGetWindowUserPointer(window));
     app->setFramebufferResized(true);
     spdlog::debug("Callback resized");
