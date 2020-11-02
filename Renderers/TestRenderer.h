@@ -18,10 +18,10 @@ private:
     double xMousePosition = 0.0, yMousePosition = 0.0;
     const bool DEBUG;
 
-    Camera camera;
+    Camera camera{glm::vec3{0.0f, 1.0f, 0.0f}};
     const std::string windowName = "TestRenderer";
     GlfwWindow window{windowName};
-    VulkanCore vulkanCore{window, DEBUG};
+    VulkanCore vulkanCore{window, camera.Position, DEBUG};
 
     Unsubscriber keyMovementSubscriber;
     Unsubscriber mouseMovementSubscriber;

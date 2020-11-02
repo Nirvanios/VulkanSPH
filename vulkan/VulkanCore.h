@@ -24,17 +24,17 @@
 class VulkanCore {
 
 public:
-    explicit VulkanCore(GlfwWindow &window, bool debug = false);
+    explicit VulkanCore(GlfwWindow &window, const glm::vec3 &cameraPos, bool debug = false);
     void setViewMatrixGetter(std::function<glm::mat4()> getter);
     void run();
 
 private:
-    const std::vector<Vertex> vertices = {
+    std::vector<Vertex> vertices = {
             {.pos = {-0.5f, -0.5f, 0.0f}, .color = {1.0f, 0.0f, 0.0f}},  {.pos = {0.5f, -0.5f, 0.0f}, .color = {1.0f, 0.0f, 0.0f}},
-            {.pos = {0.5f, 0.5f, 0.0f}, .color = {1.0f, 0.0f, 0.0f}},    {.pos = {-0.5f, 0.5f, 0.0f}, .color = {1.0f, 0.0f, 0.0f}},
+            {.pos = {0.5f, 0.5f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},    {.pos = {-0.5f, 0.5f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
 
             {.pos = {-0.5f, -0.5f, -0.5f}, .color = {0.0f, 0.0f, 1.0f}}, {.pos = {0.5f, -0.5f, -0.5f}, .color = {0.0f, 0.0f, 1.0f}},
-            {.pos = {0.5f, 0.5f, -0.5f}, .color = {0.0f, 0.0f, 1.0f}},   {.pos = {-0.5f, 0.5f, -0.5f}, .color = {0.0f, 0.0f, 1.0f}},
+            {.pos = {0.5f, 0.5f, -1.0f}, .color = {0.0f, 0.0f, 1.0f}},   {.pos = {-0.5f, 0.5f, -1.0f}, .color = {0.0f, 0.0f, 1.0f}},
 
     };
     const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
@@ -43,7 +43,8 @@ private:
     int currentFrame = 0;
     bool framebufferResized = false;
 
-    std::function<glm::mat4()> viewMatrixGetter = [](){return glm::mat4(1.0f);};
+    std::function<glm::mat4()> viewMatrixGetter = []() { return glm::mat4(1.0f); };
+    const glm::vec3 &cameraPos;
 
     std::shared_ptr<Instance> instance;
     std::shared_ptr<Device> device;
@@ -63,7 +64,8 @@ private:
 
     std::shared_ptr<Buffer> vertexBuffer;
     std::shared_ptr<Buffer> indexBuffer;
-    std::vector<std::shared_ptr<Buffer>> unifromsBuffers;
+    std::vector<std::shared_ptr<Buffer>> unifromsBuffersMVP;
+    std::vector<std::shared_ptr<Buffer>> unifromsBuffersCameraPos;
 
 
     vk::UniqueDescriptorPool descriptorPool;

@@ -4,8 +4,8 @@
 
 #include "Pipeline.h"
 #include "../Utilities.h"
-#include "VulkanUtils.h"
 #include "Types.h"
+#include "VulkanUtils.h"
 #include <spdlog/spdlog.h>
 
 
@@ -25,8 +25,10 @@ void Pipeline::createGraphicsPipeline() {
     constexpr auto fragmentFile = "/home/kuro/CLionProjects/VulkanApp/shaders/shader.frag";
     auto fragShaderCode = Utilities::readFile(fragmentFile);
 
-    auto vertShaderModule = createShaderModule(VulkanUtils::compileShader(vertexFile, shaderc_shader_kind::shaderc_vertex_shader, Utilities::readFile(vertexFile)));
-    auto fragShaderModule = createShaderModule(VulkanUtils::compileShader(vertexFile, shaderc_shader_kind::shaderc_fragment_shader, Utilities::readFile(fragmentFile)));
+    auto vertShaderModule =
+            createShaderModule(VulkanUtils::compileShader(vertexFile, shaderc_shader_kind::shaderc_vertex_shader, Utilities::readFile(vertexFile)));
+    auto fragShaderModule =
+            createShaderModule(VulkanUtils::compileShader(vertexFile, shaderc_shader_kind::shaderc_fragment_shader, Utilities::readFile(fragmentFile)));
     auto bindingDescription = Vertex::getBindingDescription();
     auto attributeDescriptions = Vertex::getAttributeDescriptions();
 
@@ -57,7 +59,7 @@ void Pipeline::createGraphicsPipeline() {
     vk::PipelineRasterizationStateCreateInfo rasterizationStateCreateInfo{.depthClampEnable = VK_FALSE,
                                                                           .rasterizerDiscardEnable = VK_FALSE,
                                                                           .polygonMode = vk::PolygonMode::eFill,
-                                                                          .cullMode = vk::CullModeFlagBits::eBack,
+                                                                          .cullMode = vk::CullModeFlagBits::eNone,
                                                                           .frontFace = vk::FrontFace::eCounterClockwise,
                                                                           .depthBiasEnable = VK_FALSE,
                                                                           .depthBiasConstantFactor = 0.0f,
@@ -179,13 +181,18 @@ void Pipeline::createRenderPass() {
 }
 
 void Pipeline::createDescriptorSetLayout() {
-    vk::DescriptorSetLayoutBinding uboLayoutBinding{.binding = 0,
-                                                    .descriptorType = vk::DescriptorType::eUniformBuffer,
-                                                    .descriptorCount = 1,
-                                                    .stageFlags = vk::ShaderStageFlagBits::eVertex,
-                                                    .pImmutableSamplers = nullptr};
+    std::array<vk::DescriptorSetLayoutBinding, 2> layoutBindings{vk::DescriptorSetLayoutBinding{.binding = 0,
+                                                                                                .descriptorType = vk::DescriptorType::eUniformBuffer,
+                                                                                                .descriptorCount = 1,
+                                                                                                .stageFlags = vk::ShaderStageFlagBits::eVertex,
+                                                                                                .pImmutableSamplers = nullptr},
+                                                                 vk::DescriptorSetLayoutBinding{.binding = 1,
+                                                                                                .descriptorType = vk::DescriptorType::eUniformBuffer,
+                                                                                                .descriptorCount = 1,
+                                                                                                .stageFlags = vk::ShaderStageFlagBits::eFragment,
+                                                                                                .pImmutableSamplers = nullptr}};
 
-    vk::DescriptorSetLayoutCreateInfo layoutCreateInfo{.bindingCount = 1, .pBindings = &uboLayoutBinding};
+    vk::DescriptorSetLayoutCreateInfo layoutCreateInfo{.bindingCount = layoutBindings.size(), .pBindings = layoutBindings.data()};
 
     descriptorSetLayout = device->getDevice()->createDescriptorSetLayoutUnique(layoutCreateInfo);
 }

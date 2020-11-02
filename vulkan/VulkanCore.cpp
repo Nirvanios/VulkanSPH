@@ -25,6 +25,10 @@ void VulkanCore::initVulkan() {
     createCommandPool();
     createDepthResources();
     framebuffers = std::make_shared<Framebuffers>(device, swapchain, pipeline->getRenderPass(), depthImageView);
+    vertices[0].normal = vertices[1].normal = vertices[2].normal = vertices[3].normal =
+            glm::normalize(glm::cross(vertices[0].pos - vertices[1].pos, vertices[0].pos - vertices[2].pos));
+    vertices[4].normal = vertices[5].normal = vertices[6].normal = vertices[7].normal =
+            glm::normalize(glm::cross(vertices[4].pos - vertices[5].pos, vertices[4].pos - vertices[6].pos));
     createVertexBuffer();
     createIndexBuffer();
     createUniformBuffers();
@@ -53,7 +57,7 @@ void VulkanCore::mainLoop() {
 
 void VulkanCore::cleanup() {}
 
-VulkanCore::VulkanCore(GlfwWindow &window, bool debug) : debug(debug), window(window) {
+VulkanCore::VulkanCore(GlfwWindow &window, const glm::vec3 &cameraPos, bool debug) : cameraPos(cameraPos), debug(debug), window(window) {
     spdlog::debug("Vulkan initialization...");
     initVulkan();
     spdlog::debug("Vulkan OK.");
@@ -206,26 +210,29 @@ void VulkanCore::createIndexBuffer() {
 }
 void VulkanCore::createUniformBuffers() {
     vk::DeviceSize size = sizeof(UniformBufferObject);
-    auto builder = BufferBuilder()
-                           .setSize(size)
-                           .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
-                           .setUsageFlags(vk::BufferUsageFlagBits::eUniformBuffer);
+    auto builderMVP = BufferBuilder()
+                              .setSize(size)
+                              .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
+                              .setUsageFlags(vk::BufferUsageFlagBits::eUniformBuffer);
+    auto builderCameraPos = BufferBuilder()
+                                    .setSize(size)
+                                    .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
+                                    .setUsageFlags(vk::BufferUsageFlagBits::eUniformBuffer);
 
     for ([[maybe_unused]] const auto &swapImage : swapchain->getSwapChainImageViews()) {
-        unifromsBuffers.emplace_back(std::make_shared<Buffer>(builder, device, commandPool, graphicsQueue));
+        unifromsBuffersMVP.emplace_back(std::make_shared<Buffer>(builderMVP, device, commandPool, graphicsQueue));
+        unifromsBuffersCameraPos.emplace_back(std::make_shared<Buffer>(builderCameraPos, device, commandPool, graphicsQueue));
     }
 }
 void VulkanCore::updateUniformBuffers(uint32_t currentImage) {
-//    static auto startTime = std::chrono::high_resolution_clock::now();
-//    auto currentTime = std::chrono::high_resolution_clock::now();
-    // float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-    UniformBufferObject ubo{.model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+    UniformBufferObject ubo{.model = glm::mat4{1.0f},
                             .view = viewMatrixGetter(),
                             .proj = glm::perspective(glm::radians(45.0f),
-                                                     swapchain->getSwapchainExtent().width / static_cast<float>(swapchain->getSwapchainExtent().height), 0.1f,
-                                                     10.f)};
+                                                     swapchain->getSwapchainExtent().width / static_cast<float>(swapchain->getSwapchainExtent().height), 0.01f,
+                                                     1000.f)};
     ubo.proj[1][1] *= -1;
-    unifromsBuffers[currentImage]->fill(std::span(&ubo, 1), false);
+    unifromsBuffersMVP[currentImage]->fill(std::span(&ubo, 1), false);
+    unifromsBuffersCameraPos[currentImage]->fill(std::span(&cameraPos, 1), false);
 }
 void VulkanCore::createDescriptorPool() {
     vk::DescriptorPoolSize poolSize{.descriptorCount = static_cast<uint32_t>(swapchain->getSwapChainImageViews().size())};
@@ -247,16 +254,25 @@ void VulkanCore::createDescriptorSet() {
     descriptorSets = device->getDevice()->allocateDescriptorSetsUnique(allocateInfo);
 
     for (size_t i = 0; i < descriptorSets.size(); i++) {
-        vk::DescriptorBufferInfo bufferInfo{.buffer = unifromsBuffers[i]->getBuffer().get(), .offset = 0, .range = sizeof(UniformBufferObject)};
-        vk::WriteDescriptorSet writeDescriptorSet{.dstSet = descriptorSets[i].get(),
-                                                  .dstBinding = 0,
-                                                  .dstArrayElement = 0,
-                                                  .descriptorCount = 1,
-                                                  .descriptorType = vk::DescriptorType::eUniformBuffer,
-                                                  .pImageInfo = nullptr,
-                                                  .pBufferInfo = &bufferInfo,
-                                                  .pTexelBufferView = nullptr};
-        device->getDevice()->updateDescriptorSets(1, &writeDescriptorSet, 0, nullptr);
+        vk::DescriptorBufferInfo bufferInfoMVP{.buffer = unifromsBuffersMVP[i]->getBuffer().get(), .offset = 0, .range = sizeof(UniformBufferObject)};
+        vk::DescriptorBufferInfo bufferInfoCameraPos{.buffer = unifromsBuffersCameraPos[i]->getBuffer().get(), .offset = 0, .range = sizeof(glm::vec3)};
+        std::array<vk::WriteDescriptorSet, 2> writeDescriptorSet{vk::WriteDescriptorSet{.dstSet = descriptorSets[i].get(),
+                                                                                        .dstBinding = 0,
+                                                                                        .dstArrayElement = 0,
+                                                                                        .descriptorCount = 1,
+                                                                                        .descriptorType = vk::DescriptorType::eUniformBuffer,
+                                                                                        .pImageInfo = nullptr,
+                                                                                        .pBufferInfo = &bufferInfoMVP,
+                                                                                        .pTexelBufferView = nullptr},
+                                                                 vk::WriteDescriptorSet{.dstSet = descriptorSets[i].get(),
+                                                                                        .dstBinding = 1,
+                                                                                        .dstArrayElement = 0,
+                                                                                        .descriptorCount = 1,
+                                                                                        .descriptorType = vk::DescriptorType::eUniformBuffer,
+                                                                                        .pImageInfo = nullptr,
+                                                                                        .pBufferInfo = &bufferInfoCameraPos,
+                                                                                        .pTexelBufferView = nullptr}};
+        device->getDevice()->updateDescriptorSets(writeDescriptorSet.size(), writeDescriptorSet.data(), 0, nullptr);
     }
 }
 void VulkanCore::createDepthResources() {
