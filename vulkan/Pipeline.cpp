@@ -20,7 +20,6 @@ Pipeline::Pipeline(Config config, std::shared_ptr<Device> device, std::shared_pt
     spdlog::debug("Created pipeline.");
 }
 void Pipeline::createGraphicsPipeline() {
-    //TODO config
     const auto vertexFile = config.getVulkan().shaders.vertex;
     const auto fragmentFile = config.getVulkan().shaders.fragemnt;
     auto fragShaderCode = Utilities::readFile(fragmentFile);
