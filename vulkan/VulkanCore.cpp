@@ -11,6 +11,7 @@
 #include "../utils/Utilities.h"
 #include "VulkanCore.h"
 #include "VulkanUtils.h"
+#include "builders/PipelineBuilder.h"
 
 void VulkanCore::initVulkan() {
     //glfwSetWindowUserPointer(window.getWindow().get(), this);
@@ -21,7 +22,7 @@ void VulkanCore::initVulkan() {
     graphicsQueue = device->getGraphicsQueue();
     presentQueue = device->getPresentQueue();
     swapchain = std::make_shared<Swapchain>(device, surface, window);
-    pipeline = std::make_shared<Pipeline>(config, device, swapchain, findDepthFormat());
+    pipeline = PipelineBuilder{config, device, swapchain}.setDepthFormat(findDepthFormat()).build();
     createCommandPool();
     createDepthResources();
     framebuffers = std::make_shared<Framebuffers>(device, swapchain, pipeline->getRenderPass(), depthImageView);
@@ -178,8 +179,7 @@ void VulkanCore::recreateSwapchain() {
 
     swapchain->createSwapchain();
     swapchain->createImageViews();
-    pipeline->createRenderPass();
-    pipeline->createGraphicsPipeline();
+    pipeline = PipelineBuilder{config, device, swapchain}.setDepthFormat(findDepthFormat()).build();
     framebuffers->createFramebuffers();
     createUniformBuffers();
     createDescriptorPool();
@@ -386,3 +386,24 @@ vk::UniqueImageView VulkanCore::createImageView(const vk::UniqueImage &image, vk
     return device->getDevice()->createImageViewUnique(viewCreateInfo);
 }
 void VulkanCore::setViewMatrixGetter(std::function<glm::mat4()> getter) { viewMatrixGetter = getter; }
+
+void VulkanCore::createShaderStorageBuffer() {
+    const std::array<ParticleRecord, 32> data{};
+    std::srand(std::time(nullptr));
+    for (int x = 0; x < 4; ++x) {
+        for (int y = 0; y < 4; ++y) {
+            for (int z = 0; z < 2; ++z) {
+                data[x * y + z].position.xyz() = glm::vec3{x, y, z};
+                data[x * y + z].velocity.xyz() = glm::vec3{std::rand(), std::rand(), std::rand()};
+                data[x * y + z].velocity.xyz() /= RAND_MAX;
+                data[x * y + z].velocity.xyz() *= 10;
+            }
+        }
+    }
+    shaderStorageBuffer = std::make_shared<Buffer>(BufferBuilder()
+                                                           .setSize(sizeof(ParticleRecord) * data.size())
+                                                           .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer)
+                                                           .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
+                                                   device, commandPool, graphicsQueue);
+    shaderStorageBuffer->fill(data);
+}

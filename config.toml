@@ -11,5 +11,6 @@ height = 600
 [Vulkan.shaders]
 vertex = "/home/kuro/CLionProjects/VulkanApp/shaders/shader.vert"
 fragment = "/home/kuro/CLionProjects/VulkanApp/shaders/shader.frag"
+compute = "/home/kuro/CLionProjects/VulkanApp/shaders/test.comp"
 
 

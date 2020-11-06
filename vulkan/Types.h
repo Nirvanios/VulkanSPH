@@ -33,4 +33,9 @@ struct UniformBufferObject {
     glm::mat4 proj;
 };
 
+struct ParticleRecord {
+    glm::vec4 position;
+    glm::vec4 velocity;
+};
+
 #endif//VULKANAPP_TYPES_H

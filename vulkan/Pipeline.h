@@ -12,28 +12,18 @@
 
 class Pipeline {
 public:
-    Pipeline(Config config, std::shared_ptr<Device> device, std::shared_ptr<Swapchain> swapchain, vk::Format depthFormat);
+    Pipeline(vk::UniqueRenderPass renderPass, vk::UniquePipelineLayout pipelineLayout, vk::UniquePipeline pipeline,
+             vk::UniqueDescriptorSetLayout descriptorSetLayout);
     [[nodiscard]] const vk::RenderPass &getRenderPass() const;
     [[nodiscard]] const vk::UniquePipeline &getPipeline() const;
     [[nodiscard]] const vk::UniqueDescriptorSetLayout &getDescriptorSetLayout() const;
-    void createGraphicsPipeline();
-    void createRenderPass();
     [[nodiscard]] const vk::UniquePipelineLayout &getPipelineLayout() const;
 
 private:
-    vk::UniqueShaderModule createShaderModule(const std::vector<uint32_t> &code);
-    void createDescriptorSetLayout();
-
-    const Config config;
-
     vk::UniqueRenderPass renderPass;
     vk::UniquePipelineLayout pipelineLayout;
     vk::UniquePipeline pipeline;
     vk::UniqueDescriptorSetLayout descriptorSetLayout;
-
-    std::shared_ptr<Device> device;
-    std::shared_ptr<Swapchain> swapchain;
-    vk::Format depthFormat;
 };
 
 

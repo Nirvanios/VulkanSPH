@@ -65,6 +65,7 @@ private:
 
     std::shared_ptr<Buffer> vertexBuffer;
     std::shared_ptr<Buffer> indexBuffer;
+    std::shared_ptr<Buffer> shaderStorageBuffer;
     std::vector<std::shared_ptr<Buffer>> unifromsBuffersMVP;
     std::vector<std::shared_ptr<Buffer>> unifromsBuffersCameraPos;
 
@@ -87,6 +88,7 @@ private:
 
     void createVertexBuffer();
     void createIndexBuffer();
+    void createShaderStorageBuffer();
     void createUniformBuffers();
 
     void createCommandPool();
