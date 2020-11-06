@@ -1,0 +1,15 @@
+[App]
+DEBUG = true
+
+[Vulkan]
+
+[Vulkan.window]
+name = "VulkanApp"
+width = 800
+height = 600
+
+[Vulkan.shaders]
+vertex = "/home/kuro/CLionProjects/VulkanApp/shaders/shader.vert"
+fragment = "/home/kuro/CLionProjects/VulkanApp/shaders/shader.frag"
+
+

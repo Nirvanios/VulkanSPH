@@ -5,7 +5,7 @@
 #ifndef VULKANAPP_EVENTDISPATCHINGWINDOW_H
 #define VULKANAPP_EVENTDISPATCHINGWINDOW_H
 
-#include "../Utilities.h"
+#include "../utils/Utilities.h"
 #include "Messages.h"
 #include <concepts>
 #include <functional>

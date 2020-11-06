@@ -8,20 +8,20 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "spdlog/spdlog.h"
 
-#include "../Utilities.h"
+#include "../utils/Utilities.h"
 #include "VulkanCore.h"
 #include "VulkanUtils.h"
 
 void VulkanCore::initVulkan() {
     //glfwSetWindowUserPointer(window.getWindow().get(), this);
-    instance = std::make_shared<Instance>(window.getWindowName(), debug);
+    instance = std::make_shared<Instance>(window.getWindowName(), config.getApp().DEBUG);
     createSurface();
     spdlog::debug("Created surface.");
-    device = std::make_shared<Device>(instance, surface, debug);
+    device = std::make_shared<Device>(instance, surface, config.getApp().DEBUG);
     graphicsQueue = device->getGraphicsQueue();
     presentQueue = device->getPresentQueue();
     swapchain = std::make_shared<Swapchain>(device, surface, window);
-    pipeline = std::make_shared<Pipeline>(device, swapchain, findDepthFormat());
+    pipeline = std::make_shared<Pipeline>(config, device, swapchain, findDepthFormat());
     createCommandPool();
     createDepthResources();
     framebuffers = std::make_shared<Framebuffers>(device, swapchain, pipeline->getRenderPass(), depthImageView);
@@ -57,7 +57,7 @@ void VulkanCore::mainLoop() {
 
 void VulkanCore::cleanup() {}
 
-VulkanCore::VulkanCore(GlfwWindow &window, const glm::vec3 &cameraPos, bool debug) : cameraPos(cameraPos), debug(debug), window(window) {
+VulkanCore::VulkanCore(Config config, GlfwWindow &window, const glm::vec3 &cameraPos) : cameraPos(cameraPos), config(std::move(config)), window(window) {
     spdlog::debug("Vulkan initialization...");
     initVulkan();
     spdlog::debug("Vulkan OK.");

@@ -5,23 +5,26 @@
 #ifndef VULKANAPP_PIPELINE_H
 #define VULKANAPP_PIPELINE_H
 
+#include "../utils/Config.h"
 #include "Device.h"
 #include "Swapchain.h"
 #include <vulkan//vulkan.hpp>
 
 class Pipeline {
 public:
-    Pipeline(std::shared_ptr<Device> device, std::shared_ptr<Swapchain> swapchain, vk::Format depthFormat);
-    const vk::RenderPass &getRenderPass() const;
-    const vk::UniquePipeline &getPipeline() const;
-    const vk::UniqueDescriptorSetLayout &getDescriptorSetLayout() const;
+    Pipeline(Config config, std::shared_ptr<Device> device, std::shared_ptr<Swapchain> swapchain, vk::Format depthFormat);
+    [[nodiscard]] const vk::RenderPass &getRenderPass() const;
+    [[nodiscard]] const vk::UniquePipeline &getPipeline() const;
+    [[nodiscard]] const vk::UniqueDescriptorSetLayout &getDescriptorSetLayout() const;
     void createGraphicsPipeline();
     void createRenderPass();
-    const vk::UniquePipelineLayout &getPipelineLayout() const;
+    [[nodiscard]] const vk::UniquePipelineLayout &getPipelineLayout() const;
 
 private:
     vk::UniqueShaderModule createShaderModule(const std::vector<uint32_t> &code);
     void createDescriptorSetLayout();
+
+    const Config config;
 
     vk::UniqueRenderPass renderPass;
     vk::UniquePipelineLayout pipelineLayout;

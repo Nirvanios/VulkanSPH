@@ -19,5 +19,4 @@ void main() {
     outPosition = gl_Position.xyz;
     fragColor = inColor;
     outNormal = inNormal;
-
 }

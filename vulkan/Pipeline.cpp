@@ -3,13 +3,13 @@
 //
 
 #include "Pipeline.h"
-#include "../Utilities.h"
+#include "../utils/Utilities.h"
 #include "Types.h"
 #include "VulkanUtils.h"
 #include <spdlog/spdlog.h>
 
 
-Pipeline::Pipeline(std::shared_ptr<Device> device, std::shared_ptr<Swapchain> swapchain, vk::Format depthFormat) {
+Pipeline::Pipeline(Config config, std::shared_ptr<Device> device, std::shared_ptr<Swapchain> swapchain, vk::Format depthFormat) : config(std::move(config)) {
     this->depthFormat = depthFormat;
     this->device = device;
     this->swapchain = swapchain;
@@ -21,8 +21,8 @@ Pipeline::Pipeline(std::shared_ptr<Device> device, std::shared_ptr<Swapchain> sw
 }
 void Pipeline::createGraphicsPipeline() {
     //TODO config
-    constexpr auto vertexFile = "/home/kuro/CLionProjects/VulkanApp/shaders/shader.vert";
-    constexpr auto fragmentFile = "/home/kuro/CLionProjects/VulkanApp/shaders/shader.frag";
+    const auto vertexFile = config.getVulkan().shaders.vertex;
+    const auto fragmentFile = config.getVulkan().shaders.fragemnt;
     auto fragShaderCode = Utilities::readFile(fragmentFile);
 
     auto vertShaderModule =

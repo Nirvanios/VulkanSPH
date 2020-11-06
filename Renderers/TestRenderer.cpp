@@ -4,12 +4,14 @@
 
 #include "TestRenderer.h"
 
-TestRenderer::TestRenderer(bool debug)
-    : DEBUG(debug), keyMovementSubscriber(window.subscribeToKeyEvents([this](KeyMessage message) { cameraKeyMovement(message); })),
-      mouseMovementSubscriber(window.subscribeToMouseMovementEvents([this](MouseMovementMessage message) { cameraMouseMovement(message); })),
-      mouseButtonSubscriber(window.subscribeToMouseButtonEvents([this](MouseButtonMessage message) { cameraMouseButton(message); })){
+#include <utility>
 
-    vulkanCore.setViewMatrixGetter([this](){return camera.GetViewMatrix();});
+TestRenderer::TestRenderer(Config config)
+    : config(std::move(config)), keyMovementSubscriber(window.subscribeToKeyEvents([this](KeyMessage message) { cameraKeyMovement(message); })),
+      mouseMovementSubscriber(window.subscribeToMouseMovementEvents([this](MouseMovementMessage message) { cameraMouseMovement(message); })),
+      mouseButtonSubscriber(window.subscribeToMouseButtonEvents([this](MouseButtonMessage message) { cameraMouseButton(message); })) {
+
+    vulkanCore.setViewMatrixGetter([this]() { return camera.GetViewMatrix(); });
 }
 
 void TestRenderer::run() { vulkanCore.run(); }

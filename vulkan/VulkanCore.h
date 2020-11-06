@@ -11,6 +11,7 @@
 #include <iostream>
 #include <stdexcept>
 
+#include "../utils/Config.h"
 #include "../window/GlfwWindow.h"
 #include "Buffer.h"
 #include "Device.h"
@@ -24,7 +25,7 @@
 class VulkanCore {
 
 public:
-    explicit VulkanCore(GlfwWindow &window, const glm::vec3 &cameraPos, bool debug = false);
+    explicit VulkanCore(Config config, GlfwWindow &window, const glm::vec3 &cameraPos);
     void setViewMatrixGetter(std::function<glm::mat4()> getter);
     void run();
 
@@ -75,7 +76,7 @@ private:
     vk::UniqueDeviceMemory depthImageMemory;
     vk::UniqueImageView depthImageView;
 
-    bool debug;
+    const Config config;
     GlfwWindow &window;
 
     void initVulkan();

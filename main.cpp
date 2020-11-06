@@ -10,6 +10,7 @@
 #include "spdlog/spdlog.h"
 
 #include "Renderers/TestRenderer.h"
+#include "utils/Config.h"
 
 void setupLogger(bool debug = false) {
     if (debug)
@@ -17,10 +18,10 @@ void setupLogger(bool debug = false) {
 }
 
 int main() {
-    const auto DEBUG = true;
-    setupLogger(DEBUG);
+    const Config config("../config.toml");
+    setupLogger(config.getApp().DEBUG);
 
-    TestRenderer testRenderer{DEBUG};
+    TestRenderer testRenderer{config};
 
     try {
         testRenderer.run();
