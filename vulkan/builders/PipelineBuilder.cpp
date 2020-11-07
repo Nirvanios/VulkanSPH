@@ -21,10 +21,6 @@ std::shared_ptr<Pipeline> PipelineBuilder::build() {
 
 std::pair<vk::UniquePipelineLayout, vk::UniquePipeline> PipelineBuilder::createGraphicsPipeline(const vk::UniqueDescriptorSetLayout &descriptorSetLayout,
                                                                                                 const vk::UniqueRenderPass &renderPass) {
-    const auto vertexFile = config.getVulkan().shaders.vertex;
-    const auto fragmentFile = config.getVulkan().shaders.fragemnt;
-    auto fragShaderCode = Utilities::readFile(fragmentFile);
-
     auto vertShaderModule =
             createShaderModule(VulkanUtils::compileShader(vertexFile, shaderc_shader_kind::shaderc_vertex_shader, Utilities::readFile(vertexFile)));
     auto fragShaderModule =
@@ -182,18 +178,17 @@ vk::UniqueRenderPass PipelineBuilder::createRenderPass() {
 }
 
 vk::UniqueDescriptorSetLayout PipelineBuilder::createDescriptorSetLayout() {
-    std::array<vk::DescriptorSetLayoutBinding, 2> layoutBindings{vk::DescriptorSetLayoutBinding{.binding = 0,
-                                                                                                .descriptorType = vk::DescriptorType::eUniformBuffer,
-                                                                                                .descriptorCount = 1,
-                                                                                                .stageFlags = vk::ShaderStageFlagBits::eVertex,
-                                                                                                .pImmutableSamplers = nullptr},
-                                                                 vk::DescriptorSetLayoutBinding{.binding = 1,
-                                                                                                .descriptorType = vk::DescriptorType::eUniformBuffer,
-                                                                                                .descriptorCount = 1,
-                                                                                                .stageFlags = vk::ShaderStageFlagBits::eFragment,
-                                                                                                .pImmutableSamplers = nullptr}};
 
-    vk::DescriptorSetLayoutCreateInfo layoutCreateInfo{.bindingCount = layoutBindings.size(), .pBindings = layoutBindings.data()};
+    std::vector<vk::DescriptorSetLayoutBinding> layoutBindings{};
+    for (const auto binding : layoutBindingInfos) {
+        layoutBindings.emplace_back(vk::DescriptorSetLayoutBinding{.binding = binding.binding,
+                                                                   .descriptorType = binding.descriptorType,
+                                                                   .descriptorCount = binding.descriptorCount,
+                                                                   .stageFlags = binding.stageFlags,
+                                                                   .pImmutableSamplers = nullptr});
+    }
+
+    vk::DescriptorSetLayoutCreateInfo layoutCreateInfo{.bindingCount = static_cast<uint32_t>(layoutBindings.size()), .pBindings = layoutBindings.data()};
 
     return device->getDevice()->createDescriptorSetLayoutUnique(layoutCreateInfo);
 }
@@ -206,5 +201,40 @@ PipelineBuilder &PipelineBuilder::setDepthFormat(vk::Format format) {
 }
 PipelineBuilder &PipelineBuilder::setLayoutBindingInfo(const std::span<PipelineLayoutBindingInfo> &info) {
     layoutBindingInfos = info;
+    return *this;
+}
+std::pair<vk::UniquePipelineLayout, vk::UniquePipeline> PipelineBuilder::createComputePipeline(const vk::UniqueDescriptorSetLayout &descriptorSetLayout) {
+
+    auto computeModule =
+            createShaderModule(VulkanUtils::compileShader(computeFile, shaderc_shader_kind::shaderc_compute_shader, Utilities::readFile(computeFile)));
+
+    vk::PipelineShaderStageCreateInfo pipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eCompute, .module = computeModule.get(), .pName = "main"};
+
+    vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo{.setLayoutCount = 1,
+                                                          .pSetLayouts = &descriptorSetLayout.get(),
+                                                          .pushConstantRangeCount = 0,
+                                                          .pPushConstantRanges = nullptr};
+
+    auto pipelineLayout = device->getDevice()->createPipelineLayoutUnique(pipelineLayoutCreateInfo);
+
+    vk::ComputePipelineCreateInfo computePipelineCreateInfo{.stage = pipelineShaderStageCreateInfo, .layout = pipelineLayout.get()};
+
+
+    return {std::move(pipelineLayout), device->getDevice()->createComputePipelineUnique(nullptr, computePipelineCreateInfo)};
+}
+PipelineBuilder &PipelineBuilder::setPipelineType(PipelineType type) {
+    pipelineType = type;
+    return *this;
+}
+PipelineBuilder &PipelineBuilder::setVertexShaderPath(const std::string &path) {
+    vertexFile = path;
+    return *this;
+}
+PipelineBuilder &PipelineBuilder::setFragmentShaderPath(const std::string &path) {
+    fragmentFile = path;
+    return *this;
+}
+PipelineBuilder &PipelineBuilder::setComputeShaderPath(const std::string &path) {
+    computeFile = path;
     return *this;
 }

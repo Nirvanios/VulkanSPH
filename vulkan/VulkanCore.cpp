@@ -22,7 +22,13 @@ void VulkanCore::initVulkan() {
     graphicsQueue = device->getGraphicsQueue();
     presentQueue = device->getPresentQueue();
     swapchain = std::make_shared<Swapchain>(device, surface, window);
-    pipeline = PipelineBuilder{config, device, swapchain}.setDepthFormat(findDepthFormat()).build();
+    pipeline = PipelineBuilder{config, device, swapchain}
+                       .setDepthFormat(findDepthFormat())
+                       .setLayoutBindingInfo(bindingInfos)
+                       .setPipelineType(PipelineType::Graphics)
+                       .setVertexShaderPath(config.getVulkan().shaders.vertex)
+                       .setFragmentShaderPath(config.getVulkan().shaders.fragemnt)
+                       .build();
     createCommandPool();
     createDepthResources();
     framebuffers = std::make_shared<Framebuffers>(device, swapchain, pipeline->getRenderPass(), depthImageView);
@@ -179,7 +185,13 @@ void VulkanCore::recreateSwapchain() {
 
     swapchain->createSwapchain();
     swapchain->createImageViews();
-    pipeline = PipelineBuilder{config, device, swapchain}.setDepthFormat(findDepthFormat()).build();
+    pipeline = PipelineBuilder{config, device, swapchain}
+                       .setDepthFormat(findDepthFormat())
+                       .setLayoutBindingInfo(bindingInfos)
+                       .setPipelineType(PipelineType::Graphics)
+                       .setVertexShaderPath(config.getVulkan().shaders.vertex)
+                       .setFragmentShaderPath(config.getVulkan().shaders.fragemnt)
+                       .build();
     framebuffers->createFramebuffers();
     createUniformBuffers();
     createDescriptorPool();

@@ -8,10 +8,13 @@
 #include "../Pipeline.h"
 #include <span>
 #include <vulkan/vulkan.hpp>
+
+enum class PipelineType { Graphics, Compute };
+
 struct PipelineLayoutBindingInfo {
-    int binding;
+    uint32_t binding;
     vk::DescriptorType descriptorType;
-    int descriptorCount;
+    uint32_t descriptorCount;
     vk::ShaderStageFlagBits stageFlags;
 };
 
@@ -21,6 +24,10 @@ public:
     std::shared_ptr<Pipeline> build();
     PipelineBuilder &setLayoutBindingInfo(const std::span<PipelineLayoutBindingInfo> &info);
     PipelineBuilder &setDepthFormat(vk::Format format);
+    PipelineBuilder &setPipelineType(PipelineType type);
+    PipelineBuilder &setVertexShaderPath(const std::string &path);
+    PipelineBuilder &setFragmentShaderPath(const std::string &path);
+    PipelineBuilder &setComputeShaderPath(const std::string &path);
 
 private:
     Config config;
@@ -32,11 +39,16 @@ private:
     vk::UniqueDescriptorSetLayout createDescriptorSetLayout();
     std::pair<vk::UniquePipelineLayout, vk::UniquePipeline> createGraphicsPipeline(const vk::UniqueDescriptorSetLayout &descriptorSetLayout,
                                                                                    const vk::UniqueRenderPass &renderPass);
+    std::pair<vk::UniquePipelineLayout, vk::UniquePipeline> createComputePipeline(const vk::UniqueDescriptorSetLayout &descriptorSetLayout);
     vk::UniqueShaderModule createShaderModule(const std::vector<uint32_t> &code);
 
 
     vk::Format depthFormat;
     std::span<PipelineLayoutBindingInfo> layoutBindingInfos;
+    PipelineType pipelineType;
+    std::string vertexFile;
+    std::string fragmentFile;
+    std::string computeFile;
 };
 
 

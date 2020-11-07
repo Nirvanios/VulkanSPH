@@ -20,6 +20,7 @@
 #include "Pipeline.h"
 #include "Swapchain.h"
 #include "Types.h"
+#include "builders/PipelineBuilder.h"
 
 
 class VulkanCore {
@@ -32,13 +33,26 @@ public:
 private:
     std::vector<Vertex> vertices = {
             {.pos = {-0.5f, -0.5f, 0.0f}, .color = {1.0f, 0.0f, 0.0f}},  {.pos = {0.5f, -0.5f, 0.0f}, .color = {1.0f, 0.0f, 0.0f}},
-            {.pos = {0.5f, 0.5f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},    {.pos = {-0.5f, 0.5f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
+            {.pos = {0.5f, 0.5f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},   {.pos = {-0.5f, 0.5f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
 
             {.pos = {-0.5f, -0.5f, -0.5f}, .color = {0.0f, 0.0f, 1.0f}}, {.pos = {0.5f, -0.5f, -0.5f}, .color = {0.0f, 0.0f, 1.0f}},
             {.pos = {0.5f, 0.5f, -1.0f}, .color = {0.0f, 0.0f, 1.0f}},   {.pos = {-0.5f, 0.5f, -1.0f}, .color = {0.0f, 0.0f, 1.0f}},
 
     };
     const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
+
+    std::array<PipelineLayoutBindingInfo, 2> bindingInfos{PipelineLayoutBindingInfo{
+                                                                  .binding = 0,
+                                                                  .descriptorType = vk::DescriptorType::eUniformBuffer,
+                                                                  .descriptorCount = 1,
+                                                                  .stageFlags = vk::ShaderStageFlagBits::eVertex,
+                                                          },
+                                                          PipelineLayoutBindingInfo{
+                                                                  .binding = 1,
+                                                                  .descriptorType = vk::DescriptorType::eUniformBuffer,
+                                                                  .descriptorCount = 1,
+                                                                  .stageFlags = vk::ShaderStageFlagBits::eFragment,
+                                                          }};
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
     int currentFrame = 0;
