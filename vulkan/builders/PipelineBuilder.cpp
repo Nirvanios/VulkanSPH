@@ -10,13 +10,21 @@
 
 #include <utility>
 std::shared_ptr<Pipeline> PipelineBuilder::build() {
-    auto renderpass = createRenderPass();
-    spdlog::debug("Created renderpass.");
-    auto descriptorSetLayout = createDescriptorSetLayout();
-    auto [pipelineLayout, pipeline] = createGraphicsPipeline(descriptorSetLayout, renderpass);
-    spdlog::debug("Created pipeline.");
+    if (pipelineType == PipelineType::Graphics) {
+        auto renderpass = createRenderPass();
+        spdlog::debug("Created renderpass.");
+        auto descriptorSetLayout = createDescriptorSetLayout();
+        auto [pipelineLayout, pipeline] = createGraphicsPipeline(descriptorSetLayout, renderpass);
+        spdlog::debug("Created graphics pipeline.");
 
-    return std::make_shared<Pipeline>(std::move(renderpass), std::move(pipelineLayout), std::move(pipeline), std::move(descriptorSetLayout));
+        return std::make_shared<Pipeline>(std::move(renderpass), std::move(pipelineLayout), std::move(pipeline), std::move(descriptorSetLayout));
+    } else {
+        auto descriptorSetLayout = createDescriptorSetLayout();
+        auto [pipelineLayout, pipeline] = createComputePipeline(descriptorSetLayout);
+        spdlog::debug("Created compute pipeline.");
+
+        return std::make_shared<Pipeline>(std::move(pipelineLayout), std::move(pipeline), std::move(descriptorSetLayout));
+    }
 }
 
 std::pair<vk::UniquePipelineLayout, vk::UniquePipeline> PipelineBuilder::createGraphicsPipeline(const vk::UniqueDescriptorSetLayout &descriptorSetLayout,

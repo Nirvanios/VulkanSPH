@@ -11,6 +11,6 @@ layout(std430, binding = 0) buffer positionBuffer{
 
 layout (local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 void main() {
-    particleRrcords[gl_GlobalInvocationID.x].position = particleRrcords[gl_GlobalInvocationID.x].position + particleRrcords[gl_GlobalInvocationID.x].velocity;
-    particleRrcords[gl_GlobalInvocationID.x].velocity *= 0.8f;
+    particleRecords[gl_GlobalInvocationID.x].position = particleRecords[gl_GlobalInvocationID.x].position + particleRecords[gl_GlobalInvocationID.x].velocity;
+    particleRecords[gl_GlobalInvocationID.x].velocity *= 0.8f;
 }

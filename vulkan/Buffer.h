@@ -9,6 +9,7 @@
 #include "Device.h"
 #include "Types.h"
 #include "builders/BufferBuilder.h"
+#include <span>
 
 template<typename T>
 concept Pointer = std::is_pointer_v<T>;
@@ -46,8 +47,7 @@ public:
             device->getDevice()->unmapMemory(stagingBuffer.getDeviceMemory().get());
 
             copy(fillSize, stagingBuffer);
-        }
-        else{
+        } else {
             auto data = device->getDevice()->mapMemory(deviceMemory.get(), 0, fillSize);
             memcpy(data, input.data(), fillSize);
             device->getDevice()->unmapMemory(deviceMemory.get());
@@ -56,6 +56,22 @@ public:
 
     void copy(const vk::DeviceSize &size, const Buffer &srcBuffer);
     void copy(const vk::DeviceSize &size, const Buffer &srcBuffer, const Buffer &dstBuffer);
+    template<typename T>
+    [[nodiscard]] std::vector<T> read() {
+        auto stagingBuffer = Buffer(BufferBuilder()
+                                            .setSize(size)
+                                            .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst)
+                                            .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible),
+                                    device, commandPool, queue);
+
+        stagingBuffer.copy(size, *this);
+
+        std::vector<T> data{size / sizeof(T)};
+        auto bufferData = device->getDevice()->mapMemory(stagingBuffer.deviceMemory.get(), 0, size);
+        memcpy(data.data(), bufferData, size);
+        device->getDevice()->unmapMemory(stagingBuffer.deviceMemory.get());
+        return data;
+    }
     [[nodiscard]] const vk::UniqueBuffer &getBuffer() const;
     [[nodiscard]] const vk::UniqueDeviceMemory &getDeviceMemory() const;
 

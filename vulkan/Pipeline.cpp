@@ -20,4 +20,11 @@ const vk::UniquePipelineLayout &Pipeline::getPipelineLayout() const { return pip
 Pipeline::Pipeline(vk::UniqueRenderPass renderPass, vk::UniquePipelineLayout pipelineLayout, vk::UniquePipeline pipeline,
                    vk::UniqueDescriptorSetLayout descriptorSetLayout)
     : renderPass(std::move(renderPass)), pipelineLayout(std::move(pipelineLayout)), pipeline(std::move(pipeline)),
-      descriptorSetLayout(std::move(descriptorSetLayout)) {}
+      descriptorSetLayout(std::move(descriptorSetLayout)) {
+    type = PipelineType::Graphics;
+}
+
+Pipeline::Pipeline(vk::UniquePipelineLayout pipelineLayout, vk::UniquePipeline pipeline, vk::UniqueDescriptorSetLayout descriptorSetLayout)
+    : pipelineLayout(std::move(pipelineLayout)), pipeline(std::move(pipeline)), descriptorSetLayout(std::move(descriptorSetLayout)) {
+    type = PipelineType::Compute;
+}

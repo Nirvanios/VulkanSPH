@@ -9,9 +9,8 @@
 #include <span>
 #include <vulkan/vulkan.hpp>
 
-enum class PipelineType { Graphics, Compute };
 
-struct PipelineLayoutBindingInfo {
+struct PipelineLayoutBindingInfo {//TODO Separate
     uint32_t binding;
     vk::DescriptorType descriptorType;
     uint32_t descriptorCount;

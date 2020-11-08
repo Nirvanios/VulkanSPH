@@ -22,6 +22,7 @@ public:
     [[nodiscard]] const vk::Extent2D &getSwapchainExtent() const;
     [[nodiscard]] vk::Format getSwapchainImageFormat() const;
     [[nodiscard]] const std::vector<vk::UniqueImageView> &getSwapChainImageViews() const;
+    [[nodiscard]] size_t getSwapchainImageCount() const;
 
     void createSwapchain();
     void createImageViews();

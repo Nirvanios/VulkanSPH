@@ -20,18 +20,15 @@ vk::SurfaceFormatKHR Swapchain::chooseSwapSurfaceFormat(const std::vector<vk::Su
     auto it = std::find_if(availableFormats.begin(), availableFormats.end(), [](const auto &availableFormat) {
         return availableFormat.format == vk::Format::eB8G8R8A8Srgb && availableFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear;
     });
-    if (it == availableFormats.end())
-        return availableFormats[0];
+    if (it == availableFormats.end()) return availableFormats[0];
     else
         return *it;
 }
 
 vk::PresentModeKHR Swapchain::chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &availablePresentModes) {
-    auto it = std::find_if(availablePresentModes.begin(), availablePresentModes.end(), [](const auto &availableFormat) {
-        return availableFormat == vk::PresentModeKHR::eMailbox;
-    });
-    if (it == availablePresentModes.end())
-        return vk::PresentModeKHR::eFifo;
+    auto it = std::find_if(availablePresentModes.begin(), availablePresentModes.end(),
+                           [](const auto &availableFormat) { return availableFormat == vk::PresentModeKHR::eMailbox; });
+    if (it == availablePresentModes.end()) return vk::PresentModeKHR::eFifo;
     else
         return *it;
 }
@@ -92,42 +89,32 @@ void Swapchain::createSwapchain() {
     swapchainImages = device->getDevice()->getSwapchainImagesKHR(swapchain.get());
 }
 
-Swapchain::Swapchain(std::shared_ptr<Device> device, const vk::UniqueSurfaceKHR &surface,const GlfwWindow &window) : device(device), window(window), surface(surface) {
+Swapchain::Swapchain(std::shared_ptr<Device> device, const vk::UniqueSurfaceKHR &surface, const GlfwWindow &window)
+    : device(device), window(window), surface(surface) {
     createSwapchain();
     spdlog::debug("Created swapchain.");
     createImageViews();
     spdlog::debug("Created imageviews.");
 }
 
-const vk::UniqueSwapchainKHR &Swapchain::getSwapchain() const {
-    return swapchain;
-}
+const vk::UniqueSwapchainKHR &Swapchain::getSwapchain() const { return swapchain; }
 
 void Swapchain::createImageViews() {
     swapChainImageViews.clear();
     for (const auto &swapchainImage : swapchainImages) {
-        vk::ImageViewCreateInfo createInfo{.image = swapchainImage,
-                                           .viewType = vk::ImageViewType::e2D,
-                                           .format = swapchainImageFormat,
-                                           .components = {.r = vk::ComponentSwizzle::eIdentity,
-                                                          .g = vk::ComponentSwizzle::eIdentity,
-                                                          .b = vk::ComponentSwizzle::eIdentity,
-                                                          .a = vk::ComponentSwizzle::eIdentity},
-                                           .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
-                                                                .baseMipLevel = 0,
-                                                                .levelCount = 1,
-                                                                .baseArrayLayer = 0,
-                                                                .layerCount = 1}};
+        vk::ImageViewCreateInfo createInfo{
+                .image = swapchainImage,
+                .viewType = vk::ImageViewType::e2D,
+                .format = swapchainImageFormat,
+                .components = {.r = vk::ComponentSwizzle::eIdentity,
+                               .g = vk::ComponentSwizzle::eIdentity,
+                               .b = vk::ComponentSwizzle::eIdentity,
+                               .a = vk::ComponentSwizzle::eIdentity},
+                .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1}};
         swapChainImageViews.emplace_back(device->getDevice()->createImageViewUnique(createInfo));
     }
-
 }
-const vk::Extent2D &Swapchain::getSwapchainExtent() const {
-    return swapchainExtent;
-}
-vk::Format Swapchain::getSwapchainImageFormat() const {
-    return swapchainImageFormat;
-}
-const std::vector<vk::UniqueImageView> &Swapchain::getSwapChainImageViews() const {
-    return swapChainImageViews;
-}
+const vk::Extent2D &Swapchain::getSwapchainExtent() const { return swapchainExtent; }
+vk::Format Swapchain::getSwapchainImageFormat() const { return swapchainImageFormat; }
+const std::vector<vk::UniqueImageView> &Swapchain::getSwapChainImageViews() const { return swapChainImageViews; }
+size_t Swapchain::getSwapchainImageCount() const { return swapchainImages.size(); }

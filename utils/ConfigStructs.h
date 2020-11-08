@@ -10,6 +10,7 @@
 struct ShadersConfig {
     std::string vertex;
     std::string fragemnt;
+    std::string compute;
 };
 
 struct WindowConfig {

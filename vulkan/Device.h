@@ -15,10 +15,9 @@ private:
     struct QueueFamilyIndices {
         std::optional<uint32_t> graphicsFamily;
         std::optional<uint32_t> presentFamily;
+        std::optional<uint32_t> computeFamily;
 
-        [[nodiscard]] bool isComplete() const {
-            return graphicsFamily.has_value() && presentFamily.has_value();
-        }
+        [[nodiscard]] bool isComplete() const { return graphicsFamily.has_value() && presentFamily.has_value() && computeFamily.has_value(); }
     };
 
     const std::vector<const char *> deviceExtensions = {
@@ -37,13 +36,14 @@ private:
     void pickPhysicalDevice();
 
     void createLogicalDevice();
-    bool checkDeviceExtensionSupport(const vk::PhysicalDevice &device);
+    bool checkDeviceExtensionSupport(const vk::PhysicalDevice &phyDevice);
 
 public:
     explicit Device(std::shared_ptr<Instance> instance, const vk::UniqueSurfaceKHR &surface, bool debug = false);
 
     [[nodiscard]] vk::Queue getGraphicsQueue() const;
     [[nodiscard]] vk::Queue getPresentQueue() const;
+    [[nodiscard]] vk::Queue getComputeQueue() const;
     [[nodiscard]] const vk::PhysicalDevice &getPhysicalDevice() const;
     [[nodiscard]] const vk::UniqueDevice &getDevice() const;
 

@@ -20,6 +20,7 @@ Config::Config(const std::string &configFile) {
 
     Vulkan.shaders.fragemnt = toml::find<std::string>(tomlShaders, "fragment");
     Vulkan.shaders.vertex = toml::find<std::string>(tomlShaders, "vertex");
+    Vulkan.shaders.compute = toml::find<std::string>(tomlShaders, "compute");
 }
 const AppConfig &Config::getApp() const { return app; }
 const VulkanConfig &Config::getVulkan() const { return Vulkan; }

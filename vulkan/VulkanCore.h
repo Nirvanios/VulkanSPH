@@ -14,6 +14,7 @@
 #include "../utils/Config.h"
 #include "../window/GlfwWindow.h"
 #include "Buffer.h"
+#include "DescriptorSet.h"
 #include "Device.h"
 #include "Framebuffers.h"
 #include "Instance.h"
@@ -41,18 +42,22 @@ private:
     };
     const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
 
-    std::array<PipelineLayoutBindingInfo, 2> bindingInfos{PipelineLayoutBindingInfo{
-                                                                  .binding = 0,
-                                                                  .descriptorType = vk::DescriptorType::eUniformBuffer,
-                                                                  .descriptorCount = 1,
-                                                                  .stageFlags = vk::ShaderStageFlagBits::eVertex,
-                                                          },
-                                                          PipelineLayoutBindingInfo{
-                                                                  .binding = 1,
-                                                                  .descriptorType = vk::DescriptorType::eUniformBuffer,
-                                                                  .descriptorCount = 1,
-                                                                  .stageFlags = vk::ShaderStageFlagBits::eFragment,
-                                                          }};
+    std::array<PipelineLayoutBindingInfo, 2> bindingInfosRender{PipelineLayoutBindingInfo{
+                                                                        .binding = 0,
+                                                                        .descriptorType = vk::DescriptorType::eUniformBuffer,
+                                                                        .descriptorCount = 1,
+                                                                        .stageFlags = vk::ShaderStageFlagBits::eVertex,
+                                                                },
+                                                                PipelineLayoutBindingInfo{
+                                                                        .binding = 1,
+                                                                        .descriptorType = vk::DescriptorType::eUniformBuffer,
+                                                                        .descriptorCount = 1,
+                                                                        .stageFlags = vk::ShaderStageFlagBits::eFragment,
+                                                                }};
+    std::array<PipelineLayoutBindingInfo, 1> bindingInfosCompute{PipelineLayoutBindingInfo{.binding = 0,
+                                                                                           .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                                                                           .descriptorCount = 1,
+                                                                                           .stageFlags = vk::ShaderStageFlagBits::eCompute}};
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
     int currentFrame = 0;
@@ -65,27 +70,32 @@ private:
     std::shared_ptr<Device> device;
     vk::UniqueSurfaceKHR surface;
     std::shared_ptr<Swapchain> swapchain;
-    std::shared_ptr<Pipeline> pipeline;
+    std::shared_ptr<Pipeline> pipelineGraphics;
+    std::shared_ptr<Pipeline> pipelineCompute;
     std::shared_ptr<Framebuffers> framebuffers;
-    vk::UniqueCommandPool commandPool;
-    std::vector<vk::UniqueCommandBuffer> commandBuffers;
+    vk::UniqueCommandPool commandPoolGraphics;
+    vk::UniqueCommandPool commandPoolCompute;
+    std::vector<vk::UniqueCommandBuffer> commandBuffersGraphic;
+    std::vector<vk::UniqueCommandBuffer> commandBuffersCompute;
 
-    std::vector<vk::UniqueSemaphore> imageAvailableSemaphore, renderFinishedSemaphore;
+    std::vector<vk::UniqueSemaphore> semaphoreImageAvailable, semaphoreRenderFinished, semaphoreComputeFinished;
     std::vector<vk::UniqueFence> inFlightFences;
     std::vector<std::optional<vk::Fence>> imagesInFlight;
 
-    vk::Queue graphicsQueue;
-    vk::Queue presentQueue;
+    vk::Queue queueGraphics;
+    vk::Queue queuePresent;
+    vk::Queue queueCompute;
 
-    std::shared_ptr<Buffer> vertexBuffer;
-    std::shared_ptr<Buffer> indexBuffer;
-    std::shared_ptr<Buffer> shaderStorageBuffer;
-    std::vector<std::shared_ptr<Buffer>> unifromsBuffersMVP;
-    std::vector<std::shared_ptr<Buffer>> unifromsBuffersCameraPos;
+    std::shared_ptr<Buffer> bufferVertex;
+    std::shared_ptr<Buffer> bufferIndex;
+    std::shared_ptr<Buffer> bufferShaderStorage;
+    std::vector<std::shared_ptr<Buffer>> buffersUniformMVP;
+    std::vector<std::shared_ptr<Buffer>> buffersUniformCameraPos;
 
 
     vk::UniqueDescriptorPool descriptorPool;
-    std::vector<vk::UniqueDescriptorSet> descriptorSets;
+    std::shared_ptr<DescriptorSet> descriptorSetGraphics;
+    std::shared_ptr<DescriptorSet> descriptorSetCompute;
 
     vk::UniqueImage depthImage;
     vk::UniqueDeviceMemory depthImageMemory;
@@ -108,7 +118,7 @@ private:
     void createCommandPool();
     void createCommandBuffers();
     void createDescriptorPool();
-    void createDescriptorSet();
+    //void createDescriptorSet();
 
     void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, const vk::ImageUsageFlags &usage,
                      const vk::MemoryPropertyFlags &properties, vk::UniqueImage &image, vk::UniqueDeviceMemory &imageMemory);

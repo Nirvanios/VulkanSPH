@@ -35,6 +35,7 @@ if (CCACHE_PROGRAM)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
 endif ()
 
+set(RANGE_V3_TESTS OFF)
 set(SHADERC_SKIP_TESTS ON)
 set(SPIRV_CROSS_ENABLE_TESTS OFF)
 
@@ -83,7 +84,11 @@ CPMAddPackage(
         GITHUB_REPOSITORY ToruNiina/toml11
         GIT_TAG v3.6.0
 )
-
+CPMAddPackage(
+        NAME range-v3
+        GITHUB_REPOSITORY ericniebler/range-v3
+        GIT_TAG 0.11.0
+)
 
 add_compile_definitions(SPDLOG_FMT_EXTERNAL
         VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
@@ -96,8 +101,8 @@ add_compile_definitions(SPDLOG_FMT_EXTERNAL
 add_executable(VulkanApp main.cpp
         utils/Utilities.h
         vulkan/VulkanCore.cpp vulkan/VulkanCore.h
-        window/GlfwWindow.cpp window/GlfwWindow.h vulkan/Instance.cpp vulkan/Instance.h vulkan/Device.cpp vulkan/Device.h vulkan/Swapchain.cpp vulkan/Swapchain.h vulkan/Pipeline.cpp vulkan/Pipeline.h vulkan/Framebuffers.cpp vulkan/Framebuffers.h window/Callbacks.h vulkan/Types.h vulkan/builders/BufferBuilder.cpp vulkan/builders/BufferBuilder.h vulkan/Buffer.cpp vulkan/Buffer.h vulkan/VulkanUtils.h window/EventDispatchingWindow.cpp window/EventDispatchingWindow.h window/Messages.h Renderers/TestRenderer.cpp Renderers/TestRenderer.h utils/Config.cpp utils/Config.h utils/ConfigStructs.h vulkan/builders/PipelineBuilder.cpp vulkan/builders/PipelineBuilder.h)
+        window/GlfwWindow.cpp window/GlfwWindow.h vulkan/Instance.cpp vulkan/Instance.h vulkan/Device.cpp vulkan/Device.h vulkan/Swapchain.cpp vulkan/Swapchain.h vulkan/Pipeline.cpp vulkan/Pipeline.h vulkan/Framebuffers.cpp vulkan/Framebuffers.h window/Callbacks.h vulkan/Types.h vulkan/builders/BufferBuilder.cpp vulkan/builders/BufferBuilder.h vulkan/Buffer.cpp vulkan/Buffer.h vulkan/VulkanUtils.h window/EventDispatchingWindow.cpp window/EventDispatchingWindow.h window/Messages.h Renderers/TestRenderer.cpp Renderers/TestRenderer.h utils/Config.cpp utils/Config.h utils/ConfigStructs.h vulkan/builders/PipelineBuilder.cpp vulkan/builders/PipelineBuilder.h vulkan/DescriptorSet.cpp vulkan/DescriptorSet.h)
 target_link_libraries(VulkanApp
-        ${Vulkan_LIBRARIES} glfw spdlog::spdlog imgui::imgui fmt::fmt shaderc glslang toml11)
+        ${Vulkan_LIBRARIES} glfw spdlog::spdlog imgui::imgui fmt::fmt shaderc glslang toml11 range-v3)
 
 target_compile_options(VulkanApp PRIVATE ${flags})
