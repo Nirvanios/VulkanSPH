@@ -6,6 +6,7 @@
 #define VULKANAPP_TYPES_H
 
 #include "glm/glm.hpp"
+#include "glm/gtx/hash.hpp"
 #include <vulkan/vulkan.hpp>
 
 struct Vertex {
@@ -21,10 +22,25 @@ struct Vertex {
         std::array<vk::VertexInputAttributeDescription, 3> attribute{
                 vk::VertexInputAttributeDescription{.location = 0, .binding = 0, .format = vk::Format::eR32G32B32Sfloat, .offset = offsetof(Vertex, pos)},
                 vk::VertexInputAttributeDescription{.location = 1, .binding = 0, .format = vk::Format::eR32G32B32Sfloat, .offset = offsetof(Vertex, color)},
-                vk::VertexInputAttributeDescription{.location = 2, .binding = 0, .format = vk::Format::eR32G32B32Sfloat, .offset = offsetof(Vertex, normal)}
-        };
+                vk::VertexInputAttributeDescription{.location = 2, .binding = 0, .format = vk::Format::eR32G32B32Sfloat, .offset = offsetof(Vertex, normal)}};
         return attribute;
     }
+    bool operator==(const Vertex &other) const { return pos == other.pos && color == other.color && other.normal == normal; }
+};
+
+namespace std {
+    template<>
+    struct hash<Vertex> {
+        size_t operator()(Vertex const &vertex) const {
+            return ((hash<glm::vec3>()(vertex.pos) ^ (hash<glm::vec3>()(vertex.color) << 1)) >> 1);// NOLINT(hicpp-signed-bitwise)
+        }
+    };
+}// namespace std
+
+struct Model {
+    std::string name = "";
+    std::vector<Vertex> vertices;
+    std::vector<uint16_t> indices;
 };
 
 struct UniformBufferObject {

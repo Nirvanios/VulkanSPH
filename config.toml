@@ -1,6 +1,10 @@
 [App]
 DEBUG = true
 
+[App.simulation]
+particleCount = 32
+particleModel = "/home/kuro/CLionProjects/VulkanApp/resources/sphere.obj"
+
 [Vulkan]
 
 [Vulkan.window]

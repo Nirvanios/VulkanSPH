@@ -11,20 +11,20 @@
 #include "../vulkan/VulkanCore.h"
 class TestRenderer {
 public:
-    explicit TestRenderer(Config config);
+    explicit TestRenderer(const Config &config);
     virtual ~TestRenderer();
     void run();
 
 private:
     bool leftMouseButtonPressed = false;
     double xMousePosition = 0.0, yMousePosition = 0.0;
-    const Config config;
+    const Config &config;
 
 
     Camera camera{glm::vec3{0.0f, 1.0f, 0.0f}};
     const std::string windowName = "TestRenderer";
-    GlfwWindow window{config.getVulkan().window.name, config.getVulkan().window.width, config.getVulkan().window.height};
-    VulkanCore vulkanCore{config, window, camera.Position};
+    GlfwWindow window;
+    VulkanCore vulkanCore;
 
     Unsubscriber keyMovementSubscriber;
     Unsubscriber mouseMovementSubscriber;

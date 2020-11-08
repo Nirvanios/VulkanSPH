@@ -27,20 +27,12 @@
 class VulkanCore {
 
 public:
-    explicit VulkanCore(Config config, GlfwWindow &window, const glm::vec3 &cameraPos);
+    explicit VulkanCore(Config config, GlfwWindow &window, const glm::vec3 &cameraPos, Model model);
     void setViewMatrixGetter(std::function<glm::mat4()> getter);
     void run();
 
 private:
-    std::vector<Vertex> vertices = {
-            {.pos = {-0.5f, -0.5f, 0.0f}, .color = {1.0f, 0.0f, 0.0f}},  {.pos = {0.5f, -0.5f, 0.0f}, .color = {1.0f, 0.0f, 0.0f}},
-            {.pos = {0.5f, 0.5f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},   {.pos = {-0.5f, 0.5f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
-
-            {.pos = {-0.5f, -0.5f, -0.5f}, .color = {0.0f, 0.0f, 1.0f}}, {.pos = {0.5f, -0.5f, -0.5f}, .color = {0.0f, 0.0f, 1.0f}},
-            {.pos = {0.5f, 0.5f, -1.0f}, .color = {0.0f, 0.0f, 1.0f}},   {.pos = {-0.5f, 0.5f, -1.0f}, .color = {0.0f, 0.0f, 1.0f}},
-
-    };
-    const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
+    Model model;
 
     std::array<PipelineLayoutBindingInfo, 2> bindingInfosRender{PipelineLayoutBindingInfo{
                                                                         .binding = 0,
@@ -59,7 +51,7 @@ private:
                                                                                            .descriptorCount = 1,
                                                                                            .stageFlags = vk::ShaderStageFlagBits::eCompute}};
 
-    const int MAX_FRAMES_IN_FLIGHT = 2;
+    static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
     int currentFrame = 0;
     bool framebufferResized = false;
 
@@ -101,7 +93,7 @@ private:
     vk::UniqueDeviceMemory depthImageMemory;
     vk::UniqueImageView depthImageView;
 
-    const Config config;
+    const Config &config;
     GlfwWindow &window;
 
     void initVulkan();

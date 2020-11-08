@@ -6,11 +6,12 @@
 
 #include <utility>
 
-TestRenderer::TestRenderer(Config config)
-    : config(std::move(config)), keyMovementSubscriber(window.subscribeToKeyEvents([this](KeyMessage message) { cameraKeyMovement(message); })),
+TestRenderer::TestRenderer(const Config &config)
+    : config(config), window(config.getVulkan().window.name, config.getVulkan().window.width, config.getVulkan().window.height),
+      vulkanCore(config, window, camera.Position, Utilities::loadModelFromObj(config.getApp().simulation.particleModel)),
+      keyMovementSubscriber(window.subscribeToKeyEvents([this](KeyMessage message) { cameraKeyMovement(message); })),
       mouseMovementSubscriber(window.subscribeToMouseMovementEvents([this](MouseMovementMessage message) { cameraMouseMovement(message); })),
       mouseButtonSubscriber(window.subscribeToMouseButtonEvents([this](MouseButtonMessage message) { cameraMouseButton(message); })) {
-
     vulkanCore.setViewMatrixGetter([this]() { return camera.GetViewMatrix(); });
 }
 

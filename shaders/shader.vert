@@ -15,7 +15,7 @@ layout(location = 4) out vec3 outNormal;
 layout(location = 5) out vec3 outPosition;
 
 void main() {
-    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);
+    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition + vec3(gl_InstanceIndex*2, 0, 0), 1.0);
     outPosition = gl_Position.xyz;
     fragColor = inColor;
     outNormal = inNormal;

@@ -6,6 +6,7 @@
 #include <range/v3/view/concat.hpp>
 #include <range/v3/view/enumerate.hpp>
 #include <span>
+#include <utility>
 
 #include "glm/gtc/matrix_transform.hpp"
 #include "range/v3/view/zip.hpp"
@@ -41,10 +42,6 @@ void VulkanCore::initVulkan() {
     createCommandPool();
     createDepthResources();
     framebuffers = std::make_shared<Framebuffers>(device, swapchain, pipelineGraphics->getRenderPass(), depthImageView);
-    vertices[0].normal = vertices[1].normal = vertices[2].normal = vertices[3].normal =
-            glm::normalize(glm::cross(vertices[0].pos - vertices[1].pos, vertices[0].pos - vertices[2].pos));
-    vertices[4].normal = vertices[5].normal = vertices[6].normal = vertices[7].normal =
-            glm::normalize(glm::cross(vertices[4].pos - vertices[5].pos, vertices[4].pos - vertices[6].pos));
     createVertexBuffer();
     createIndexBuffer();
     createUniformBuffers();
@@ -87,7 +84,8 @@ void VulkanCore::mainLoop() {
 
 void VulkanCore::cleanup() {}
 
-VulkanCore::VulkanCore(Config config, GlfwWindow &window, const glm::vec3 &cameraPos) : cameraPos(cameraPos), config(std::move(config)), window(window) {
+VulkanCore::VulkanCore(Config config, GlfwWindow &window, const glm::vec3 &cameraPos, Model model)
+    : model(std::move(model)), cameraPos(cameraPos), config(std::move(config)), window(window) {
     spdlog::debug("Vulkan initialization...");
     initVulkan();
     spdlog::debug("Vulkan OK.");
@@ -150,7 +148,7 @@ void VulkanCore::createCommandBuffers() {
         commandBufferGraphics->bindIndexBuffer(bufferIndex->getBuffer().get(), 0, vk::IndexType::eUint16);
         commandBufferGraphics->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineGraphics->getPipelineLayout().get(), 0, 1,
                                                   &descriptorSetGraphics->getDescriptorSets()[i].get(), 0, nullptr);
-        commandBufferGraphics->drawIndexed(indices.size(), 1, 0, 0, 0);
+        commandBufferGraphics->drawIndexed(model.indices.size(), config.getApp().simulation.particleCount, 0, 0, 0);
         commandBufferGraphics->endRenderPass();
 
         commandBufferGraphics->end();
@@ -253,20 +251,20 @@ void VulkanCore::setFramebufferResized(bool framebufferResized) { VulkanCore::fr
 
 void VulkanCore::createVertexBuffer() {
     bufferVertex = std::make_shared<Buffer>(BufferBuilder()
-                                                    .setSize(sizeof(vertices[0]) * vertices.size())
+                                                    .setSize(sizeof(model.vertices[0]) * model.vertices.size())
                                                     .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer)
                                                     .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
                                             device, commandPoolGraphics, queueGraphics);
-    bufferVertex->fill(vertices);
+    bufferVertex->fill(model.vertices);
 }
 
 void VulkanCore::createIndexBuffer() {
     bufferIndex = std::make_shared<Buffer>(BufferBuilder()
-                                                   .setSize(sizeof(indices[0]) * indices.size())
+                                                   .setSize(sizeof(model.indices[0]) * model.indices.size())
                                                    .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer)
                                                    .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
                                            device, commandPoolGraphics, queueGraphics);
-    bufferIndex->fill(indices);
+    bufferIndex->fill(model.indices);
 }
 void VulkanCore::createUniformBuffers() {
     vk::DeviceSize size = sizeof(UniformBufferObject);

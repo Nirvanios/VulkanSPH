@@ -24,8 +24,14 @@ struct VulkanConfig {
     ShadersConfig shaders;
 };
 
+struct SimulationConfig {
+    int particleCount;
+    std::string particleModel;
+};
+
 struct AppConfig {
     bool DEBUG;
+    SimulationConfig simulation;
 };
 
 #endif//VULKANAPP_CONFIGSTRUCTS_H
