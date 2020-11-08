@@ -1,5 +1,15 @@
 #version 450
 
+struct ParticleRecord {
+    vec4 position;
+    vec4 velocity;
+};
+
+layout(std430, binding = 2) buffer positionBuffer{
+    ParticleRecord particleRecords[];
+};
+
+
 layout(binding = 0) uniform UniformBufferObject {
     mat4 model;
     mat4 view;
@@ -15,7 +25,7 @@ layout(location = 4) out vec3 outNormal;
 layout(location = 5) out vec3 outPosition;
 
 void main() {
-    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition + vec3(gl_InstanceIndex*2, 0, 0), 1.0);
+    gl_Position = ubo.proj * ubo.view * ubo.model * (vec4(inPosition, 1.0) + particleRecords[gl_InstanceIndex].position*2);
     outPosition = gl_Position.xyz;
     fragColor = inColor;
     outNormal = inNormal;

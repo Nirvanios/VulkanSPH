@@ -47,9 +47,10 @@ void VulkanCore::initVulkan() {
     createUniformBuffers();
     createShaderStorageBuffer();
     createDescriptorPool();
-    std::array<DescriptorBufferInfo, 2> descriptorBufferInfosGraphic{
+    std::array<DescriptorBufferInfo, 3> descriptorBufferInfosGraphic{
             DescriptorBufferInfo{.buffer = buffersUniformMVP, .bufferSize = sizeof(UniformBufferObject)},
-            DescriptorBufferInfo{.buffer = buffersUniformCameraPos, .bufferSize = sizeof(glm::vec3)}};
+            DescriptorBufferInfo{.buffer = buffersUniformCameraPos, .bufferSize = sizeof(glm::vec3)},
+            DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferShaderStorage, 1}, .bufferSize = sizeof(ParticleRecord) * 32}};
     std::array<DescriptorBufferInfo, 1> descriptorBufferInfosCompute{
             DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferShaderStorage, 1}, .bufferSize = sizeof(ParticleRecord) * 32}};
     descriptorSetGraphics =
@@ -458,7 +459,7 @@ void VulkanCore::createShaderStorageBuffer() {
                 data[(z * 2) + (y * 4) + x].position = glm::vec4{x, y, z, 0.0f};
                 data[(z * 2) + (y * 4) + x].velocity = glm::vec4{std::rand(), std::rand(), std::rand(), 0.0f};
                 data[(z * 2) + (y * 4) + x].velocity /= RAND_MAX;
-                data[(z * 2) + (y * 4) + x].velocity *= 10;
+                data[(z * 2) + (y * 4) + x].velocity *= 1;
             }
         }
     }

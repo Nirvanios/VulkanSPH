@@ -34,7 +34,7 @@ public:
 private:
     Model model;
 
-    std::array<PipelineLayoutBindingInfo, 2> bindingInfosRender{PipelineLayoutBindingInfo{
+    std::array<PipelineLayoutBindingInfo, 3> bindingInfosRender{PipelineLayoutBindingInfo{
                                                                         .binding = 0,
                                                                         .descriptorType = vk::DescriptorType::eUniformBuffer,
                                                                         .descriptorCount = 1,
@@ -45,7 +45,11 @@ private:
                                                                         .descriptorType = vk::DescriptorType::eUniformBuffer,
                                                                         .descriptorCount = 1,
                                                                         .stageFlags = vk::ShaderStageFlagBits::eFragment,
-                                                                }};
+                                                                },
+                                                                PipelineLayoutBindingInfo{.binding = 2,
+                                                                                          .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                                                                          .descriptorCount = 1,
+                                                                                          .stageFlags = vk::ShaderStageFlagBits::eVertex}};
     std::array<PipelineLayoutBindingInfo, 1> bindingInfosCompute{PipelineLayoutBindingInfo{.binding = 0,
                                                                                            .descriptorType = vk::DescriptorType::eStorageBuffer,
                                                                                            .descriptorCount = 1,

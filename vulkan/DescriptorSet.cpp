@@ -22,7 +22,8 @@ void DescriptorSet::updateDescriptorSet(std::span<DescriptorBufferInfo> bufferAn
         std::vector<vk::WriteDescriptorSet> writeDescriptorSet;
         std::vector<vk::DescriptorBufferInfo> bufferInfos{};
         std::for_each(bufferAndSizes.begin(), bufferAndSizes.end(), [&bufferInfos, i](const auto &in) {
-            bufferInfos.emplace_back(vk::DescriptorBufferInfo{.buffer = in.buffer[i]->getBuffer().get(), .offset = 0, .range = in.bufferSize});
+            auto bufferIndex = in.buffer.size() == 1 ? 0 : i;
+            bufferInfos.emplace_back(vk::DescriptorBufferInfo{.buffer = in.buffer[bufferIndex]->getBuffer().get(), .offset = 0, .range = in.bufferSize});
         });
         for (auto [index, bindingInfo] : bindingInfos | ranges::views::enumerate) {
             writeDescriptorSet.emplace_back(vk::WriteDescriptorSet{.dstSet = descriptorSets[i].get(),
