@@ -17,6 +17,7 @@
 #include "DescriptorSet.h"
 #include "Device.h"
 #include "Framebuffers.h"
+#include "Image.h"
 #include "Instance.h"
 #include "Pipeline.h"
 #include "Swapchain.h"
@@ -93,10 +94,7 @@ private:
     std::shared_ptr<DescriptorSet> descriptorSetGraphics;
     std::shared_ptr<DescriptorSet> descriptorSetCompute;
 
-    vk::UniqueImage depthImage;
-    vk::UniqueDeviceMemory depthImageMemory;
-    vk::UniqueImageView depthImageView;
-
+    std::shared_ptr<Image> imageDepth;
     const Config &config;
     GlfwWindow &window;
 

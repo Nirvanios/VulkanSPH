@@ -44,6 +44,8 @@ namespace VulkanUtils {
         throw std::runtime_error("failed to find suitable memory type!");
     }
 
+    inline bool hasStencilComponent(vk::Format format) { return format == vk::Format::eD32SfloatS8Uint || format == vk::Format::eD24UnormS8Uint; }
+
     inline vk::UniqueCommandBuffer beginOnetimeCommand(const vk::UniqueCommandPool &commandPool, std::shared_ptr<Device> device) {
         vk::CommandBufferAllocateInfo allocateInfo{.commandPool = commandPool.get(), .level = vk::CommandBufferLevel::ePrimary, .commandBufferCount = 1};
         auto commandBuffer = device->getDevice()->allocateCommandBuffersUnique(allocateInfo);

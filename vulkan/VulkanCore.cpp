@@ -15,6 +15,7 @@
 #include "../utils/Utilities.h"
 #include "VulkanCore.h"
 #include "VulkanUtils.h"
+#include "builders/ImageBuilder.h"
 #include "builders/PipelineBuilder.h"
 
 void VulkanCore::initVulkan() {
@@ -41,7 +42,7 @@ void VulkanCore::initVulkan() {
                               .build();
     createCommandPool();
     createDepthResources();
-    framebuffers = std::make_shared<Framebuffers>(device, swapchain, pipelineGraphics->getRenderPass(), depthImageView);
+    framebuffers = std::make_shared<Framebuffers>(device, swapchain, pipelineGraphics->getRenderPass(), imageDepth->getImageView());
     createVertexBuffer();
     createIndexBuffer();
     createUniformBuffers();
@@ -310,43 +311,21 @@ void VulkanCore::createDescriptorPool() {
     };
     descriptorPool = device->getDevice()->createDescriptorPoolUnique(poolCreateInfo);
 }
-/*void VulkanCore::createDescriptorSet() {
-    std::vector<vk::DescriptorSetLayout> layouts(swapchain->getSwapChainImageViews().size(), pipelineGraphics->getDescriptorSetLayout().get());
-    vk::DescriptorSetAllocateInfo allocateInfo{.descriptorPool = descriptorPool.get(),
-                                               .descriptorSetCount = static_cast<uint32_t>(swapchain->getSwapChainImageViews().size()),
-                                               .pSetLayouts = layouts.data()};
 
-    descriptorSetGraphics.resize(swapchain->getSwapChainImageViews().size());
-    descriptorSetGraphics = device->getDevice()->allocateDescriptorSetsUnique(allocateInfo);
-
-    for (size_t i = 0; i < descriptorSetGraphics.size(); i++) {
-        std::array<vk::DescriptorBufferInfo, 2> bufferInfos{
-                vk::DescriptorBufferInfo{.buffer = buffersUniformMVP[i]->getBuffer().get(), .offset = 0, .range = sizeof(UniformBufferObject)},
-                vk::DescriptorBufferInfo{.buffer = buffersUniformCameraPos[i]->getBuffer().get(), .offset = 0, .range = sizeof(glm::vec3)}};
-        std::vector<vk::WriteDescriptorSet> writeDescriptorSet;
-        for (auto [index, bindingInfo] : bindingInfosRender | ranges::views::enumerate) {
-
-            writeDescriptorSet.emplace_back(vk::WriteDescriptorSet{.dstSet = descriptorSetGraphics[i].get(),
-                                                                   .dstBinding = bindingInfo.binding,
-                                                                   .dstArrayElement = 0,
-                                                                   .descriptorCount = bindingInfo.descriptorCount,
-                                                                   .descriptorType = bindingInfo.descriptorType,
-                                                                   .pImageInfo = nullptr,
-                                                                   .pBufferInfo = &bufferInfos[index],
-                                                                   .pTexelBufferView = nullptr});
-        }
-        device->getDevice()->updateDescriptorSets(writeDescriptorSet.size(), writeDescriptorSet.data(), 0, nullptr);
-    }
-}*/
 void VulkanCore::createDepthResources() {
-    auto depthFormat = findDepthFormat();
-    createImage(swapchain->getSwapchainExtent().width, swapchain->getSwapchainExtent().height, depthFormat, vk::ImageTiling::eOptimal,
-                vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal, depthImage, depthImageMemory);
-    depthImageView = createImageView(depthImage, depthFormat, vk::ImageAspectFlagBits::eDepth);
-    transitionImageLayout(depthImage, depthFormat, vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal);
-}
+    imageDepth = ImageBuilder()
+                         .createView(true)
+                         .setImageViewAspect(vk::ImageAspectFlagBits::eDepth)
+                         .setFormat(findDepthFormat())
+                         .setHeight(swapchain->getSwapchainExtent().height)
+                         .setWidth(swapchain->getSwapchainExtent().width)
+                         .setProperties(vk::MemoryPropertyFlagBits::eDeviceLocal)
+                         .setTiling(vk::ImageTiling::eOptimal)
+                         .setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment)
+                         .build(device);
 
-bool VulkanCore::hasStencilComponent(vk::Format format) { return format == vk::Format::eD32SfloatS8Uint || format == vk::Format::eD24UnormS8Uint; }
+    imageDepth->transitionImageLayout(device, commandPoolGraphics, queueGraphics, vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+}
 
 vk::Format VulkanCore::findDepthFormat() {
     return findSupportedFormat({vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint}, vk::ImageTiling::eOptimal,
@@ -362,92 +341,7 @@ vk::Format VulkanCore::findSupportedFormat(const std::vector<vk::Format> &candid
     }
     throw std::runtime_error("Failed to find supported format!");
 }
-void VulkanCore::createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, const vk::ImageUsageFlags &usage,
-                             const vk::MemoryPropertyFlags &properties, vk::UniqueImage &image, vk::UniqueDeviceMemory &imageMemory) {
-    vk::ImageCreateInfo imageCreateInfo{.imageType = vk::ImageType::e2D,
-                                        .format = format,
-                                        .extent = {.width = width, .height = height, .depth = 1},
-                                        .mipLevels = 1,
-                                        .arrayLayers = 1,
-                                        .samples = vk::SampleCountFlagBits::e1,
-                                        .tiling = tiling,
-                                        .usage = usage,
-                                        .sharingMode = vk::SharingMode::eExclusive,
-                                        .initialLayout = vk::ImageLayout::eUndefined};
-    image = device->getDevice()->createImageUnique(imageCreateInfo);
 
-    auto memRequirements = device->getDevice()->getImageMemoryRequirements(image.get());
-    vk::MemoryAllocateInfo allocateInfo{.allocationSize = memRequirements.size,
-                                        .memoryTypeIndex = VulkanUtils::findMemoryType(device, memRequirements.memoryTypeBits, properties)};
-    imageMemory = device->getDevice()->allocateMemoryUnique(allocateInfo);
-    device->getDevice()->bindImageMemory(image.get(), imageMemory.get(), 0);
-}
-void VulkanCore::transitionImageLayout(const vk::UniqueImage &image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout) {
-    vk::CommandBufferAllocateInfo allocateInfo{.commandPool = commandPoolGraphics.get(), .level = vk::CommandBufferLevel::ePrimary, .commandBufferCount = 1};
-    auto commandBuffer = device->getDevice()->allocateCommandBuffersUnique(allocateInfo);
-
-    vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit};
-    commandBuffer[0]->begin(beginInfo);
-
-    vk::ImageMemoryBarrier barrier{
-            .dstAccessMask = vk::AccessFlagBits::eTransferWrite,
-            .oldLayout = oldLayout,
-            .newLayout = newLayout,
-            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .image = image.get(),
-            .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1},
-    };
-
-
-    if (newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
-        barrier.subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eDepth);
-
-        if (hasStencilComponent(format)) { barrier.subresourceRange.aspectMask |= vk::ImageAspectFlagBits::eStencil; }
-    } else {
-        barrier.subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
-    }
-
-    vk::PipelineStageFlags sourceStage;
-    vk::PipelineStageFlags destinationStage;
-
-    if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eTransferDstOptimal) {
-        sourceStage = vk::PipelineStageFlagBits::eTopOfPipe;
-        destinationStage = vk::PipelineStageFlagBits::eTransfer;
-    } else if (oldLayout == vk::ImageLayout::eTransferDstOptimal && newLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
-        barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-        barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
-        sourceStage = vk::PipelineStageFlagBits::eTransfer;
-        destinationStage = vk::PipelineStageFlagBits::eFragmentShader;
-    } else if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
-        barrier.dstAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
-        sourceStage = vk::PipelineStageFlagBits::eTopOfPipe;
-        destinationStage = vk::PipelineStageFlagBits::eEarlyFragmentTests;
-    } else if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eColorAttachmentOptimal) {
-        barrier.dstAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
-        sourceStage = vk::PipelineStageFlagBits::eTopOfPipe;
-        destinationStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-    } else {
-        throw std::invalid_argument("unsupported layout transition!");
-    }
-
-    commandBuffer[0]->pipelineBarrier(sourceStage, destinationStage, {}, 0, nullptr, 0, nullptr, 1, &barrier);
-
-    commandBuffer[0]->end();
-
-    vk::SubmitInfo submitInfo{.commandBufferCount = 1, .pCommandBuffers = &commandBuffer[0].get()};
-
-    queueGraphics.submit(1, &submitInfo, nullptr);
-    queueGraphics.waitIdle();
-}
-vk::UniqueImageView VulkanCore::createImageView(const vk::UniqueImage &image, vk::Format format, const vk::ImageAspectFlags &aspectFlags) {
-    vk::ImageViewCreateInfo viewCreateInfo{
-            .image = image.get(),
-            .viewType = vk::ImageViewType::e2D,
-            .format = format,
-            .subresourceRange = {.aspectMask = aspectFlags, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1}};
-    return device->getDevice()->createImageViewUnique(viewCreateInfo);
-}
 void VulkanCore::setViewMatrixGetter(std::function<glm::mat4()> getter) { viewMatrixGetter = getter; }
 
 void VulkanCore::createShaderStorageBuffer() {
