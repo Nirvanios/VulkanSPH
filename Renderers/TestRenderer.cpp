@@ -4,15 +4,19 @@
 
 #include "TestRenderer.h"
 
+#include <ctime>
 #include <utility>
 
 TestRenderer::TestRenderer(const Config &config)
     : config(config), window(config.getVulkan().window.name, config.getVulkan().window.width, config.getVulkan().window.height),
-      vulkanCore(config, window, camera.Position, Utilities::loadModelFromObj(config.getApp().simulation.particleModel)),
+      vulkanCore(config, window, camera.Position),
       keyMovementSubscriber(window.subscribeToKeyEvents([this](KeyMessage message) { cameraKeyMovement(message); })),
       mouseMovementSubscriber(window.subscribeToMouseMovementEvents([this](MouseMovementMessage message) { cameraMouseMovement(message); })),
       mouseButtonSubscriber(window.subscribeToMouseButtonEvents([this](MouseButtonMessage message) { cameraMouseButton(message); })) {
     vulkanCore.setViewMatrixGetter([this]() { return camera.GetViewMatrix(); });
+
+    auto particles = createParticles();
+    vulkanCore.initVulkan(Utilities::loadModelFromObj(config.getApp().simulation.particleModel), std::span<ParticleRecord>{particles.data(), particles.size()});
 }
 
 void TestRenderer::run() { vulkanCore.run(); }
@@ -49,11 +53,27 @@ void TestRenderer::cameraMouseButton(MouseButtonMessage message) {
     if (leftMouseButtonPressed) {
         glfwGetCursorPos(window.getWindow().get(), &xMousePosition, &yMousePosition);
         glfwSetInputMode(window.getWindow().get(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    }
-    else{
+    } else {
         glfwSetInputMode(window.getWindow().get(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
 }
+
+std::vector<ParticleRecord> TestRenderer::createParticles() {
+    std::vector<ParticleRecord> data{static_cast<size_t>(config.getApp().simulation.particleCount)};
+    std::srand(std::time(nullptr));
+    for (int z = 0; z < 4; ++z) {
+        for (int y = 0; y < 4; ++y) {
+            for (int x = 0; x < 2; ++x) {
+                data[(z * 4 * 2) + (y * 2) + x].position = glm::vec4{x, y, z, 0.0f};
+                data[(z * 4 * 2) + (y * 2) + x].velocity = glm::vec4{std::rand(), std::rand(), std::rand(), 0.0f};
+                data[(z * 4 * 2) + (y * 2) + x].velocity /= RAND_MAX;
+                data[(z * 4 * 2) + (y * 2) + x].velocity *= 1;
+            }
+        }
+    }
+    return data;
+}
+
 TestRenderer::~TestRenderer() {
     mouseButtonSubscriber.unsubscribe();
     mouseMovementSubscriber.unsubscribe();

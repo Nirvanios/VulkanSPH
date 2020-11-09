@@ -33,6 +33,8 @@ private:
     void cameraKeyMovement(KeyMessage messgae);
     void cameraMouseMovement(MouseMovementMessage message);
     void cameraMouseButton(MouseButtonMessage message);
+
+    std::vector<ParticleRecord> createParticles();
 };
 
 

@@ -28,12 +28,11 @@
 class VulkanCore {
 
 public:
-    explicit VulkanCore(Config config, GlfwWindow &window, const glm::vec3 &cameraPos, Model model);
+    explicit VulkanCore(const Config &config, GlfwWindow &window, const glm::vec3 &cameraPos);
     void setViewMatrixGetter(std::function<glm::mat4()> getter);
     void run();
 
 private:
-    Model model;
 
     std::array<PipelineLayoutBindingInfo, 3> bindingInfosRender{PipelineLayoutBindingInfo{
                                                                         .binding = 0,
@@ -59,6 +58,7 @@ private:
     static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
     int currentFrame = 0;
     bool framebufferResized = false;
+    int indicesSize;
 
     std::function<glm::mat4()> viewMatrixGetter = []() { return glm::mat4(1.0f); };
     const glm::vec3 &cameraPos;
@@ -98,15 +98,14 @@ private:
     const Config &config;
     GlfwWindow &window;
 
-    void initVulkan();
     void mainLoop();
     void cleanup();
 
     void createSurface();
 
-    void createVertexBuffer();
-    void createIndexBuffer();
-    void createShaderStorageBuffer();
+    void createVertexBuffer(const std::vector<Vertex> &vertices);
+    void createIndexBuffer(const std::vector<uint16_t> &indices);
+    void createShaderStorageBuffer(const std::span<ParticleRecord> &particles);
     void createUniformBuffers();
 
     void createCommandPool();
@@ -114,15 +113,9 @@ private:
     void createDescriptorPool();
     //void createDescriptorSet();
 
-    void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, const vk::ImageUsageFlags &usage,
-                     const vk::MemoryPropertyFlags &properties, vk::UniqueImage &image, vk::UniqueDeviceMemory &imageMemory);
-    vk::UniqueImageView createImageView(const vk::UniqueImage &image, vk::Format format, const vk::ImageAspectFlags &aspectFlags);
-    void transitionImageLayout(const vk::UniqueImage &image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
-
     void createDepthResources();
     vk::Format findSupportedFormat(const std::vector<vk::Format> &candidates, vk::ImageTiling tiling, const vk::FormatFeatureFlags &features);
     vk::Format findDepthFormat();
-    bool hasStencilComponent(vk::Format format);
 
     void drawFrame();
     void updateUniformBuffers(uint32_t currentImage);
@@ -131,8 +124,9 @@ private:
     void recreateSwapchain();
 
 public:
-    bool isFramebufferResized() const;
+    [[nodiscard]] bool isFramebufferResized() const;
     void setFramebufferResized(bool framebufferResized);
+    void initVulkan(const Model &modelParticle, const std::span<ParticleRecord> particles);
 };
 
 #endif//VULKANAPP_VULKANCORE_H

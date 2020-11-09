@@ -18,8 +18,8 @@
 #include "builders/ImageBuilder.h"
 #include "builders/PipelineBuilder.h"
 
-void VulkanCore::initVulkan() {
-    //glfwSetWindowUserPointer(window.getWindow().get(), this);
+void VulkanCore::initVulkan(const Model &modelParticle, const std::span<ParticleRecord> particles) {
+    spdlog::debug("Vulkan initialization...");
     instance = std::make_shared<Instance>(window.getWindowName(), config.getApp().DEBUG);
     createSurface();
     spdlog::debug("Created surface.");
@@ -27,6 +27,7 @@ void VulkanCore::initVulkan() {
     queueGraphics = device->getGraphicsQueue();
     queuePresent = device->getPresentQueue();
     queueCompute = device->getComputeQueue();
+    spdlog::debug("Queues created.");
     swapchain = std::make_shared<Swapchain>(device, surface, window);
     pipelineGraphics = PipelineBuilder{config, device, swapchain}
                                .setDepthFormat(findDepthFormat())
@@ -43,10 +44,10 @@ void VulkanCore::initVulkan() {
     createCommandPool();
     createDepthResources();
     framebuffers = std::make_shared<Framebuffers>(device, swapchain, pipelineGraphics->getRenderPass(), imageDepth->getImageView());
-    createVertexBuffer();
-    createIndexBuffer();
+    createVertexBuffer(modelParticle.vertices);
+    createIndexBuffer(modelParticle.indices);
     createUniformBuffers();
-    createShaderStorageBuffer();
+    createShaderStorageBuffer(particles);
     createDescriptorPool();
     std::array<DescriptorBufferInfo, 3> descriptorBufferInfosGraphic{
             DescriptorBufferInfo{.buffer = buffersUniformMVP, .bufferSize = sizeof(UniformBufferObject)},
@@ -65,6 +66,7 @@ void VulkanCore::initVulkan() {
     spdlog::debug("Created command buffers");
     createSyncObjects();
     spdlog::debug("Created semaphores.");
+    spdlog::debug("Vulkan OK.");
 }
 
 void VulkanCore::run() {
@@ -86,12 +88,8 @@ void VulkanCore::mainLoop() {
 
 void VulkanCore::cleanup() {}
 
-VulkanCore::VulkanCore(Config config, GlfwWindow &window, const glm::vec3 &cameraPos, Model model)
-    : model(std::move(model)), cameraPos(cameraPos), config(std::move(config)), window(window) {
-    spdlog::debug("Vulkan initialization...");
-    initVulkan();
-    spdlog::debug("Vulkan OK.");
-}
+VulkanCore::VulkanCore(const Config &config, GlfwWindow &window, const glm::vec3 &cameraPos)
+    : indicesSize(0), cameraPos(cameraPos), config(config), window(window) {}
 
 void VulkanCore::createSurface() {
     VkSurfaceKHR tmpSurface;
@@ -150,7 +148,7 @@ void VulkanCore::createCommandBuffers() {
         commandBufferGraphics->bindIndexBuffer(bufferIndex->getBuffer().get(), 0, vk::IndexType::eUint16);
         commandBufferGraphics->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineGraphics->getPipelineLayout().get(), 0, 1,
                                                   &descriptorSetGraphics->getDescriptorSets()[i].get(), 0, nullptr);
-        commandBufferGraphics->drawIndexed(model.indices.size(), config.getApp().simulation.particleCount, 0, 0, 0);
+        commandBufferGraphics->drawIndexed(indicesSize, config.getApp().simulation.particleCount, 0, 0, 0);
         commandBufferGraphics->endRenderPass();
 
         commandBufferGraphics->end();
@@ -251,22 +249,23 @@ bool VulkanCore::isFramebufferResized() const { return framebufferResized; }
 
 void VulkanCore::setFramebufferResized(bool framebufferResized) { VulkanCore::framebufferResized = framebufferResized; }
 
-void VulkanCore::createVertexBuffer() {
+void VulkanCore::createVertexBuffer(const std::vector<Vertex> &vertices) {
     bufferVertex = std::make_shared<Buffer>(BufferBuilder()
-                                                    .setSize(sizeof(model.vertices[0]) * model.vertices.size())
+                                                    .setSize(sizeof(vertices[0]) * vertices.size())
                                                     .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer)
                                                     .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
                                             device, commandPoolGraphics, queueGraphics);
-    bufferVertex->fill(model.vertices);
+    bufferVertex->fill(vertices);
 }
 
-void VulkanCore::createIndexBuffer() {
+void VulkanCore::createIndexBuffer(const std::vector<uint16_t> &indices) {
     bufferIndex = std::make_shared<Buffer>(BufferBuilder()
-                                                   .setSize(sizeof(model.indices[0]) * model.indices.size())
+                                                   .setSize(sizeof(indices[0]) * indices.size())
                                                    .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer)
                                                    .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
                                            device, commandPoolGraphics, queueGraphics);
-    bufferIndex->fill(model.indices);
+    bufferIndex->fill(indices);
+    indicesSize = indices.size();
 }
 void VulkanCore::createUniformBuffers() {
     vk::DeviceSize size = sizeof(UniformBufferObject);
@@ -344,24 +343,13 @@ vk::Format VulkanCore::findSupportedFormat(const std::vector<vk::Format> &candid
 
 void VulkanCore::setViewMatrixGetter(std::function<glm::mat4()> getter) { viewMatrixGetter = getter; }
 
-void VulkanCore::createShaderStorageBuffer() {
-    std::array<ParticleRecord, 32> data{};
-    std::srand(std::time(nullptr));
-    for (int z = 0; z < 4; ++z) {
-        for (int y = 0; y < 4; ++y) {
-            for (int x = 0; x < 2; ++x) {
-                data[(z * 4 * 2) + (y * 2) + x].position = glm::vec4{x, y, z, 0.0f};
-                data[(z * 4 * 2) + (y * 2) + x].velocity = glm::vec4{std::rand(), std::rand(), std::rand(), 0.0f};
-                data[(z * 4 * 2) + (y * 2) + x].velocity /= RAND_MAX;
-                data[(z * 4 * 2) + (y * 2) + x].velocity *= 1;
-            }
-        }
-    }
+void VulkanCore::createShaderStorageBuffer(const std::span<ParticleRecord> &particles) {
+
     bufferShaderStorage = std::make_shared<Buffer>(
             BufferBuilder()
-                    .setSize(sizeof(ParticleRecord) * data.size())
+                    .setSize(sizeof(ParticleRecord) * particles.size())
                     .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageBuffer)
                     .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
             device, commandPoolGraphics, queueGraphics);
-    bufferShaderStorage->fill(data);
+    bufferShaderStorage->fill(particles);
 }
