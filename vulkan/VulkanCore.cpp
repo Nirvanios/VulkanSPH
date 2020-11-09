@@ -347,13 +347,13 @@ void VulkanCore::setViewMatrixGetter(std::function<glm::mat4()> getter) { viewMa
 void VulkanCore::createShaderStorageBuffer() {
     std::array<ParticleRecord, 32> data{};
     std::srand(std::time(nullptr));
-    for (int x = 0; x < 4; ++x) {
+    for (int z = 0; z < 4; ++z) {
         for (int y = 0; y < 4; ++y) {
-            for (int z = 0; z < 2; ++z) {
-                data[(z * 2) + (y * 4) + x].position = glm::vec4{x, y, z, 0.0f};
-                data[(z * 2) + (y * 4) + x].velocity = glm::vec4{std::rand(), std::rand(), std::rand(), 0.0f};
-                data[(z * 2) + (y * 4) + x].velocity /= RAND_MAX;
-                data[(z * 2) + (y * 4) + x].velocity *= 1;
+            for (int x = 0; x < 2; ++x) {
+                data[(z * 4 * 2) + (y * 2) + x].position = glm::vec4{x, y, z, 0.0f};
+                data[(z * 4 * 2) + (y * 2) + x].velocity = glm::vec4{std::rand(), std::rand(), std::rand(), 0.0f};
+                data[(z * 4 * 2) + (y * 2) + x].velocity /= RAND_MAX;
+                data[(z * 4 * 2) + (y * 2) + x].velocity *= 1;
             }
         }
     }
