@@ -26,3 +26,4 @@ void Framebuffers::createFramebuffers() {
     }
 }
 const std::vector<vk::UniqueFramebuffer> &Framebuffers::getSwapchainFramebuffers() const { return swapchainFramebuffers; }
+size_t Framebuffers::getFramebufferImageCount() const { return swapchainFramebuffers.size(); }

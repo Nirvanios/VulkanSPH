@@ -111,13 +111,13 @@ void VulkanCore::createCommandPool() {
 }
 void VulkanCore::createCommandBuffers() {
     commandBuffersGraphic.clear();
-    commandBuffersGraphic.resize(framebuffers->getSwapchainFramebuffers().size());
+    commandBuffersGraphic.resize(framebuffers->getFramebufferImageCount());
     commandBuffersCompute.clear();
-    commandBuffersCompute.resize(framebuffers->getSwapchainFramebuffers().size());
+    commandBuffersCompute.resize(framebuffers->getFramebufferImageCount());
     vk::CommandBufferAllocateInfo bufferAllocateInfoGraphics{.commandPool = commandPoolGraphics.get(),
                                                              .level = vk::CommandBufferLevel::ePrimary,
                                                              .commandBufferCount = static_cast<uint32_t>(commandBuffersGraphic.size())};
-    commandBuffersCompute.resize(framebuffers->getSwapchainFramebuffers().size());
+    commandBuffersCompute.resize(framebuffers->getFramebufferImageCount());
     vk::CommandBufferAllocateInfo bufferAllocateInfoCompute{.commandPool = commandPoolCompute.get(),
                                                             .level = vk::CommandBufferLevel::ePrimary,
                                                             .commandBufferCount = static_cast<uint32_t>(commandBuffersCompute.size())};
@@ -165,7 +165,7 @@ void VulkanCore::createCommandBuffers() {
     }
 }
 void VulkanCore::createSyncObjects() {
-    imagesInFlight.resize(swapchain->getSwapChainImageViews().size());
+    imagesInFlight.resize(swapchain->getSwapchainImageCount());
 
     for (auto i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         semaphoreImageAvailable.emplace_back(device->getDevice()->createSemaphoreUnique({}));
@@ -288,7 +288,7 @@ void VulkanCore::updateUniformBuffers(uint32_t currentImage) {
     UniformBufferObject ubo{.model = glm::mat4{1.0f},
                             .view = viewMatrixGetter(),
                             .proj = glm::perspective(glm::radians(45.0f),
-                                                     swapchain->getSwapchainExtent().width / static_cast<float>(swapchain->getSwapchainExtent().height), 0.01f,
+                                                     static_cast<float>(swapchain->getExtentWidth()) / static_cast<float>(swapchain->getExtentHeight()), 0.01f,
                                                      1000.f)};
     ubo.proj[1][1] *= -1;
     buffersUniformMVP[currentImage]->fill(std::span(&ubo, 1), false);
@@ -317,8 +317,8 @@ void VulkanCore::createDepthResources() {
                          .createView(true)
                          .setImageViewAspect(vk::ImageAspectFlagBits::eDepth)
                          .setFormat(findDepthFormat())
-                         .setHeight(swapchain->getSwapchainExtent().height)
-                         .setWidth(swapchain->getSwapchainExtent().width)
+                         .setHeight(swapchain->getExtentHeight())
+                         .setWidth(swapchain->getExtentWidth())
                          .setProperties(vk::MemoryPropertyFlagBits::eDeviceLocal)
                          .setTiling(vk::ImageTiling::eOptimal)
                          .setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment)

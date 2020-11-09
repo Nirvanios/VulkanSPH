@@ -15,7 +15,6 @@ SwapChainSupportDetails Swapchain::querySwapChainSupport(vk::PhysicalDevice phys
     return details;
 }
 
-//TODO combine
 vk::SurfaceFormatKHR Swapchain::chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR> &availableFormats) {
     auto it = std::find_if(availableFormats.begin(), availableFormats.end(), [](const auto &availableFormat) {
         return availableFormat.format == vk::Format::eB8G8R8A8Srgb && availableFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear;
@@ -32,6 +31,7 @@ vk::PresentModeKHR Swapchain::chooseSwapPresentMode(const std::vector<vk::Presen
     else
         return *it;
 }
+
 vk::Extent2D Swapchain::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities, int width, int height) {
     if (capabilities.currentExtent.width != UINT32_MAX) {
         return capabilities.currentExtent;
@@ -44,6 +44,7 @@ vk::Extent2D Swapchain::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capab
         return actualExtent;
     }
 }
+
 void Swapchain::createSwapchain() {
     auto swapChainSupport = querySwapChainSupport(device->getPhysicalDevice(), surface);
 
@@ -114,7 +115,15 @@ void Swapchain::createImageViews() {
         swapChainImageViews.emplace_back(device->getDevice()->createImageViewUnique(createInfo));
     }
 }
+
 const vk::Extent2D &Swapchain::getSwapchainExtent() const { return swapchainExtent; }
+
 vk::Format Swapchain::getSwapchainImageFormat() const { return swapchainImageFormat; }
+
 const std::vector<vk::UniqueImageView> &Swapchain::getSwapChainImageViews() const { return swapChainImageViews; }
+
 size_t Swapchain::getSwapchainImageCount() const { return swapchainImages.size(); }
+
+int Swapchain::getExtentWidth() const { return swapchainExtent.width; }
+
+int Swapchain::getExtentHeight() const { return swapchainExtent.height; }

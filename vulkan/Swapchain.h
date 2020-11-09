@@ -23,6 +23,8 @@ public:
     [[nodiscard]] vk::Format getSwapchainImageFormat() const;
     [[nodiscard]] const std::vector<vk::UniqueImageView> &getSwapChainImageViews() const;
     [[nodiscard]] size_t getSwapchainImageCount() const;
+    [[nodiscard]] int getExtentWidth() const;
+    [[nodiscard]] int getExtentHeight() const;
 
     void createSwapchain();
     void createImageViews();
