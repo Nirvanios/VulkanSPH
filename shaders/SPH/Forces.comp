@@ -1,0 +1,70 @@
+#version 450
+
+#include "Kernels.comp"
+
+layout(push_constant) uniform Info{
+    float particleMass;
+    float restDensity;
+    float viscosityCoefficient;
+    vec3 gravityForce;
+    float timeStep;
+    float supportRadius;
+    uint particlecount;
+} simulationInfo;
+
+struct ParticleRecord {
+    vec4 position;
+    vec4 velocity;
+    vec3 currentVelocity;
+    float massDensity;
+    float pressure;
+};
+
+layout(std430, binding = 0) buffer positionBuffer{
+    ParticleRecord particleRecords[];
+};
+
+void main() {
+    if (gl_GlobalInvocationID < simulationInfo.particleCount){
+        /**
+        * INTERNAL FORCES
+        */
+
+        //Compute pressure force
+        float pressureForce = { 0.0f };
+        for (int i = 0; i < simulationInfo.particleCount; ++i){
+            vec3 positionDiff = particleRecords[gl_GlobalInvocationID].position - particleRecords[i].position;
+            pressureForce += (particleRecord[gl_GlobalInvocationID].pressure / pow(particleRecord[gl_GlobalInvocationID].massDensity, 2) + particleRecord[i].pressure / pow(particleRecord[i].massDensity, 2)) * simulationInfo.particleMass * gradientKernel(positionDiff, length(positionDiff), simulationInfo.supportRadius);
+        }
+        pressureForce *= -particleRecord[gl_GlobalInvocationID].massDensity;
+
+        //Compute viscosity force
+        vec3 viscosityForce = { 0.0f };
+        for (int i = 0; i < simulationInfo.particleCount; ++i){
+            vec3 positionDiff = particleRecords[gl_GlobalInvocationID].position - particleRecords[i].position;
+            viscosityForce += (particleRecord[i].currentVelocity - particleRecord[gl_GlobalInvocationID].currentVelocity) * (simulationInfo.particleMass / particleRecord[i].massDensity) * laplacianKernel(positionDiff, length(positionDiff), simulationInfo.supportRadius);
+        }
+        viscosityForce *= simulationInfo.viscosityCoefficient;
+        vec3 internalForces = pressureForce + viscosityForce;
+
+        /**
+        * EXTERNAL FORCES
+        */
+        vec3 surfaceForce = { 0.0f };
+        vec3 externalForces = simulationInfo.gravityForce + surfaceForce;
+
+
+        /**
+        * TIME INTEGRATION
+        */
+        vec3 force = internalForces + externalForces;
+
+        vec3 acceleration = force / particleRecord[gl_GlobalInvocationID].massDensity;
+
+        vec3 newVelocity = particleRecord[gl_GlobalInvocationID].velocity + acceleration * simulationInfo.timeStep;
+        particleRecord[gl_GlobalInvocationID].currentVelocity +=  (particleRecord[gl_GlobalInvocationID].velocity + newVelocity) / 2;
+        particleRecord[gl_GlobalInvocationID].velocity = newVelocity;
+        particleRecord[gl_GlobalInvocationID].position +=  particleRecord[gl_GlobalInvocationID].velocity * simulationInfo.timeStep;
+
+    }
+}

@@ -1,0 +1,41 @@
+#version 450
+
+#include "Kernels.comp"
+
+layout(push_constant) uniform Info{
+    float particleMass;
+    float restDensity;
+    float viscosityCoefficient;
+    vec3 gravityForce;
+    float timeStep;
+    float supportRadius;
+    uint particlecount;
+} simulationInfo;
+
+struct ParticleRecord {
+    vec4 position;
+    vec4 velocity;
+    vec3 currentVelocity;
+    float massDensity;
+    float pressure;
+};
+
+
+layout(std430, binding = 0) buffer positionBuffer{
+    ParticleRecord particleRecords[];
+};
+
+void main() {
+    if (gl_GlobalInvocationID < simulationInfo.particleCount){
+        //Compute mass-density
+        const float supportRadius = 10.0f;
+        float pressure = 0.0f;
+        for (int i = 0; i < simulationInfo.particleCount; ++i){
+            vec3 positionDiff = particleRecords[gl_GlobalInvocationID].position - particleRecords[i].position;
+            massDensity += simulation.particleMass * defaultKernel(positionDiff, length(positionDiff), simulationInfo.supportRadius);
+        }
+        particleRecords[gl_GlobalInvocationID].massDensity = massDensity;
+        particleRecords[gl_GlobalInvocationID].pressure = simulationInfo.gasStiffnessConstant * (massDensity - simulationInfo.restDensity);
+
+    }
+}
