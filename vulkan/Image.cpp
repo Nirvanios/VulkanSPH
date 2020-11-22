@@ -3,7 +3,7 @@
 //
 
 #include "Image.h"
-#include "VulkanUtils.h"
+#include "Utils/VulkanUtils.h"
 
 
 void Image::transitionImageLayout(const std::shared_ptr<Device> &device, const vk::UniqueCommandPool &commandPool, const vk::Queue &queue,

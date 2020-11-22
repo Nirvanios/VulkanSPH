@@ -30,6 +30,7 @@ class VulkanCore {
 public:
     explicit VulkanCore(const Config &config, GlfwWindow &window, const glm::vec3 &cameraPos);
     void setViewMatrixGetter(std::function<glm::mat4()> getter);
+    void setSimulationInfo(const SimulationInfo &simulationInfo);
     void run();
 
 private:
@@ -62,13 +63,15 @@ private:
 
     std::function<glm::mat4()> viewMatrixGetter = []() { return glm::mat4(1.0f); };
     const glm::vec3 &cameraPos;
+    SimulationInfo simulationInfo;
 
     std::shared_ptr<Instance> instance;
     std::shared_ptr<Device> device;
     vk::UniqueSurfaceKHR surface;
     std::shared_ptr<Swapchain> swapchain;
     std::shared_ptr<Pipeline> pipelineGraphics;
-    std::shared_ptr<Pipeline> pipelineCompute;
+    std::shared_ptr<Pipeline> pipelineComputeMassDensity;
+    std::shared_ptr<Pipeline> pipelineComputeForces;
     std::shared_ptr<Framebuffers> framebuffers;
     vk::UniqueCommandPool commandPoolGraphics;
     vk::UniqueCommandPool commandPoolCompute;
@@ -110,8 +113,8 @@ private:
 
     void createCommandPool();
     void createCommandBuffers();
+    void recordCommandBuffersCompute(const std::shared_ptr<Pipeline> &pipeline);
     void createDescriptorPool();
-    //void createDescriptorSet();
 
     void createDepthResources();
     vk::Format findSupportedFormat(const std::vector<vk::Format> &candidates, vk::ImageTiling tiling, const vk::FormatFeatureFlags &features);

@@ -2,8 +2,8 @@
 // Created by Igor Frank on 30.10.20.
 //
 
-#include "VulkanUtils.h"
 #include "Buffer.h"
+#include "Utils/VulkanUtils.h"
 
 #include <utility>
 

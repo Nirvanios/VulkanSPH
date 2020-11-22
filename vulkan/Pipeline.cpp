@@ -5,7 +5,7 @@
 #include "Pipeline.h"
 #include "../utils/Utilities.h"
 #include "Types.h"
-#include "VulkanUtils.h"
+#include "Utils/VulkanUtils.h"
 #include <spdlog/spdlog.h>
 
 

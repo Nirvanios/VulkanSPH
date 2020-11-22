@@ -9,7 +9,8 @@
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan.hpp>
 
-#include "Device.h"
+#include "../Device.h"
+#include "ShaderIncluder.h"
 
 
 namespace VulkanUtils {
@@ -20,6 +21,7 @@ namespace VulkanUtils {
         options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_1);
 
         options.SetTargetSpirv(shaderc_spirv_version_1_3);
+        options.SetIncluder(std::make_unique<ShaderIncluder>());
 
         auto result = compiler.PreprocessGlsl(source, kind, source_name.c_str(), options);
         if(result.GetCompilationStatus() != shaderc_compilation_status_success){

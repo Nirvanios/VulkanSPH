@@ -32,8 +32,8 @@ void Device::pickPhysicalDevice() {
             auto swapchainSupportDetails = Swapchain::querySwapChainSupport(phyDevice, surface);
             swapchainAdequate = !swapchainSupportDetails.formats.empty() && !swapchainSupportDetails.presentModes.empty();
         }
-        return properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu && features.geometryShader && findQueueFamilies(phyDevice, surface).isComplete() &&
-               extensionsSupported && swapchainAdequate;
+        return properties.deviceType == vk::PhysicalDeviceType::eIntegratedGpu && features.geometryShader &&
+               findQueueFamilies(phyDevice, surface).isComplete() && extensionsSupported && swapchainAdequate;
     });
 
     if (it == devices.end()) { throw std::runtime_error("Failed to find suitable GPU!"); }
@@ -102,4 +102,11 @@ bool Device::checkDeviceExtensionSupport(const vk::PhysicalDevice &phyDevice) {
     for (const auto &extension : availableExtensions) { requiredExtensions.erase(extension.extensionName); }
 
     return requiredExtensions.empty();
+}
+std::vector<vk::UniqueCommandBuffer> Device::allocateCommandBuffer(const vk::UniqueCommandPool &commandPool, uint32_t count) const {
+    std::vector<vk::UniqueCommandBuffer> commandBuffer{count};
+    vk::CommandBufferAllocateInfo bufferAllocateInfo{.commandPool = commandPool.get(),
+                                                     .level = vk::CommandBufferLevel::ePrimary,
+                                                     .commandBufferCount = static_cast<uint32_t>(commandBuffer.size())};
+    return device->allocateCommandBuffersUnique(bufferAllocateInfo);
 }

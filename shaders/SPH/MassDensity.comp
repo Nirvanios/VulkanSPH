@@ -1,21 +1,32 @@
 #version 450
 
-#include "Kernels.comp"
+float M_PI = 3.1415;
+
+float defaultKernel(in vec4 position, in float positionNorm, in float supportRadius){
+    return 315/(64 * M_PI * pow(supportRadius, 9)) * pow(pow(supportRadius, 2) - pow(positionNorm, 2), 3) * int(positionNorm > supportRadius);
+}
+vec4 gradientKernel(in vec4 position, in float positionNorm, in float supportRadius){
+    return -945/(32 * M_PI * pow(supportRadius, 9)) * position * pow(pow(supportRadius, 2) - pow(positionNorm, 2), 2);
+}
+float laplacianKernel(in vec4 position, in float positionNorm, in float supportRadius){
+    return -945/(32 * M_PI * pow(supportRadius, 9)) * (pow(supportRadius, 2) - pow(positionNorm, 2)) * (3 * pow(supportRadius, 2) - 7 * pow(positionNorm, 2));
+}
 
 layout(push_constant) uniform Info{
+    vec4 gravityForce;
     float particleMass;
     float restDensity;
     float viscosityCoefficient;
-    vec3 gravityForce;
+    float gasStiffnessConstant;
     float timeStep;
     float supportRadius;
-    uint particlecount;
+    uint particleCount;
 } simulationInfo;
 
 struct ParticleRecord {
     vec4 position;
     vec4 velocity;
-    vec3 currentVelocity;
+    vec4 currentVelocity;
     float massDensity;
     float pressure;
 };
@@ -25,17 +36,19 @@ layout(std430, binding = 0) buffer positionBuffer{
     ParticleRecord particleRecords[];
 };
 
+layout (local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+
 void main() {
-    if (gl_GlobalInvocationID < simulationInfo.particleCount){
+    if (gl_GlobalInvocationID.x < simulationInfo.particleCount){
         //Compute mass-density
         const float supportRadius = 10.0f;
-        float pressure = 0.0f;
+        float massDensity = 0.0f;
         for (int i = 0; i < simulationInfo.particleCount; ++i){
-            vec3 positionDiff = particleRecords[gl_GlobalInvocationID].position - particleRecords[i].position;
-            massDensity += simulation.particleMass * defaultKernel(positionDiff, length(positionDiff), simulationInfo.supportRadius);
+            vec4 positionDiff = particleRecords[gl_GlobalInvocationID.x].position - particleRecords[i].position;
+            massDensity += simulationInfo.particleMass * defaultKernel(positionDiff, length(positionDiff), simulationInfo.supportRadius);
         }
-        particleRecords[gl_GlobalInvocationID].massDensity = massDensity;
-        particleRecords[gl_GlobalInvocationID].pressure = simulationInfo.gasStiffnessConstant * (massDensity - simulationInfo.restDensity);
+        particleRecords[gl_GlobalInvocationID.x].massDensity = massDensity;
+        particleRecords[gl_GlobalInvocationID.x].pressure = simulationInfo.gasStiffnessConstant * (massDensity - simulationInfo.restDensity);
 
     }
 }

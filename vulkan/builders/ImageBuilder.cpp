@@ -3,7 +3,7 @@
 //
 
 #include "ImageBuilder.h"
-#include "../VulkanUtils.h"
+#include "../Utils/VulkanUtils.h"
 std::shared_ptr<Image> ImageBuilder::build(const std::shared_ptr<Device> &device) {
     vk::ImageCreateInfo imageCreateInfo{.imageType = vk::ImageType::e2D,
                                         .format = imageFormat,

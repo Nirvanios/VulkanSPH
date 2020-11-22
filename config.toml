@@ -2,7 +2,10 @@
 DEBUG = true
 
 [App.simulation]
-particleCount = 32
+fluidVolume = 0.1
+fluidDensity = 1000.0
+particleCount = 512
+particleModelSize = [8, 8, 8]
 particleModel = "/home/kuro/CLionProjects/VulkanApp/resources/sphere.obj"
 
 [Vulkan]
@@ -15,6 +18,7 @@ height = 600
 [Vulkan.shaders]
 vertex = "/home/kuro/CLionProjects/VulkanApp/shaders/shader.vert"
 fragment = "/home/kuro/CLionProjects/VulkanApp/shaders/shader.frag"
-compute = "/home/kuro/CLionProjects/VulkanApp/shaders/test.comp"
+compute.massDensity = "/home/kuro/CLionProjects/VulkanApp/shaders/SPH/MassDensity.comp"
+compute.forces = "/home/kuro/CLionProjects/VulkanApp/shaders/SPH/Forces.comp"
 
 

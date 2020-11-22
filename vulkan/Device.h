@@ -46,6 +46,7 @@ public:
     [[nodiscard]] vk::Queue getComputeQueue() const;
     [[nodiscard]] const vk::PhysicalDevice &getPhysicalDevice() const;
     [[nodiscard]] const vk::UniqueDevice &getDevice() const;
+    [[nodiscard]] std::vector<vk::UniqueCommandBuffer> allocateCommandBuffer(const vk::UniqueCommandPool &commandPool, uint32_t count) const;
 
     [[nodiscard]] static QueueFamilyIndices findQueueFamilies(const vk::PhysicalDevice &device, const vk::UniqueSurfaceKHR &surface);
 };

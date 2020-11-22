@@ -27,6 +27,7 @@ public:
     PipelineBuilder &setVertexShaderPath(const std::string &path);
     PipelineBuilder &setFragmentShaderPath(const std::string &path);
     PipelineBuilder &setComputeShaderPath(const std::string &path);
+    PipelineBuilder &addPushConstant(vk::ShaderStageFlagBits stage, size_t pushConstantSize);
 
 private:
     Config config;
@@ -44,6 +45,7 @@ private:
 
     vk::Format depthFormat;
     std::span<PipelineLayoutBindingInfo> layoutBindingInfos;
+    std::vector<vk::PushConstantRange> pushConstantRanges;
     PipelineType pipelineType;
     std::string vertexFile;
     std::string fragmentFile;

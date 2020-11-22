@@ -4,7 +4,7 @@
 
 #include "PipelineBuilder.h"
 #include "../Types.h"
-#include "../VulkanUtils.h"
+#include "../Utils/VulkanUtils.h"
 #include <shaderc/shaderc.h>
 #include <spdlog/spdlog.h>
 
@@ -104,8 +104,8 @@ std::pair<vk::UniquePipelineLayout, vk::UniquePipeline> PipelineBuilder::createG
 
     vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo{.setLayoutCount = 1,
                                                           .pSetLayouts = &descriptorSetLayout.get(),
-                                                          .pushConstantRangeCount = 0,
-                                                          .pPushConstantRanges = nullptr};
+                                                          .pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size()),
+                                                          .pPushConstantRanges = pushConstantRanges.data()};
 
     auto pipelineLayout = device->getDevice()->createPipelineLayoutUnique(pipelineLayoutCreateInfo);
 
@@ -218,10 +218,11 @@ std::pair<vk::UniquePipelineLayout, vk::UniquePipeline> PipelineBuilder::createC
 
     vk::PipelineShaderStageCreateInfo pipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eCompute, .module = computeModule.get(), .pName = "main"};
 
+
     vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo{.setLayoutCount = 1,
                                                           .pSetLayouts = &descriptorSetLayout.get(),
-                                                          .pushConstantRangeCount = 0,
-                                                          .pPushConstantRanges = nullptr};
+                                                          .pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size()),
+                                                          .pPushConstantRanges = pushConstantRanges.data()};
 
     auto pipelineLayout = device->getDevice()->createPipelineLayoutUnique(pipelineLayoutCreateInfo);
 
@@ -244,5 +245,9 @@ PipelineBuilder &PipelineBuilder::setFragmentShaderPath(const std::string &path)
 }
 PipelineBuilder &PipelineBuilder::setComputeShaderPath(const std::string &path) {
     computeFile = path;
+    return *this;
+}
+PipelineBuilder &PipelineBuilder::addPushConstant(vk::ShaderStageFlagBits stage, size_t pushConstantSize) {
+    pushConstantRanges.emplace_back(vk::PushConstantRange{.stageFlags = stage, .offset = 0, .size = static_cast<uint32_t>(pushConstantSize)});
     return *this;
 }

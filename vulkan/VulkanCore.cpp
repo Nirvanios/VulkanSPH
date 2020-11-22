@@ -13,8 +13,8 @@
 #include "spdlog/spdlog.h"
 
 #include "../utils/Utilities.h"
+#include "Utils/VulkanUtils.h"
 #include "VulkanCore.h"
-#include "VulkanUtils.h"
 #include "builders/ImageBuilder.h"
 #include "builders/PipelineBuilder.h"
 
@@ -36,11 +36,12 @@ void VulkanCore::initVulkan(const Model &modelParticle, const std::span<Particle
                                .setVertexShaderPath(config.getVulkan().shaders.vertex)
                                .setFragmentShaderPath(config.getVulkan().shaders.fragemnt)
                                .build();
-    pipelineCompute = PipelineBuilder{config, device, swapchain}
-                              .setLayoutBindingInfo(bindingInfosCompute)
-                              .setPipelineType(PipelineType::Compute)
-                              .setComputeShaderPath(config.getVulkan().shaders.compute)
-                              .build();
+    auto computePipelineBuilder = PipelineBuilder{config, device, swapchain}
+                                          .setLayoutBindingInfo(bindingInfosCompute)
+                                          .setPipelineType(PipelineType::Compute)
+                                          .addPushConstant(vk::ShaderStageFlagBits::eCompute, sizeof(SimulationInfo));
+    pipelineComputeMassDensity = computePipelineBuilder.setComputeShaderPath(config.getVulkan().shaders.computeMassDensity).build();
+    pipelineComputeForces = computePipelineBuilder.setComputeShaderPath(config.getVulkan().shaders.computeForces).build();
     createCommandPool();
     createDepthResources();
     framebuffers = std::make_shared<Framebuffers>(device, swapchain, pipelineGraphics->getRenderPass(), imageDepth->getImageView());
@@ -58,7 +59,7 @@ void VulkanCore::initVulkan(const Model &modelParticle, const std::span<Particle
     descriptorSetGraphics =
             std::make_shared<DescriptorSet>(device, swapchain->getSwapchainImageCount(), pipelineGraphics->getDescriptorSetLayout(), descriptorPool);
     descriptorSetGraphics->updateDescriptorSet(descriptorBufferInfosGraphic, bindingInfosRender);
-    descriptorSetCompute = std::make_shared<DescriptorSet>(device, 1, pipelineCompute->getDescriptorSetLayout(), descriptorPool);
+    descriptorSetCompute = std::make_shared<DescriptorSet>(device, 1, pipelineComputeMassDensity->getDescriptorSetLayout(), descriptorPool);
     descriptorSetCompute->updateDescriptorSet(descriptorBufferInfosCompute, bindingInfosCompute);
     //createDescriptorSet();
     spdlog::debug("Created command pool");
@@ -102,7 +103,8 @@ void VulkanCore::createCommandPool() {
     auto queueFamilyIndices = Device::findQueueFamilies(device->getPhysicalDevice(), surface);
 
     vk::CommandPoolCreateInfo commandPoolCreateInfoGraphics{.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value()};
-    vk::CommandPoolCreateInfo commandPoolCreateInfoCompute{.queueFamilyIndex = queueFamilyIndices.computeFamily.value()};
+    vk::CommandPoolCreateInfo commandPoolCreateInfoCompute{.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+                                                           .queueFamilyIndex = queueFamilyIndices.computeFamily.value()};
 
     commandPoolGraphics = device->getDevice()->createCommandPoolUnique(commandPoolCreateInfoGraphics);
     commandPoolCompute = device->getDevice()->createCommandPoolUnique(commandPoolCreateInfoCompute);
@@ -112,22 +114,15 @@ void VulkanCore::createCommandBuffers() {
     commandBuffersGraphic.resize(framebuffers->getFramebufferImageCount());
     commandBuffersCompute.clear();
     commandBuffersCompute.resize(framebuffers->getFramebufferImageCount());
-    vk::CommandBufferAllocateInfo bufferAllocateInfoGraphics{.commandPool = commandPoolGraphics.get(),
-                                                             .level = vk::CommandBufferLevel::ePrimary,
-                                                             .commandBufferCount = static_cast<uint32_t>(commandBuffersGraphic.size())};
-    commandBuffersCompute.resize(framebuffers->getFramebufferImageCount());
-    vk::CommandBufferAllocateInfo bufferAllocateInfoCompute{.commandPool = commandPoolCompute.get(),
-                                                            .level = vk::CommandBufferLevel::ePrimary,
-                                                            .commandBufferCount = static_cast<uint32_t>(commandBuffersCompute.size())};
 
-    commandBuffersGraphic = device->getDevice()->allocateCommandBuffersUnique(bufferAllocateInfoGraphics);
-    commandBuffersCompute = device->getDevice()->allocateCommandBuffersUnique(bufferAllocateInfoCompute);
+    commandBuffersGraphic = device->allocateCommandBuffer(commandPoolGraphics, commandBuffersGraphic.size());
+    commandBuffersCompute = device->allocateCommandBuffer(commandPoolCompute, commandBuffersCompute.size());
 
     int i = 0;
     std::array<vk::Buffer, 1> vertexBuffers{bufferVertex->getBuffer().get()};
     std::array<vk::DeviceSize, 1> offsets{0};
     auto &swapchainFramebuffers = framebuffers->getSwapchainFramebuffers();
-    for (auto [commandBufferGraphics, commandBufferCompute] : ranges::views::zip(commandBuffersGraphic, commandBuffersCompute)) {
+    for (auto &commandBufferGraphics : commandBuffersGraphic) {
         vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse, .pInheritanceInfo = nullptr};
 
         commandBufferGraphics->begin(beginInfo);
@@ -152,13 +147,6 @@ void VulkanCore::createCommandBuffers() {
         commandBufferGraphics->endRenderPass();
 
         commandBufferGraphics->end();
-
-        commandBufferCompute->begin(beginInfo);
-        commandBufferCompute->bindPipeline(vk::PipelineBindPoint::eCompute, pipelineCompute->getPipeline().get());
-        commandBufferCompute->bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineCompute->getPipelineLayout().get(), 0, 1,
-                                                 &descriptorSetCompute->getDescriptorSets()[0].get(), 0, nullptr);
-        commandBufferCompute->dispatch(1, 1, 1);
-        commandBufferCompute->end();
         ++i;
     }
 }
@@ -174,7 +162,8 @@ void VulkanCore::createSyncObjects() {
 }
 void VulkanCore::drawFrame() {
     std::array<vk::Semaphore, 1> semaphoresAfterNextImage{semaphoreImageAvailable[currentFrame].get()};
-    std::array<vk::Semaphore, 1> semaphoresAfterCompute{semaphoreComputeFinished[currentFrame].get()};
+    std::array<vk::Semaphore, 1> semaphoresAfterComputeMassDensity{semaphoreComputeFinished[currentFrame].get()};
+    std::array<vk::Semaphore, 1> semaphoresAfterComputeForces{semaphoreRenderFinished[currentFrame].get()};
     std::array<vk::Semaphore, 1> semaphoresAfterRender{semaphoreRenderFinished[currentFrame].get()};
     std::array<vk::PipelineStageFlags, 1> waitStagesRender{vk::PipelineStageFlagBits::eColorAttachmentOutput};
     std::array<vk::PipelineStageFlags, 1> waitStagesCompute{vk::PipelineStageFlagBits::eComputeShader};
@@ -193,16 +182,26 @@ void VulkanCore::drawFrame() {
     if (imagesInFlight[imageindex].has_value()) device->getDevice()->waitForFences(imagesInFlight[imageindex].value(), VK_TRUE, UINT64_MAX);
     imagesInFlight[imageindex] = inFlightFences[currentFrame].get();
 
-
+    device->getDevice()->resetFences(inFlightFences[currentFrame].get());
+    recordCommandBuffersCompute(pipelineComputeMassDensity);
     vk::SubmitInfo submitInfoCompute{.waitSemaphoreCount = 1,
                                      .pWaitSemaphores = semaphoresAfterNextImage.data(),
                                      .pWaitDstStageMask = waitStagesCompute.data(),
                                      .commandBufferCount = 1,
                                      .pCommandBuffers = &commandBuffersCompute[imageindex].get(),
                                      .signalSemaphoreCount = 1,
-                                     .pSignalSemaphores = semaphoresAfterCompute.data()};
+                                     .pSignalSemaphores = semaphoresAfterComputeMassDensity.data()};
+    queueCompute.submit(submitInfoCompute, inFlightFences[currentFrame].get());
+
+    recordCommandBuffersCompute(pipelineComputeForces);
+    submitInfoCompute.pCommandBuffers = &commandBuffersCompute[imageindex].get();
+    submitInfoCompute.pWaitSemaphores = semaphoresAfterComputeMassDensity.data();
+    submitInfoCompute.pSignalSemaphores = semaphoresAfterComputeForces.data();
+    queueCompute.submit(submitInfoCompute, nullptr);
+
+
     vk::SubmitInfo submitInfoRender{.waitSemaphoreCount = 1,
-                                    .pWaitSemaphores = semaphoresAfterCompute.data(),
+                                    .pWaitSemaphores = semaphoresAfterComputeForces.data(),
                                     .pWaitDstStageMask = waitStagesRender.data(),
                                     .commandBufferCount = 1,
                                     .pCommandBuffers = &commandBuffersGraphic[imageindex].get(),
@@ -215,8 +214,7 @@ void VulkanCore::drawFrame() {
                                    .pImageIndices = &imageindex,
                                    .pResults = nullptr};
 
-    device->getDevice()->resetFences(inFlightFences[currentFrame].get());
-    queueCompute.submit(submitInfoCompute, inFlightFences[currentFrame].get());
+
     queueGraphics.submit(submitInfoRender, nullptr);
 
     try {
@@ -294,9 +292,9 @@ void VulkanCore::updateUniformBuffers(uint32_t currentImage) {
     buffersUniformCameraPos[currentImage]->fill(std::span(&cameraPos, 1), false);
 }
 void VulkanCore::createDescriptorPool() {
-    std::array<vk::DescriptorPoolSize, 2> poolSize{
-            vk::DescriptorPoolSize{.type = vk::DescriptorType::eUniformBuffer, .descriptorCount = static_cast<uint32_t>(swapchain->getSwapchainImageCount())},
-            vk::DescriptorPoolSize{.type = vk::DescriptorType::eStorageBuffer, .descriptorCount = 1}};
+    std::array<vk::DescriptorPoolSize, 2> poolSize{vk::DescriptorPoolSize{.type = vk::DescriptorType::eUniformBuffer,
+                                                                          .descriptorCount = static_cast<uint32_t>(swapchain->getSwapchainImageCount()) * 2},
+                                                   vk::DescriptorPoolSize{.type = vk::DescriptorType::eStorageBuffer, .descriptorCount = 3}};
     vk::DescriptorPoolCreateInfo poolCreateInfo{
             .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
             .maxSets =
@@ -353,3 +351,17 @@ void VulkanCore::createShaderStorageBuffer(const std::span<ParticleRecord> &part
             device, commandPoolGraphics, queueGraphics);
     bufferShaderStorage->fill(particles);
 }
+void VulkanCore::recordCommandBuffersCompute(const std::shared_ptr<Pipeline> &pipeline) {
+    vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse, .pInheritanceInfo = nullptr};
+
+    for (auto &commandBufferCompute : commandBuffersCompute) {
+        commandBufferCompute->begin(beginInfo);
+        commandBufferCompute->bindPipeline(vk::PipelineBindPoint::eCompute, pipeline->getPipeline().get());
+        commandBufferCompute->bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipeline->getPipelineLayout().get(), 0, 1,
+                                                 &descriptorSetCompute->getDescriptorSets()[0].get(), 0, nullptr);
+        commandBufferCompute->pushConstants(pipeline->getPipelineLayout().get(), vk::ShaderStageFlagBits::eCompute, 0, sizeof(SimulationInfo), &simulationInfo);
+        commandBufferCompute->dispatch(1, 1, 1);
+        commandBufferCompute->end();
+    }
+}
+void VulkanCore::setSimulationInfo(const SimulationInfo &simulationInfo) { VulkanCore::simulationInfo = simulationInfo; }

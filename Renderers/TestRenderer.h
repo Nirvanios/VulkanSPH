@@ -35,6 +35,7 @@ private:
     void cameraMouseButton(MouseButtonMessage message);
 
     std::vector<ParticleRecord> createParticles();
+    SimulationInfo getSimulationInfo();
 };
 
 

@@ -52,6 +52,20 @@ struct UniformBufferObject {
 struct ParticleRecord {
     glm::vec4 position;
     glm::vec4 velocity;
+    glm::vec4 currentVelocity;
+    float massDensity;
+    float pressure;
+};
+
+struct SimulationInfo {
+    glm::vec4 gravityForce;
+    float particleMass;
+    float restDensity;
+    float viscosityCoefficient;
+    float gasStiffnessConstant;
+    float timeStep;
+    float supportRadius;
+    unsigned int particleCount;
 };
 
 #endif//VULKANAPP_TYPES_H

@@ -5,12 +5,14 @@
 #ifndef VULKANAPP_CONFIGSTRUCTS_H
 #define VULKANAPP_CONFIGSTRUCTS_H
 
+#include "glm/glm.hpp"
 #include <string>
 
 struct ShadersConfig {
     std::string vertex;
     std::string fragemnt;
-    std::string compute;
+    std::string computeMassDensity;
+    std::string computeForces;
 };
 
 struct WindowConfig {
@@ -25,7 +27,10 @@ struct VulkanConfig {
 };
 
 struct SimulationConfig {
+    float fluidVolume;
+    float fluidDensity;
     int particleCount;
+    glm::ivec3 particleSize;
     std::string particleModel;
 };
 

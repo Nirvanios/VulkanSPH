@@ -1,13 +1,11 @@
-#version 120
+float M_PI = 3.1415;
 
-#define M_PI 3.1415926535897932384626433832795
-
-float defaultKernel(in vec3 position, in float positionNorm, in float supportRadius){
-    return 315/(64 * M_PI * pow(supportRadius, 9)) * pow(pow(supportRadius, 2) - pow(positionNorm, 2), 3) * (positionNorm > supportRadius);
+float defaultKernel(in vec4 position, in float positionNorm, in float supportRadius){
+    return 315/(64 * M_PI * pow(supportRadius, 9)) * pow(pow(supportRadius, 2) - pow(positionNorm, 2), 3) * int(positionNorm > supportRadius);
 }
-vec3 gradientKernel(in vec3 position, in float positionNorm, in float supportRadius){
+vec4 gradientKernel(in vec4 position, in float positionNorm, in float supportRadius){
     return -945/(32 * M_PI * pow(supportRadius, 9)) * position * pow(pow(supportRadius, 2) - pow(positionNorm, 2), 2);
 }
-float laplacianKernel(in vec3 position, in float positionNorm, in float supportRadius){
+float laplacianKernel(in vec4 position, in float positionNorm, in float supportRadius){
     return -945/(32 * M_PI * pow(supportRadius, 9)) * (pow(supportRadius, 2) - pow(positionNorm, 2)) * (3 * pow(supportRadius, 2) - 7 * pow(positionNorm, 2));
 }

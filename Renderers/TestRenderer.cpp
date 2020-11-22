@@ -4,8 +4,8 @@
 
 #include "TestRenderer.h"
 
-#include <ctime>
-#include <utility>
+#include <numbers>
+
 
 TestRenderer::TestRenderer(const Config &config)
     : config(config), window(config.getVulkan().window.name, config.getVulkan().window.width, config.getVulkan().window.height),
@@ -17,6 +17,7 @@ TestRenderer::TestRenderer(const Config &config)
 
     auto particles = createParticles();
     vulkanCore.initVulkan(Utilities::loadModelFromObj(config.getApp().simulation.particleModel), std::span<ParticleRecord>{particles.data(), particles.size()});
+    vulkanCore.setSimulationInfo(getSimulationInfo());
 }
 
 void TestRenderer::run() { vulkanCore.run(); }
@@ -60,22 +61,40 @@ void TestRenderer::cameraMouseButton(MouseButtonMessage message) {
 
 std::vector<ParticleRecord> TestRenderer::createParticles() {
     std::vector<ParticleRecord> data{static_cast<size_t>(config.getApp().simulation.particleCount)};
-    std::srand(std::time(nullptr));
-    for (int z = 0; z < 4; ++z) {
-        for (int y = 0; y < 4; ++y) {
-            for (int x = 0; x < 2; ++x) {
-                data[(z * 4 * 2) + (y * 2) + x].position = glm::vec4{x, y, z, 0.0f};
-                data[(z * 4 * 2) + (y * 2) + x].velocity = glm::vec4{std::rand(), std::rand(), std::rand(), 0.0f};
-                data[(z * 4 * 2) + (y * 2) + x].velocity /= RAND_MAX;
-                data[(z * 4 * 2) + (y * 2) + x].velocity *= 1;
+    int sizeZ = config.getApp().simulation.particleSize.z;
+    int sizeY = config.getApp().simulation.particleSize.y;
+    int sizeX = config.getApp().simulation.particleSize.x;
+    for (int z = 0; z < sizeZ; ++z) {
+        for (int y = 0; y < sizeY; ++y) {
+            for (int x = 0; x < sizeX; ++x) {
+                data[(z * sizeZ * sizeY) + (y * sizeX) + x].position = glm::vec4{x, y, z, 0.0f};
+                data[(z * sizeZ * sizeY) + (y * sizeX) + x].currentVelocity = glm::vec4{0.0f};
+                data[(z * sizeZ * sizeY) + (y * sizeX) + x].velocity = glm::vec4{0.0f};
+                data[(z * sizeZ * sizeY) + (y * sizeX) + x].massDensity = 0.0f;
+                data[(z * sizeZ * sizeY) + (y * sizeX) + x].pressure = 0.0f;
             }
         }
     }
     return data;
 }
 
+
 TestRenderer::~TestRenderer() {
     mouseButtonSubscriber.unsubscribe();
     mouseMovementSubscriber.unsubscribe();
     keyMovementSubscriber.unsubscribe();
+}
+SimulationInfo TestRenderer::getSimulationInfo() {
+    const auto &simConfig = config.getApp().simulation;
+    const auto mass = simConfig.fluidDensity * (simConfig.fluidVolume / static_cast<float>(simConfig.particleCount));
+    const auto x = 1.0;
+    const auto supportRadius = std::cbrt((3 * simConfig.fluidVolume * x) / (4 * std::numbers::pi * simConfig.particleCount));
+    return SimulationInfo{.gravityForce = glm::vec4{0.0f, -9.8, 0.0, 0.0},
+                          .particleMass = mass,
+                          .restDensity = simConfig.fluidDensity,
+                          .viscosityCoefficient = 3.5,
+                          .gasStiffnessConstant = 3.0,
+                          .timeStep = 0.1,
+                          .supportRadius = static_cast<float>(supportRadius),
+                          .particleCount = static_cast<unsigned int>(simConfig.particleCount)};
 }

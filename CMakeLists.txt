@@ -106,8 +106,8 @@ add_compile_definitions(SPDLOG_FMT_EXTERNAL
 add_executable(VulkanApp main.cpp
         utils/Utilities.h
         vulkan/VulkanCore.cpp vulkan/VulkanCore.h
-        window/GlfwWindow.cpp window/GlfwWindow.h vulkan/Instance.cpp vulkan/Instance.h vulkan/Device.cpp vulkan/Device.h vulkan/Swapchain.cpp vulkan/Swapchain.h vulkan/Pipeline.cpp vulkan/Pipeline.h vulkan/Framebuffers.cpp vulkan/Framebuffers.h window/Callbacks.h vulkan/Types.h vulkan/builders/BufferBuilder.cpp vulkan/builders/BufferBuilder.h vulkan/Buffer.cpp vulkan/Buffer.h vulkan/VulkanUtils.h window/EventDispatchingWindow.cpp window/EventDispatchingWindow.h window/Messages.h Renderers/TestRenderer.cpp Renderers/TestRenderer.h utils/Config.cpp utils/Config.h utils/ConfigStructs.h vulkan/builders/PipelineBuilder.cpp vulkan/builders/PipelineBuilder.h vulkan/DescriptorSet.cpp vulkan/DescriptorSet.h vulkan/Image.cpp vulkan/Image.h vulkan/builders/ImageBuilder.cpp vulkan/builders/ImageBuilder.h)
+        window/GlfwWindow.cpp window/GlfwWindow.h vulkan/Instance.cpp vulkan/Instance.h vulkan/Device.cpp vulkan/Device.h vulkan/Swapchain.cpp vulkan/Swapchain.h vulkan/Pipeline.cpp vulkan/Pipeline.h vulkan/Framebuffers.cpp vulkan/Framebuffers.h window/Callbacks.h vulkan/Types.h vulkan/builders/BufferBuilder.cpp vulkan/builders/BufferBuilder.h vulkan/Buffer.cpp vulkan/Buffer.h vulkan/Utils/VulkanUtils.h window/EventDispatchingWindow.cpp window/EventDispatchingWindow.h window/Messages.h Renderers/TestRenderer.cpp Renderers/TestRenderer.h utils/Config.cpp utils/Config.h utils/ConfigStructs.h vulkan/builders/PipelineBuilder.cpp vulkan/builders/PipelineBuilder.h vulkan/DescriptorSet.cpp vulkan/DescriptorSet.h vulkan/Image.cpp vulkan/Image.h vulkan/builders/ImageBuilder.cpp vulkan/builders/ImageBuilder.h vulkan/Utils/ShaderIncluder.h)
 target_link_libraries(VulkanApp
-        ${Vulkan_LIBRARIES} glfw spdlog::spdlog imgui::imgui fmt::fmt shaderc glslang toml11 range-v3 tinyobjloader)
+        ${Vulkan_LIBRARIES} glfw spdlog::spdlog imgui::imgui fmt::fmt shaderc_combined glslang toml11 range-v3 tinyobjloader)
 
 target_compile_options(VulkanApp PRIVATE ${flags})
