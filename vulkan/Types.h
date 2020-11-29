@@ -7,6 +7,8 @@
 
 #include "glm/glm.hpp"
 #include "glm/gtx/hash.hpp"
+#include <fmt/format.h>
+#include <spdlog/fmt/ostr.h>
 #include <vulkan/vulkan.hpp>
 
 struct Vertex {
@@ -55,7 +57,21 @@ struct ParticleRecord {
     glm::vec4 currentVelocity;
     float massDensity;
     float pressure;
+    glm::vec2 dummy;
+
+    template<typename OStream>
+    friend OStream &operator<<(OStream &os, const ParticleRecord &particleRecord){
+        os << fmt::format("Position: [x:{},y:{},z:{}]", particleRecord.position.x, particleRecord.position.y, particleRecord.position.z);
+        os << fmt::format(" Velocity: [x:{},y:{},z:{}]", particleRecord.velocity.x, particleRecord.velocity.y, particleRecord.velocity.z);
+        os << fmt::format(" CurrentVelocity: [x:{},y:{},z:{}]", particleRecord.currentVelocity.x, particleRecord.currentVelocity.y, particleRecord.currentVelocity.z);
+        os << fmt::format(" MassDensity: {}", particleRecord.massDensity);
+        os << fmt::format(" Pressure: {}", particleRecord.pressure);
+        os << fmt::format(" PressureForce: x:{} y:{}", particleRecord.dummy.x, particleRecord.dummy.y);
+        return os;
+    }
 };
+
+
 
 struct SimulationInfo {
     glm::vec4 gravityForce;

@@ -79,8 +79,9 @@ private:
     std::vector<vk::UniqueCommandBuffer> commandBuffersCompute;
 
     std::vector<vk::UniqueSemaphore> semaphoreImageAvailable, semaphoreRenderFinished, semaphoreComputeFinished;
-    std::vector<vk::UniqueFence> inFlightFences;
-    std::vector<std::optional<vk::Fence>> imagesInFlight;
+    std::vector<vk::UniqueFence> fencesInFlight;
+    std::vector<vk::UniqueFence> fencesComputeReady;
+    std::vector<std::optional<vk::Fence>> fencesImagesInFlight;
 
     vk::Queue queueGraphics;
     vk::Queue queuePresent;

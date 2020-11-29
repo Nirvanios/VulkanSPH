@@ -32,7 +32,7 @@ void Device::pickPhysicalDevice() {
             auto swapchainSupportDetails = Swapchain::querySwapChainSupport(phyDevice, surface);
             swapchainAdequate = !swapchainSupportDetails.formats.empty() && !swapchainSupportDetails.presentModes.empty();
         }
-        return properties.deviceType == vk::PhysicalDeviceType::eIntegratedGpu && features.geometryShader &&
+        return properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu && features.geometryShader &&
                findQueueFamilies(phyDevice, surface).isComplete() && extensionsSupported && swapchainAdequate;
     });
 

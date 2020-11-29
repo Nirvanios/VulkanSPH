@@ -79,8 +79,8 @@ std::pair<vk::UniquePipelineLayout, vk::UniquePipeline> PipelineBuilder::createG
                                                                       .alphaToOneEnable = VK_FALSE};
 
     vk::PipelineColorBlendAttachmentState colorBlendAttachmentState{.blendEnable = VK_FALSE,
-                                                                    .srcColorBlendFactor = vk::BlendFactor::eOne,
-                                                                    .dstColorBlendFactor = vk::BlendFactor::eZero,
+                                                                    .srcColorBlendFactor = vk::BlendFactor::eSrcAlpha,
+                                                                    .dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
                                                                     .colorBlendOp = vk::BlendOp::eAdd,
                                                                     .srcAlphaBlendFactor = vk::BlendFactor::eOne,
                                                                     .dstAlphaBlendFactor = vk::BlendFactor::eZero,
