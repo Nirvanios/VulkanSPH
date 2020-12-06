@@ -30,7 +30,7 @@ class VulkanCore {
 public:
     explicit VulkanCore(const Config &config, GlfwWindow &window, const glm::vec3 &cameraPos);
     void setViewMatrixGetter(std::function<glm::mat4()> getter);
-    void setSimulationInfo(const SimulationInfo &simulationInfo);
+    void setSimulationInfo(const SimulationInfo &info);
     void run();
 
 private:
@@ -99,6 +99,8 @@ private:
     std::shared_ptr<DescriptorSet> descriptorSetCompute;
 
     std::shared_ptr<Image> imageDepth;
+    std::shared_ptr<Image> imageOutput;
+    std::shared_ptr<Image> stagingImage;
     const Config &config;
     GlfwWindow &window;
 
@@ -110,6 +112,7 @@ private:
     void createVertexBuffer(const std::vector<Vertex> &vertices);
     void createIndexBuffer(const std::vector<uint16_t> &indices);
     void createShaderStorageBuffer(const std::span<ParticleRecord> &particles);
+    void createOutputImage();
     void createUniformBuffers();
 
     void createCommandPool();
@@ -129,7 +132,7 @@ private:
 
 public:
     [[nodiscard]] bool isFramebufferResized() const;
-    void setFramebufferResized(bool framebufferResized);
+    void setFramebufferResized(bool resized);
     void initVulkan(const Model &modelParticle, const std::span<ParticleRecord> particles);
 };
 

@@ -27,6 +27,9 @@ struct VulkanConfig {
 };
 
 struct SimulationConfig {
+    float timeStep;
+    float viscosityCoefficient;
+    float gasStiffness;
     float fluidVolume;
     float fluidDensity;
     int particleCount;
@@ -36,6 +39,7 @@ struct SimulationConfig {
 
 struct AppConfig {
     bool DEBUG;
+    bool outputToFile;
     SimulationConfig simulation;
 };
 

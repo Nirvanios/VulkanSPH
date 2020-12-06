@@ -22,7 +22,7 @@ std::shared_ptr<Image> ImageBuilder::build(const std::shared_ptr<Device> &device
                                         .memoryTypeIndex = VulkanUtils::findMemoryType(device, memRequirements.memoryTypeBits, memoryProperties)};
     auto imageMemory = device->getDevice()->allocateMemoryUnique(allocateInfo);
     device->getDevice()->bindImageMemory(image.get(), imageMemory.get(), 0);
-    auto builtImage = std::make_shared<Image>(std::move(image), std::move(imageMemory), imageFormat);
+    auto builtImage = std::make_shared<Image>(std::move(image), std::move(imageMemory), imageFormat, imageWidth, imageHeight, imageAspect);
 
     if (createImageView) builtImage->createImageView(device, imageAspect);
 
@@ -58,5 +58,9 @@ ImageBuilder &ImageBuilder::createView(bool createView) {
 }
 ImageBuilder &ImageBuilder::setImageViewAspect(const vk::ImageAspectFlags &aspect) {
     imageAspect = aspect;
+    return *this;
+}
+ImageBuilder &ImageBuilder::setInitialLayout(vk::ImageLayout layout) {
+    initialLayout = layout;
     return *this;
 }

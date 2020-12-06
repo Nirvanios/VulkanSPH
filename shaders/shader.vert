@@ -29,7 +29,7 @@ layout(location = 4) out vec3 outNormal;
 layout(location = 5) out vec3 outPosition;
 
 void main() {
-    gl_Position = ubo.proj * ubo.view * ubo.model * (vec4(inPosition*0.023, 1.0) + particleRecords[gl_InstanceIndex].position);
+    gl_Position = ubo.proj * ubo.view * ubo.model * (vec4(inPosition*0.026*0.5, 1.0) + particleRecords[gl_InstanceIndex].position);
     outPosition = gl_Position.xyz;
     if(gl_InstanceIndex == 1054)
         fragColor = vec4(1.0f,0.0f,0.0f,1.0f);

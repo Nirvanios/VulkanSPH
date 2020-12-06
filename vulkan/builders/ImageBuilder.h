@@ -20,6 +20,7 @@ public:
     ImageBuilder &setProperties(const vk::MemoryPropertyFlags &properties);
     ImageBuilder &createView(bool createView);
     ImageBuilder &setImageViewAspect(const vk::ImageAspectFlags &aspect);
+    ImageBuilder &setInitialLayout(vk::ImageLayout layout);
 
 private:
     bool createImageView = false;
@@ -29,7 +30,8 @@ private:
     vk::ImageTiling imageTiling;
     vk::ImageUsageFlags imageUsage;
     vk::MemoryPropertyFlags memoryProperties;
-    vk::ImageAspectFlags imageAspect;
+    vk::ImageAspectFlags imageAspect = vk::ImageAspectFlagBits::eColor;
+    vk::ImageLayout initialLayout = vk::ImageLayout::eUndefined;
 };
 
 

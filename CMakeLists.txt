@@ -53,6 +53,8 @@ hunter_add_package(fmt)
 find_package(fmt CONFIG REQUIRED)
 hunter_add_package(spdlog)
 find_package(spdlog CONFIG REQUIRED)
+hunter_add_package(stb)
+find_package(stb CONFIG REQUIRED)
 
 CPMAddPackage(
         NAME glslang
@@ -95,7 +97,10 @@ CPMAddPackage(
         GIT_TAG v2.0.0rc7
 )
 
-add_compile_definitions(SPDLOG_FMT_EXTERNAL
+add_compile_definitions(
+        STB_IMAGE_IMPLEMENTATION
+        STB_IMAGE_WRITE_IMPLEMENTATION
+        SPDLOG_FMT_EXTERNAL
         VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
         VULKAN_HPP_NO_NODISCARD_WARNINGS
         GLM_FORCE_RADIANS
@@ -107,7 +112,7 @@ add_executable(VulkanApp main.cpp
         utils/Utilities.h
         vulkan/VulkanCore.cpp vulkan/VulkanCore.h
         window/GlfwWindow.cpp window/GlfwWindow.h vulkan/Instance.cpp vulkan/Instance.h vulkan/Device.cpp vulkan/Device.h vulkan/Swapchain.cpp vulkan/Swapchain.h vulkan/Pipeline.cpp vulkan/Pipeline.h vulkan/Framebuffers.cpp vulkan/Framebuffers.h window/Callbacks.h vulkan/Types.h vulkan/builders/BufferBuilder.cpp vulkan/builders/BufferBuilder.h vulkan/Buffer.cpp vulkan/Buffer.h vulkan/Utils/VulkanUtils.h window/EventDispatchingWindow.cpp window/EventDispatchingWindow.h window/Messages.h Renderers/TestRenderer.cpp Renderers/TestRenderer.h utils/Config.cpp utils/Config.h utils/ConfigStructs.h vulkan/builders/PipelineBuilder.cpp vulkan/builders/PipelineBuilder.h vulkan/DescriptorSet.cpp vulkan/DescriptorSet.h vulkan/Image.cpp vulkan/Image.h vulkan/builders/ImageBuilder.cpp vulkan/builders/ImageBuilder.h vulkan/Utils/ShaderIncluder.h)
-target_link_libraries(VulkanApp
-        ${Vulkan_LIBRARIES} glfw spdlog::spdlog imgui::imgui fmt::fmt shaderc_combined glslang toml11 range-v3 tinyobjloader)
+target_link_libraries(VulkanApp PUBLIC
+        ${Vulkan_LIBRARIES} glfw spdlog::spdlog imgui::imgui fmt::fmt stb::stb shaderc_combined glslang toml11 range-v3 tinyobjloader)
 
 target_compile_options(VulkanApp PRIVATE ${flags})

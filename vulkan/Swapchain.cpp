@@ -66,7 +66,7 @@ void Swapchain::createSwapchain() {
                                           .imageColorSpace = surfaceFormat.colorSpace,
                                           .imageExtent = swapchainExtent,
                                           .imageArrayLayers = 1,
-                                          .imageUsage = vk::ImageUsageFlagBits::eColorAttachment,
+                                          .imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc,
                                           .preTransform = swapChainSupport.capabilities.currentTransform,
                                           .compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque,
                                           .presentMode = presentMode,
@@ -86,8 +86,12 @@ void Swapchain::createSwapchain() {
     }
     swapchain = device->getDevice()->createSwapchainKHRUnique(createInfo);
 
+    auto images = device->getDevice()->getSwapchainImagesKHR(swapchain.get());
     swapchainImages.clear();
-    swapchainImages = device->getDevice()->getSwapchainImagesKHR(swapchain.get());
+    for(const auto &image : images){
+        swapchainImages.emplace_back(vk::UniqueImage(image), swapchainImageFormat, width, height, vk::ImageAspectFlagBits::eColor);
+    }
+
 }
 
 Swapchain::Swapchain(std::shared_ptr<Device> device, const vk::UniqueSurfaceKHR &surface, const GlfwWindow &window)
@@ -104,7 +108,7 @@ void Swapchain::createImageViews() {
     swapChainImageViews.clear();
     for (const auto &swapchainImage : swapchainImages) {
         vk::ImageViewCreateInfo createInfo{
-                .image = swapchainImage,
+                .image = swapchainImage.getImage().get(),
                 .viewType = vk::ImageViewType::e2D,
                 .format = swapchainImageFormat,
                 .components = {.r = vk::ComponentSwizzle::eIdentity,
@@ -127,3 +131,5 @@ size_t Swapchain::getSwapchainImageCount() const { return swapchainImages.size()
 int Swapchain::getExtentWidth() const { return swapchainExtent.width; }
 
 int Swapchain::getExtentHeight() const { return swapchainExtent.height; }
+
+const std::vector<Image> &Swapchain::getSwapchainImages() const { return swapchainImages; }

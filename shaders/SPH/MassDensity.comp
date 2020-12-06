@@ -8,12 +8,6 @@ float defaultKernel(in vec4 position, in float positionNorm, in float supportRad
     else
         return 0.0f;
 }
-vec4 gradientKernel(in vec4 position, in float positionNorm, in float supportRadius){
-    return -945/(32 * M_PI * pow(supportRadius, 9)) * position * pow(pow(supportRadius, 2) - pow(positionNorm, 2), 2);
-}
-float laplacianKernel(in vec4 position, in float positionNorm, in float supportRadius){
-    return -945/(32 * M_PI * pow(supportRadius, 9)) * (pow(supportRadius, 2) - pow(positionNorm, 2)) * (3 * pow(supportRadius, 2) - 7 * pow(positionNorm, 2));
-}
 
 layout(push_constant) uniform Info{
     vec4 gravityForce;
@@ -23,6 +17,8 @@ layout(push_constant) uniform Info{
     float gasStiffnessConstant;
     float timeStep;
     float supportRadius;
+    float tensionThreshold;
+    float tensionCoefficient;
     uint particleCount;
 } simulationInfo;
 

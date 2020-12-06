@@ -17,12 +17,16 @@ Config::Config(const std::string &configFile) {
     const auto &tomlWindow = toml::find(tomlVulkan, "window");
 
     app.DEBUG = toml::find<bool>(tomlApp, "DEBUG");
+    app.outputToFile = toml::find<bool>(tomlApp, "outputToFile");
 
     app.simulation.particleModel = toml::find<std::string>(tomlSimulation, "particleModel");
     app.simulation.particleCount = toml::find<int>(tomlSimulation, "particleCount");
     app.simulation.fluidVolume = toml::find<float>(tomlSimulation, "fluidVolume");
     app.simulation.fluidDensity = toml::find<float>(tomlSimulation, "fluidDensity");
     app.simulation.particleSize = glm::make_vec3(toml::find<std::vector<int>>(tomlSimulation, "particleModelSize").data());
+    app.simulation.gasStiffness = toml::find<float>(tomlSimulation, "gasStiffness");
+    app.simulation.viscosityCoefficient = toml::find<float>(tomlSimulation, "viscosityCoefficient");
+    app.simulation.timeStep = toml::find<float>(tomlSimulation, "timeStep");
 
     Vulkan.window.height = toml::find<int>(tomlWindow, "height");
     Vulkan.window.width = toml::find<int>(tomlWindow, "width");

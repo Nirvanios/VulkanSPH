@@ -11,6 +11,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "range/v3/view/zip.hpp"
 #include "spdlog/spdlog.h"
+#include "stb/stb_image_write.h"
 
 #include "../utils/Utilities.h"
 #include "Utils/VulkanUtils.h"
@@ -53,14 +54,16 @@ void VulkanCore::initVulkan(const Model &modelParticle, const std::span<Particle
     std::array<DescriptorBufferInfo, 3> descriptorBufferInfosGraphic{
             DescriptorBufferInfo{.buffer = buffersUniformMVP, .bufferSize = sizeof(UniformBufferObject)},
             DescriptorBufferInfo{.buffer = buffersUniformCameraPos, .bufferSize = sizeof(glm::vec3)},
-            DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferShaderStorage, 1}, .bufferSize = sizeof(ParticleRecord) * particles.size()}};
-    std::array<DescriptorBufferInfo, 1> descriptorBufferInfosCompute{
-            DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferShaderStorage, 1}, .bufferSize = sizeof(ParticleRecord) * particles.size()}};
+            DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferShaderStorage, 1},
+                                 .bufferSize = sizeof(ParticleRecord) * particles.size()}};
+    std::array<DescriptorBufferInfo, 1> descriptorBufferInfosCompute{DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferShaderStorage, 1},
+                                                                                          .bufferSize = sizeof(ParticleRecord) * particles.size()}};
     descriptorSetGraphics =
             std::make_shared<DescriptorSet>(device, swapchain->getSwapchainImageCount(), pipelineGraphics->getDescriptorSetLayout(), descriptorPool);
     descriptorSetGraphics->updateDescriptorSet(descriptorBufferInfosGraphic, bindingInfosRender);
     descriptorSetCompute = std::make_shared<DescriptorSet>(device, 1, pipelineComputeMassDensity->getDescriptorSetLayout(), descriptorPool);
     descriptorSetCompute->updateDescriptorSet(descriptorBufferInfosCompute, bindingInfosCompute);
+    createOutputImage();
     //createDescriptorSet();
     spdlog::debug("Created command pool");
     createCommandBuffers();
@@ -141,8 +144,50 @@ void VulkanCore::createCommandBuffers() {
         commandBufferGraphics->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineGraphics->getPipelineLayout().get(), 0, 1,
                                                   &descriptorSetGraphics->getDescriptorSets()[i].get(), 0, nullptr);
         commandBufferGraphics->drawIndexed(indicesSize, config.getApp().simulation.particleCount, 0, 0, 0);
+
         commandBufferGraphics->endRenderPass();
 
+        if(config.getApp().outputToFile)
+        {
+            swapchain->getSwapchainImages()[i].transitionImageLayout(commandBufferGraphics, vk::ImageLayout::ePresentSrcKHR,
+                                                                     vk::ImageLayout::eTransferSrcOptimal, vk::AccessFlagBits::eMemoryRead,
+                                                                     vk::AccessFlagBits::eTransferRead);
+            stagingImage->transitionImageLayout(commandBufferGraphics, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, {},
+                                                vk::AccessFlagBits::eTransferWrite);
+
+            vk::ArrayWrapper1D<vk::Offset3D, 2> offset{std::array<vk::Offset3D, 2>{
+                    vk::Offset3D{.x = 0, .y = 0, .z = 0}, vk::Offset3D{.x = swapchain->getExtentWidth(), .y = swapchain->getExtentHeight(), .z = 1}}};
+            vk::ImageBlit imageBlitRegion{.srcSubresource = {.aspectMask = vk::ImageAspectFlagBits::eColor, .layerCount = 1},
+                                          .srcOffsets = offset,
+                                          .dstSubresource = {.aspectMask = vk::ImageAspectFlagBits::eColor, .layerCount = 1},
+                                          .dstOffsets = offset};
+
+            commandBufferGraphics->blitImage(swapchain->getSwapchainImages()[i].getImage().get(), vk::ImageLayout::eTransferSrcOptimal,
+                                             stagingImage->getImage().get(), vk::ImageLayout::eTransferDstOptimal, 1, &imageBlitRegion, vk::Filter::eLinear);
+
+            swapchain->getSwapchainImages()[i].transitionImageLayout(commandBufferGraphics, vk::ImageLayout::eTransferSrcOptimal,
+                                                                     vk::ImageLayout::ePresentSrcKHR, vk::AccessFlagBits::eTransferRead,
+                                                                     vk::AccessFlagBits::eMemoryRead);
+            stagingImage->transitionImageLayout(commandBufferGraphics, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eTransferSrcOptimal, {},
+                                                vk::AccessFlagBits::eTransferWrite);
+            imageOutput->transitionImageLayout(commandBufferGraphics, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, {},
+                                               vk::AccessFlagBits::eTransferWrite);
+
+
+            vk::ImageCopy imageCopyRegion{.srcSubresource = {.aspectMask = vk::ImageAspectFlagBits::eColor, .layerCount = 1},
+                                          .dstSubresource = {.aspectMask = vk::ImageAspectFlagBits::eColor, .layerCount = 1},
+                                          .extent = {.width = static_cast<uint32_t>(swapchain->getExtentWidth()),
+                                                     .height = static_cast<uint32_t>(swapchain->getExtentHeight()),
+                                                     .depth = 1}};
+
+            commandBufferGraphics->copyImage(stagingImage->getImage().get(), vk::ImageLayout::eTransferSrcOptimal, imageOutput->getImage().get(),
+                                             vk::ImageLayout::eTransferDstOptimal, 1, &imageCopyRegion);
+
+            stagingImage->transitionImageLayout(commandBufferGraphics, vk::ImageLayout::eTransferSrcOptimal, vk::ImageLayout::eGeneral, {},
+                                                vk::AccessFlagBits::eTransferWrite);
+            imageOutput->transitionImageLayout(commandBufferGraphics, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eGeneral,
+                                               vk::AccessFlagBits ::eTransferWrite, vk::AccessFlagBits::eMemoryRead);
+        }
         commandBufferGraphics->end();
         ++i;
     }
@@ -222,6 +267,18 @@ void VulkanCore::drawFrame() {
 
     queueGraphics.submit(submitInfoRender, fencesInFlight[currentFrame].get());
 
+    if (config.getApp().outputToFile) {
+        device->getDevice()->waitForFences(fencesInFlight[currentFrame].get(), VK_TRUE, UINT64_MAX);
+
+        vk::ImageSubresource subResource{vk::ImageAspectFlagBits::eColor, 0, 0};
+        vk::SubresourceLayout subresourceLayout;
+        device->getDevice()->getImageSubresourceLayout(imageOutput->getImage().get(), &subResource, &subresourceLayout);
+
+        auto output = imageOutput->read(device);
+
+        stbi_write_jpg("out.jpg", 800, 600, 4, output.data(), 100);
+    }
+
     try {
         queuePresent.presentKHR(presentInfo);
     } catch (const vk::OutOfDateKHRError &e) { recreateSwapchain(); }
@@ -250,7 +307,7 @@ void VulkanCore::recreateSwapchain() {
 
 bool VulkanCore::isFramebufferResized() const { return framebufferResized; }
 
-void VulkanCore::setFramebufferResized(bool framebufferResized) { VulkanCore::framebufferResized = framebufferResized; }
+void VulkanCore::setFramebufferResized(bool resized) { VulkanCore::framebufferResized = resized; }
 
 void VulkanCore::createVertexBuffer(const std::vector<Vertex> &vertices) {
     bufferVertex = std::make_shared<Buffer>(BufferBuilder()
@@ -270,6 +327,28 @@ void VulkanCore::createIndexBuffer(const std::vector<uint16_t> &indices) {
     bufferIndex->fill(indices);
     indicesSize = indices.size();
 }
+
+void VulkanCore::createOutputImage() {
+    imageOutput = ImageBuilder()
+                          .createView(false)
+                          .setFormat(vk::Format::eR8G8B8A8Srgb)
+                          .setHeight(swapchain->getExtentHeight())
+                          .setWidth(swapchain->getExtentWidth())
+                          .setProperties(vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
+                          .setTiling(vk::ImageTiling::eLinear)
+                          .setUsage(vk::ImageUsageFlagBits::eTransferDst)
+                          .build(device);
+    stagingImage = ImageBuilder()
+                           .createView(false)
+                           .setFormat(vk::Format::eR8G8B8A8Srgb)
+                           .setHeight(swapchain->getExtentHeight())
+                           .setWidth(swapchain->getExtentWidth())
+                           .setProperties(vk::MemoryPropertyFlagBits::eDeviceLocal)
+                           .setTiling(vk::ImageTiling::eOptimal)
+                           .setUsage(vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc)
+                           .build(device);
+}
+
 void VulkanCore::createUniformBuffers() {
     vk::DeviceSize size = sizeof(UniformBufferObject);
     auto builderMVP = BufferBuilder()
@@ -326,7 +405,8 @@ void VulkanCore::createDepthResources() {
                          .setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment)
                          .build(device);
 
-    imageDepth->transitionImageLayout(device, commandPoolGraphics, queueGraphics, vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+    imageDepth->transitionImageLayoutNow(device, commandPoolGraphics, queueGraphics, vk::ImageLayout::eUndefined,
+                                         vk::ImageLayout::eDepthStencilAttachmentOptimal);
 }
 
 vk::Format VulkanCore::findDepthFormat() {
@@ -369,4 +449,4 @@ void VulkanCore::recordCommandBuffersCompute(const std::shared_ptr<Pipeline> &pi
         commandBufferCompute->end();
     }
 }
-void VulkanCore::setSimulationInfo(const SimulationInfo &simulationInfo) { VulkanCore::simulationInfo = simulationInfo; }
+void VulkanCore::setSimulationInfo(const SimulationInfo &info) { VulkanCore::simulationInfo = info; }

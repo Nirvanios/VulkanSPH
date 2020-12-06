@@ -5,9 +5,14 @@
 #include "Image.h"
 #include "Utils/VulkanUtils.h"
 
+Image::Image(vk::UniqueImage image, vk::UniqueDeviceMemory imageMemory, vk::Format format, int width, int height, const vk::ImageAspectFlags &aspect)
+    : image(std::move(image)), imageMemory(std::move(imageMemory)), imageAspect(aspect), imageFormat(format), width(width), height(height) {}
 
-void Image::transitionImageLayout(const std::shared_ptr<Device> &device, const vk::UniqueCommandPool &commandPool, const vk::Queue &queue,
-                                  vk::ImageLayout oldLayout, vk::ImageLayout newLayout) {
+Image::Image(vk::UniqueImage image, vk::Format imageFormat, int width, int height, const vk::ImageAspectFlags &aspect)
+    : image(std::move(image)), imageAspect(aspect), imageFormat(imageFormat), width(width), height(height) {}
+
+void Image::transitionImageLayoutNow(const std::shared_ptr<Device> &device, const vk::UniqueCommandPool &commandPool, const vk::Queue &queue,
+                                     vk::ImageLayout oldLayout, vk::ImageLayout newLayout) {
     auto commandBuffer = VulkanUtils::beginOnetimeCommand(commandPool, device);
 
     vk::ImageMemoryBarrier barrier{
@@ -17,17 +22,17 @@ void Image::transitionImageLayout(const std::shared_ptr<Device> &device, const v
             .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
             .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
             .image = image.get(),
-            .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1},
+            .subresourceRange = {.aspectMask = imageAspect, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1},
     };
 
 
-    if (newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
+    /*    if (newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
         barrier.subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eDepth);
 
         if (VulkanUtils::hasStencilComponent(imageFormat)) { barrier.subresourceRange.aspectMask |= vk::ImageAspectFlagBits::eStencil; }
     } else {
         barrier.subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
-    }
+    }*/
 
     vk::PipelineStageFlags sourceStage;
     vk::PipelineStageFlags destinationStage;
@@ -56,6 +61,25 @@ void Image::transitionImageLayout(const std::shared_ptr<Device> &device, const v
 
     VulkanUtils::endOnetimeCommand(std::move(commandBuffer), queue);
 }
+
+void Image::transitionImageLayout(const vk::UniqueCommandBuffer &commandBuffer, vk::ImageLayout oldLayout, vk::ImageLayout newLayout,
+                                  const vk::AccessFlags &srcAccessFlags, const vk::AccessFlags &dstAccessFlags) const {
+    vk::ImageMemoryBarrier imageMemoryBarrier{
+            .srcAccessMask = srcAccessFlags,
+            .dstAccessMask = dstAccessFlags,
+            .oldLayout = oldLayout,
+            .newLayout = newLayout,
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .image = image.get(),
+            .subresourceRange = {.aspectMask = imageAspect, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1}};
+    
+
+    commandBuffer->pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer, {}, 0, nullptr, 0, nullptr, 1,
+                                   &imageMemoryBarrier);
+}
+
+
 void Image::createImageView(const std::shared_ptr<Device> &device, const vk::ImageAspectFlags &aspectFlags) {
     vk::ImageViewCreateInfo viewCreateInfo{
             .image = image.get(),
@@ -64,6 +88,7 @@ void Image::createImageView(const std::shared_ptr<Device> &device, const vk::Ima
             .subresourceRange = {.aspectMask = aspectFlags, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1}};
     imageView = device->getDevice()->createImageViewUnique(viewCreateInfo);
 }
-Image::Image(vk::UniqueImage image, vk::UniqueDeviceMemory imageMemory, vk::Format format)
-    : image(std::move(image)), imageMemory(std::move(imageMemory)), imageFormat(format) {}
+
 const vk::UniqueImageView &Image::getImageView() const { return imageView; }
+
+const vk::UniqueHandle<vk::Image, vk::DispatchLoaderStatic> &Image::getImage() const { return image; }

@@ -54,8 +54,8 @@ public:
         }
     };
 
-    void copy(const vk::DeviceSize &size, const Buffer &srcBuffer);
-    void copy(const vk::DeviceSize &size, const Buffer &srcBuffer, const Buffer &dstBuffer);
+    void copy(const vk::DeviceSize &copySize, const Buffer &srcBuffer, const std::vector<vk::Semaphore> &semaphores = {});
+    void copy(const vk::DeviceSize &copySize, const Buffer &srcBuffer, const Buffer &dstBuffer, const std::vector<vk::Semaphore> &semaphores = {});
     template<typename T>
     [[nodiscard]] std::vector<T> read() {
         auto stagingBuffer = Buffer(BufferBuilder()
@@ -66,7 +66,8 @@ public:
 
         stagingBuffer.copy(size, *this);
 
-        std::vector<T> data{size / sizeof(T)};
+        std::vector<T> data{};
+        data.resize(size / sizeof(T));
         auto bufferData = device->getDevice()->mapMemory(stagingBuffer.deviceMemory.get(), 0, size);
         memcpy(data.data(), bufferData, size);
         device->getDevice()->unmapMemory(stagingBuffer.deviceMemory.get());
@@ -76,7 +77,7 @@ public:
     [[nodiscard]] const vk::UniqueDeviceMemory &getDeviceMemory() const;
 
 private:
-    void copyBuffer(const vk::DeviceSize &size, const vk::UniqueBuffer &srcBuffer, const vk::UniqueBuffer &dstBuffer);
+    void copyBuffer(const vk::DeviceSize &copySize, const vk::UniqueBuffer &srcBuffer, const vk::UniqueBuffer &dstBuffer, const std::vector<vk::Semaphore> &semaphores);
 
     vk::UniqueBuffer buffer;
     vk::UniqueDeviceMemory deviceMemory;

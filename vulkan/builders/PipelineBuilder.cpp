@@ -36,7 +36,9 @@ std::pair<vk::UniquePipelineLayout, vk::UniquePipeline> PipelineBuilder::createG
     auto bindingDescription = Vertex::getBindingDescription();
     auto attributeDescriptions = Vertex::getAttributeDescriptions();
 
-    vk::PipelineShaderStageCreateInfo vertexStageCreateInfo{.stage = vk::ShaderStageFlagBits::eVertex, .module = vertShaderModule.get(), .pName = "main"};
+    vk::PipelineShaderStageCreateInfo vertexStageCreateInfo{.stage = vk::ShaderStageFlagBits::eVertex,
+                                                            .module = vertShaderModule.get(),
+                                                            .pName = "main"};
 
     vk::PipelineShaderStageCreateInfo fragmentStageCreateInfo{.stage = vk::ShaderStageFlagBits::eFragment, .module = fragShaderModule.get(), .pName = "main"};
 

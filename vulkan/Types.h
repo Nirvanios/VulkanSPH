@@ -81,6 +81,8 @@ struct SimulationInfo {
     float gasStiffnessConstant;
     float timeStep;
     float supportRadius;
+    float tensionThreshold;
+    float tensionCoefficient;
     unsigned int particleCount;
 };
 

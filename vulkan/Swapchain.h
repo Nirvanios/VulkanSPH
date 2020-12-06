@@ -7,6 +7,7 @@
 
 #include "../window/GlfwWindow.h"
 #include "Device.h"
+#include "Image.h"
 #include <vector>
 #include <vulkan/vulkan.hpp>
 struct SwapChainSupportDetails {
@@ -25,6 +26,7 @@ public:
     [[nodiscard]] size_t getSwapchainImageCount() const;
     [[nodiscard]] int getExtentWidth() const;
     [[nodiscard]] int getExtentHeight() const;
+    [[nodiscard]] const std::vector<Image> &getSwapchainImages() const;
 
     void createSwapchain();
     void createImageViews();
@@ -40,7 +42,7 @@ private:
     vk::Format swapchainImageFormat;
     vk::Extent2D swapchainExtent;
     vk::UniqueSwapchainKHR swapchain;
-    std::vector<vk::Image> swapchainImages;
+    std::vector<Image> swapchainImages;
     std::vector<vk::UniqueImageView> swapChainImageViews;
 
 

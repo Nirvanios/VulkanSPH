@@ -24,7 +24,7 @@ namespace VulkanUtils {
         options.SetIncluder(std::make_unique<ShaderIncluder>());
 
         auto result = compiler.PreprocessGlsl(source, kind, source_name.c_str(), options);
-        if(result.GetCompilationStatus() != shaderc_compilation_status_success){
+        if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
             throw vk::InvalidShaderNVError(fmt::format("Shader preprocess: {}", result.GetErrorMessage()));
         }
 
@@ -56,13 +56,17 @@ namespace VulkanUtils {
         commandBuffer[0]->begin(beginInfo);
         return std::move(commandBuffer[0]);
     }
-    inline void endOnetimeCommand(vk::UniqueCommandBuffer commandBuffer, const vk::Queue &queue) {
+    inline void endOnetimeCommand(vk::UniqueCommandBuffer commandBuffer, const vk::Queue &queue, const std::vector<vk::Semaphore> &semaphores = {}) {
         commandBuffer->end();
-        vk::SubmitInfo submitInfo{.commandBufferCount = 1, .pCommandBuffers = &commandBuffer.get()};
+        vk::SubmitInfo submitInfo{.waitSemaphoreCount = static_cast<uint32_t>(semaphores.size()),
+                                  .pWaitSemaphores = semaphores.data(),
+                                  .commandBufferCount = 1,
+                                  .pCommandBuffers = &commandBuffer.get()};
 
         queue.submit(1, &submitInfo, nullptr);
         queue.waitIdle();
     }
+
 
 }// namespace VulkanUtils
 

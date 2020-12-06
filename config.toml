@@ -1,11 +1,15 @@
 [App]
 DEBUG = true
+outputToFile = true
 
 [App.simulation]
-fluidVolume = 0.1
-fluidDensity = 1000.0
-particleCount = 5000
-particleModelSize = [10, 50, 10]
+timeStep = 0.001
+gasStiffness = 100.0
+viscosityCoefficient = 3.5
+fluidVolume = 0.045
+fluidDensity = 998.29
+particleCount = 2304
+particleModelSize = [12, 16, 12]
 particleModel = "/home/aka/CLionProjects/VulkanSPH/resources/sphere.obj"
 
 [Vulkan]

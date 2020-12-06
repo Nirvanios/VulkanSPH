@@ -21,7 +21,7 @@ private:
     const Config &config;
 
 
-    Camera camera{glm::vec3{0.0f, 0.0f, 5.0f}};
+    Camera camera{glm::vec3{0.0f, 0.0f, 2.0f}};
     const std::string windowName = "TestRenderer";
     GlfwWindow window;
     VulkanCore vulkanCore;

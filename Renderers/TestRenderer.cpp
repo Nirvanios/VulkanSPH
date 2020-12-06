@@ -97,9 +97,11 @@ SimulationInfo TestRenderer::getSimulationInfo() {
     return SimulationInfo{.gravityForce = glm::vec4{0.0f, -9.8, 0.0, 0.0},
                           .particleMass = mass,
                           .restDensity = simConfig.fluidDensity,
-                          .viscosityCoefficient = 3.5,
-                          .gasStiffnessConstant = 3.0,
-                          .timeStep = 0.01,
+                          .viscosityCoefficient = simConfig.viscosityCoefficient,
+                          .gasStiffnessConstant = simConfig.gasStiffness,
+                          .timeStep = simConfig.timeStep,
                           .supportRadius = static_cast<float>(supportRadius),
+                          .tensionThreshold = 7.065,
+                          .tensionCoefficient = 0.0728,
                           .particleCount = static_cast<unsigned int>(simConfig.particleCount)};
 }
