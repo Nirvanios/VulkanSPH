@@ -147,8 +147,7 @@ void VulkanCore::createCommandBuffers() {
 
         commandBufferGraphics->endRenderPass();
 
-        if(config.getApp().outputToFile)
-        {
+        if (config.getApp().outputToFile) {
             swapchain->getSwapchainImages()[i].transitionImageLayout(commandBufferGraphics, vk::ImageLayout::ePresentSrcKHR,
                                                                      vk::ImageLayout::eTransferSrcOptimal, vk::AccessFlagBits::eMemoryRead,
                                                                      vk::AccessFlagBits::eTransferRead);
