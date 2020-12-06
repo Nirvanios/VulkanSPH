@@ -9,38 +9,38 @@
 #include <string>
 
 struct ShadersConfig {
-    std::string vertex;
-    std::string fragemnt;
-    std::string computeMassDensity;
-    std::string computeForces;
+  std::string vertex;
+  std::string fragemnt;
+  std::string computeMassDensity;
+  std::string computeForces;
 };
 
 struct WindowConfig {
-    std::string name;
-    int width;
-    int height;
+  std::string name;
+  int width;
+  int height;
 };
 
 struct VulkanConfig {
-    WindowConfig window;
-    ShadersConfig shaders;
+  WindowConfig window;
+  ShadersConfig shaders;
 };
 
 struct SimulationConfig {
-    float timeStep;
-    float viscosityCoefficient;
-    float gasStiffness;
-    float fluidVolume;
-    float fluidDensity;
-    int particleCount;
-    glm::ivec3 particleSize;
-    std::string particleModel;
+  float timeStep;
+  float viscosityCoefficient;
+  float gasStiffness;
+  float fluidVolume;
+  float fluidDensity;
+  int particleCount;
+  glm::ivec3 particleSize;
+  std::string particleModel;
 };
 
 struct AppConfig {
-    bool DEBUG;
-    bool outputToFile;
-    SimulationConfig simulation;
+  bool DEBUG;
+  bool outputToFile;
+  SimulationConfig simulation;
 };
 
 #endif//VULKANAPP_CONFIGSTRUCTS_H

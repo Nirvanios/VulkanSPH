@@ -13,22 +13,21 @@
 #include "utils/Config.h"
 
 void setupLogger(bool debug = false) {
-    if (debug)
-        spdlog::set_level(spdlog::level::debug);
+  if (debug) spdlog::set_level(spdlog::level::debug);
 }
 
 int main() {
-    const Config config("../config.toml");
-    setupLogger(config.getApp().DEBUG);
+  const Config config("../config.toml");
+  setupLogger(config.getApp().DEBUG);
 
-    TestRenderer testRenderer{config};
+  TestRenderer testRenderer{config};
 
-    try {
-        testRenderer.run();
-    } catch (const std::exception &e) {
-        spdlog::error(fmt::format(e.what()));
-        return EXIT_FAILURE;
-    }
+  try {
+    testRenderer.run();
+  } catch (const std::exception &e) {
+    spdlog::error(fmt::format(e.what()));
+    return EXIT_FAILURE;
+  }
 
-    return EXIT_SUCCESS;
+  return EXIT_SUCCESS;
 }

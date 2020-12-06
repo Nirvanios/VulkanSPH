@@ -11,46 +11,47 @@
 #include <vector>
 #include <vulkan/vulkan.hpp>
 struct SwapChainSupportDetails {
-    vk::SurfaceCapabilitiesKHR capabilities;
-    std::vector<vk::SurfaceFormatKHR> formats;
-    std::vector<vk::PresentModeKHR> presentModes;
+  vk::SurfaceCapabilitiesKHR capabilities;
+  std::vector<vk::SurfaceFormatKHR> formats;
+  std::vector<vk::PresentModeKHR> presentModes;
 };
 
 class Swapchain {
 
-public:
-    [[nodiscard]] const vk::UniqueSwapchainKHR &getSwapchain() const;
-    [[nodiscard]] const vk::Extent2D &getSwapchainExtent() const;
-    [[nodiscard]] vk::Format getSwapchainImageFormat() const;
-    [[nodiscard]] const std::vector<vk::UniqueImageView> &getSwapChainImageViews() const;
-    [[nodiscard]] size_t getSwapchainImageCount() const;
-    [[nodiscard]] int getExtentWidth() const;
-    [[nodiscard]] int getExtentHeight() const;
-    [[nodiscard]] const std::vector<Image> &getSwapchainImages() const;
+ public:
+  [[nodiscard]] const vk::UniqueSwapchainKHR &getSwapchain() const;
+  [[nodiscard]] const vk::Extent2D &getSwapchainExtent() const;
+  [[nodiscard]] vk::Format getSwapchainImageFormat() const;
+  [[nodiscard]] const std::vector<vk::UniqueImageView> &getSwapChainImageViews() const;
+  [[nodiscard]] size_t getSwapchainImageCount() const;
+  [[nodiscard]] int getExtentWidth() const;
+  [[nodiscard]] int getExtentHeight() const;
+  [[nodiscard]] const std::vector<Image> &getSwapchainImages() const;
 
-    void createSwapchain();
-    void createImageViews();
+  void createSwapchain();
+  void createImageViews();
 
-    Swapchain(std::shared_ptr<Device> device, const vk::UniqueSurfaceKHR &surface, const GlfwWindow &window);
-    static SwapChainSupportDetails querySwapChainSupport(vk::PhysicalDevice physicalDevice, const vk::UniqueSurfaceKHR &surface);
-    static vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR> &availableFormats);
-    static vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &availablePresentModes);
-    static vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities, int width, int height);
+  Swapchain(std::shared_ptr<Device> device, const vk::UniqueSurfaceKHR &surface,
+            const GlfwWindow &window);
+  static SwapChainSupportDetails querySwapChainSupport(vk::PhysicalDevice physicalDevice,
+                                                       const vk::UniqueSurfaceKHR &surface);
+  static vk::SurfaceFormatKHR
+  chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR> &availableFormats);
+  static vk::PresentModeKHR
+  chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &availablePresentModes);
+  static vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities, int width,
+                                       int height);
 
+ private:
+  vk::Format swapchainImageFormat;
+  vk::Extent2D swapchainExtent;
+  vk::UniqueSwapchainKHR swapchain;
+  std::vector<Image> swapchainImages;
+  std::vector<vk::UniqueImageView> swapChainImageViews;
 
-private:
-    vk::Format swapchainImageFormat;
-    vk::Extent2D swapchainExtent;
-    vk::UniqueSwapchainKHR swapchain;
-    std::vector<Image> swapchainImages;
-    std::vector<vk::UniqueImageView> swapChainImageViews;
-
-
-    std::shared_ptr<Device> device;
-    const GlfwWindow &window;
-    const vk::UniqueSurfaceKHR &surface;
-
+  std::shared_ptr<Device> device;
+  const GlfwWindow &window;
+  const vk::UniqueSurfaceKHR &surface;
 };
-
 
 #endif//VULKANAPP_SWAPCHAIN_H

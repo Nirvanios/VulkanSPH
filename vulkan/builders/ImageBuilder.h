@@ -10,29 +10,28 @@
 #include "vulkan/vulkan.hpp"
 
 class ImageBuilder {
-public:
-    std::shared_ptr<Image> build(const std::shared_ptr<Device> &device);
-    ImageBuilder &setWidth(uint32_t width);
-    ImageBuilder &setHeight(uint32_t height);
-    ImageBuilder &setFormat(vk::Format format);
-    ImageBuilder &setTiling(vk::ImageTiling tiling);
-    ImageBuilder &setUsage(const vk::ImageUsageFlags &usage);
-    ImageBuilder &setProperties(const vk::MemoryPropertyFlags &properties);
-    ImageBuilder &createView(bool createView);
-    ImageBuilder &setImageViewAspect(const vk::ImageAspectFlags &aspect);
-    ImageBuilder &setInitialLayout(vk::ImageLayout layout);
+ public:
+  std::shared_ptr<Image> build(const std::shared_ptr<Device> &device);
+  ImageBuilder &setWidth(uint32_t width);
+  ImageBuilder &setHeight(uint32_t height);
+  ImageBuilder &setFormat(vk::Format format);
+  ImageBuilder &setTiling(vk::ImageTiling tiling);
+  ImageBuilder &setUsage(const vk::ImageUsageFlags &usage);
+  ImageBuilder &setProperties(const vk::MemoryPropertyFlags &properties);
+  ImageBuilder &createView(bool createView);
+  ImageBuilder &setImageViewAspect(const vk::ImageAspectFlags &aspect);
+  ImageBuilder &setInitialLayout(vk::ImageLayout layout);
 
-private:
-    bool createImageView = false;
-    uint32_t imageWidth;
-    uint32_t imageHeight;
-    vk::Format imageFormat;
-    vk::ImageTiling imageTiling;
-    vk::ImageUsageFlags imageUsage;
-    vk::MemoryPropertyFlags memoryProperties;
-    vk::ImageAspectFlags imageAspect = vk::ImageAspectFlagBits::eColor;
-    vk::ImageLayout initialLayout = vk::ImageLayout::eUndefined;
+ private:
+  bool createImageView = false;
+  uint32_t imageWidth;
+  uint32_t imageHeight;
+  vk::Format imageFormat;
+  vk::ImageTiling imageTiling;
+  vk::ImageUsageFlags imageUsage;
+  vk::MemoryPropertyFlags memoryProperties;
+  vk::ImageAspectFlags imageAspect = vk::ImageAspectFlagBits::eColor;
+  vk::ImageLayout initialLayout = vk::ImageLayout::eUndefined;
 };
-
 
 #endif//VULKANAPP_IMAGEBUILDER_H
