@@ -7,12 +7,13 @@
 
 Image::Image(vk::UniqueImage image, vk::UniqueDeviceMemory imageMemory, vk::Format format,
              int width, int height, const vk::ImageAspectFlags &aspect)
-    : image(std::move(image)), imageMemory(std::move(imageMemory)), imageAspect(aspect),
-      imageFormat(format), width(width), height(height) {}
+    : imageRaw(image.get()), image(std::move(image)), imageMemory(std::move(imageMemory)), imageAspect(aspect),
+      imageFormat(format), width(width), height(height) {
+}
 
 Image::Image(vk::UniqueImage image, vk::Format imageFormat, int width, int height,
              const vk::ImageAspectFlags &aspect)
-    : image(std::move(image)), imageAspect(aspect), imageFormat(imageFormat), width(width),
+    : imageRaw(image.get()), image(std::move(image)), imageAspect(aspect), imageFormat(imageFormat), width(width),
       height(height) {}
 
 void Image::transitionImageLayoutNow(const std::shared_ptr<Device> &device,
@@ -27,7 +28,7 @@ void Image::transitionImageLayoutNow(const std::shared_ptr<Device> &device,
       .newLayout = newLayout,
       .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
       .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-      .image = image.get(),
+      .image = imageRaw,
       .subresourceRange = {.aspectMask = imageAspect,
                            .baseMipLevel = 0,
                            .levelCount = 1,
@@ -88,7 +89,7 @@ void Image::transitionImageLayout(const vk::UniqueCommandBuffer &commandBuffer,
                                             .newLayout = newLayout,
                                             .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                                             .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                                            .image = image.get(),
+                                            .image = imageRaw,
                                             .subresourceRange = {.aspectMask = imageAspect,
                                                                  .baseMipLevel = 0,
                                                                  .levelCount = 1,
@@ -102,7 +103,7 @@ void Image::transitionImageLayout(const vk::UniqueCommandBuffer &commandBuffer,
 
 void Image::createImageView(const std::shared_ptr<Device> &device,
                             const vk::ImageAspectFlags &aspectFlags) {
-  vk::ImageViewCreateInfo viewCreateInfo{.image = image.get(),
+  vk::ImageViewCreateInfo viewCreateInfo{.image = imageRaw,
                                          .viewType = vk::ImageViewType::e2D,
                                          .format = imageFormat,
                                          .subresourceRange = {.aspectMask = aspectFlags,
@@ -118,3 +119,12 @@ const vk::UniqueImageView &Image::getImageView() const { return imageView; }
 const vk::UniqueHandle<vk::Image, vk::DispatchLoaderStatic> &Image::getImage() const {
   return image;
 }
+
+const vk::Image &Image::getRawImage() const {
+  return imageRaw;
+}
+
+Image::Image(const vk::Image &image, vk::Format imageFormat, int width, int height,
+             const vk::ImageAspectFlags &aspect)
+    : imageRaw(image), imageAspect(aspect), imageFormat(imageFormat), width(width),
+      height(height) {}

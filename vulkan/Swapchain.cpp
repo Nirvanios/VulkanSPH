@@ -101,7 +101,7 @@ void Swapchain::createSwapchain() {
   auto images = device->getDevice()->getSwapchainImagesKHR(swapchain.get());
   swapchainImages.clear();
   for (const auto &image : images) {
-    swapchainImages.emplace_back(vk::UniqueImage(image), swapchainImageFormat, width, height,
+    swapchainImages.emplace_back(image, swapchainImageFormat, width, height,
                                  vk::ImageAspectFlagBits::eColor);
   }
 }
@@ -121,7 +121,7 @@ void Swapchain::createImageViews() {
   swapChainImageViews.clear();
   for (const auto &swapchainImage : swapchainImages) {
     vk::ImageViewCreateInfo createInfo{
-        .image = swapchainImage.getImage().get(),
+        .image = swapchainImage.getRawImage(),
         .viewType = vk::ImageViewType::e2D,
         .format = swapchainImageFormat,
         .components = {.r = vk::ComponentSwizzle::eIdentity,

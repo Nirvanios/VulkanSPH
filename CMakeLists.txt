@@ -43,6 +43,8 @@ find_package(PkgConfig REQUIRED)
 pkg_search_module(GLFW REQUIRED glfw3)
 include_directories(${GLFW_INCLUDE_DIRS})
 
+find_library(AVCODEC_LIBRARY avcodec)
+
 find_package(Vulkan REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 hunter_add_package(glm)
@@ -111,8 +113,8 @@ add_compile_definitions(
 add_executable(VulkanApp main.cpp
         utils/Utilities.h
         vulkan/VulkanCore.cpp vulkan/VulkanCore.h
-        window/GlfwWindow.cpp window/GlfwWindow.h vulkan/Instance.cpp vulkan/Instance.h vulkan/Device.cpp vulkan/Device.h vulkan/Swapchain.cpp vulkan/Swapchain.h vulkan/Pipeline.cpp vulkan/Pipeline.h vulkan/Framebuffers.cpp vulkan/Framebuffers.h window/Callbacks.h vulkan/Types.h vulkan/builders/BufferBuilder.cpp vulkan/builders/BufferBuilder.h vulkan/Buffer.cpp vulkan/Buffer.h vulkan/Utils/VulkanUtils.h window/EventDispatchingWindow.cpp window/EventDispatchingWindow.h window/Messages.h Renderers/TestRenderer.cpp Renderers/TestRenderer.h utils/Config.cpp utils/Config.h utils/ConfigStructs.h vulkan/builders/PipelineBuilder.cpp vulkan/builders/PipelineBuilder.h vulkan/DescriptorSet.cpp vulkan/DescriptorSet.h vulkan/Image.cpp vulkan/Image.h vulkan/builders/ImageBuilder.cpp vulkan/builders/ImageBuilder.h vulkan/Utils/ShaderIncluder.h)
+        window/GlfwWindow.cpp window/GlfwWindow.h vulkan/Instance.cpp vulkan/Instance.h vulkan/Device.cpp vulkan/Device.h vulkan/Swapchain.cpp vulkan/Swapchain.h vulkan/Pipeline.cpp vulkan/Pipeline.h vulkan/Framebuffers.cpp vulkan/Framebuffers.h window/Callbacks.h vulkan/Types.h vulkan/builders/BufferBuilder.cpp vulkan/builders/BufferBuilder.h vulkan/Buffer.cpp vulkan/Buffer.h vulkan/Utils/VulkanUtils.h window/EventDispatchingWindow.cpp window/EventDispatchingWindow.h window/Messages.h Renderers/TestRenderer.cpp Renderers/TestRenderer.h utils/Config.cpp utils/Config.h utils/ConfigStructs.h vulkan/builders/PipelineBuilder.cpp vulkan/builders/PipelineBuilder.h vulkan/DescriptorSet.cpp vulkan/DescriptorSet.h vulkan/Image.cpp vulkan/Image.h vulkan/builders/ImageBuilder.cpp vulkan/builders/ImageBuilder.h vulkan/Utils/ShaderIncluder.h utils/Encoder.cpp utils/Encoder.h)
 target_link_libraries(VulkanApp PUBLIC
-        ${Vulkan_LIBRARIES} glfw spdlog::spdlog imgui::imgui fmt::fmt stb::stb shaderc_combined glslang toml11 range-v3 tinyobjloader)
+        ${Vulkan_LIBRARIES} glfw spdlog::spdlog imgui::imgui fmt::fmt stb::stb shaderc_combined glslang toml11 range-v3 tinyobjloader ${AVCODEC_LIBRARY} avutil avformat swscale)
 
 target_compile_options(VulkanApp PRIVATE ${flags})

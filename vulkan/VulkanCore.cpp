@@ -188,7 +188,7 @@ void VulkanCore::createCommandBuffers() {
           .dstOffsets = offset};
 
       commandBufferGraphics->blitImage(
-          swapchain->getSwapchainImages()[i].getImage().get(), vk::ImageLayout::eTransferSrcOptimal,
+          swapchain->getSwapchainImages()[i].getRawImage(), vk::ImageLayout::eTransferSrcOptimal,
           stagingImage->getImage().get(), vk::ImageLayout::eTransferDstOptimal, 1, &imageBlitRegion,
           vk::Filter::eLinear);
 
@@ -320,6 +320,8 @@ void VulkanCore::drawFrame() {
     auto output = imageOutput->read(device);
 
     stbi_write_jpg("out.jpg", 800, 600, 4, output.data(), 100);
+
+    encoder.write(output);
   }
 
   try {

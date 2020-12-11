@@ -15,6 +15,8 @@ class Image {
         int height, const vk::ImageAspectFlags &aspect);
   Image(vk::UniqueImage image, vk::Format imageFormat, int width, int height,
         const vk::ImageAspectFlags &aspect);
+  Image(const vk::Image &image, vk::Format imageFormat, int width, int height,
+        const vk::ImageAspectFlags &aspect);
   void createImageView(const std::shared_ptr<Device> &device,
                        const vk::ImageAspectFlags &aspectFlags);
   void transitionImageLayoutNow(const std::shared_ptr<Device> &device,
@@ -26,6 +28,7 @@ class Image {
                              const vk::AccessFlags &dstAccessFlags) const;
   [[nodiscard]] const vk::UniqueImageView &getImageView() const;
   [[nodiscard]] const vk::UniqueHandle<vk::Image, vk::DispatchLoaderStatic> &getImage() const;
+  [[nodiscard]] const vk::Image &getRawImage() const;
 
   [[nodiscard]] std::vector<char> read(const std::shared_ptr<Device> &device) {
     if (not imageMemory.has_value()) {
@@ -43,6 +46,7 @@ class Image {
   }
 
  private:
+  vk::Image imageRaw;
   vk::UniqueImage image;
   std::optional<vk::UniqueDeviceMemory> imageMemory;
   vk::UniqueImageView imageView;
