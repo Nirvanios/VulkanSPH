@@ -3,21 +3,17 @@
 //
 
 #include <algorithm>
-#include <range/v3/view/concat.hpp>
-#include <range/v3/view/enumerate.hpp>
 #include <span>
-#include <utility>
 
 #include "glm/gtc/matrix_transform.hpp"
-#include "range/v3/view/zip.hpp"
 #include "spdlog/spdlog.h"
-#include "stb/stb_image_write.h"
 
 #include "../utils/Utilities.h"
 #include "Utils/VulkanUtils.h"
 #include "VulkanCore.h"
 #include "builders/ImageBuilder.h"
 #include "builders/PipelineBuilder.h"
+#include "../utils/saver/ScreenshotDiskSaver.h"
 
 void VulkanCore::initVulkan(const Model &modelParticle, const std::span<ParticleRecord> particles) {
   spdlog::debug("Vulkan initialization...");
@@ -79,6 +75,7 @@ void VulkanCore::initVulkan(const Model &modelParticle, const std::span<Particle
   createSyncObjects();
   spdlog::debug("Created semaphores.");
   spdlog::debug("Vulkan OK.");
+  videoDiskSaver.initStream("./stream.mp4", 1000, swapchain->getExtentWidth(), swapchain->getExtentHeight());
 }
 
 void VulkanCore::run() {
@@ -318,10 +315,7 @@ void VulkanCore::drawFrame() {
                                                    &subresourceLayout);
 
     auto output = imageOutput->read(device);
-
-    stbi_write_jpg("out.jpg", 800, 600, 4, output.data(), 100);
-
-    encoder.write(output);
+    videoDiskSaver.insertFrameBlocking(output, PixelFormat::RGBA);
   }
 
   try {
@@ -527,4 +521,8 @@ void VulkanCore::recordCommandBuffersCompute(const std::shared_ptr<Pipeline> &pi
 }
 void VulkanCore::setSimulationInfo(const SimulationInfo &info) {
   VulkanCore::simulationInfo = info;
+}
+
+VulkanCore::~VulkanCore() {
+    videoDiskSaver.endStream();
 }

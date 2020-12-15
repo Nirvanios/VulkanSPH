@@ -13,10 +13,10 @@ include(FetchContent)
 set(CPM_DOWNLOAD_LOCATION "${CMAKE_SOURCE_DIR}/cmake/CPM.cmake")
 set(CPM_DOWNLOAD_VERSION 0.27.4)
 
-if(NOT (EXISTS ${CPM_DOWNLOAD_LOCATION} AND CPM_VERSION STREQUAL CPM_DOWNLOAD_VERSION))
+if (NOT (EXISTS ${CPM_DOWNLOAD_LOCATION} AND CPM_VERSION STREQUAL CPM_DOWNLOAD_VERSION))
     message(STATUS "Downloading CPM.cmake")
     file(DOWNLOAD https://github.com/TheLartians/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake ${CPM_DOWNLOAD_LOCATION})
-endif()
+endif ()
 
 include(${CPM_DOWNLOAD_LOCATION})
 
@@ -108,12 +108,13 @@ add_compile_definitions(
         GLM_FORCE_RADIANS
         GLM_FORCE_DEPTH_ZERO_TO_ONE
         GLM_FORCE_SWIZZLE
-        )
+)
 
+# doporucuji si udelat seznam cpp a h souboru, pak je to tu prehlednejsi, mrkni na muj projekt jak to tam mam
 add_executable(VulkanApp main.cpp
         utils/Utilities.h
         vulkan/VulkanCore.cpp vulkan/VulkanCore.h
-        window/GlfwWindow.cpp window/GlfwWindow.h vulkan/Instance.cpp vulkan/Instance.h vulkan/Device.cpp vulkan/Device.h vulkan/Swapchain.cpp vulkan/Swapchain.h vulkan/Pipeline.cpp vulkan/Pipeline.h vulkan/Framebuffers.cpp vulkan/Framebuffers.h window/Callbacks.h vulkan/Types.h vulkan/builders/BufferBuilder.cpp vulkan/builders/BufferBuilder.h vulkan/Buffer.cpp vulkan/Buffer.h vulkan/Utils/VulkanUtils.h window/EventDispatchingWindow.cpp window/EventDispatchingWindow.h window/Messages.h Renderers/TestRenderer.cpp Renderers/TestRenderer.h utils/Config.cpp utils/Config.h utils/ConfigStructs.h vulkan/builders/PipelineBuilder.cpp vulkan/builders/PipelineBuilder.h vulkan/DescriptorSet.cpp vulkan/DescriptorSet.h vulkan/Image.cpp vulkan/Image.h vulkan/builders/ImageBuilder.cpp vulkan/builders/ImageBuilder.h vulkan/Utils/ShaderIncluder.h utils/Encoder.cpp utils/Encoder.h)
+        window/GlfwWindow.cpp window/GlfwWindow.h vulkan/Instance.cpp vulkan/Instance.h vulkan/Device.cpp vulkan/Device.h vulkan/Swapchain.cpp vulkan/Swapchain.h vulkan/Pipeline.cpp vulkan/Pipeline.h vulkan/Framebuffers.cpp vulkan/Framebuffers.h window/Callbacks.h vulkan/Types.h vulkan/builders/BufferBuilder.cpp vulkan/builders/BufferBuilder.h vulkan/Buffer.cpp vulkan/Buffer.h vulkan/Utils/VulkanUtils.h window/EventDispatchingWindow.cpp window/EventDispatchingWindow.h window/Messages.h Renderers/TestRenderer.cpp Renderers/TestRenderer.h utils/Config.cpp utils/Config.h utils/ConfigStructs.h vulkan/builders/PipelineBuilder.cpp vulkan/builders/PipelineBuilder.h vulkan/DescriptorSet.cpp vulkan/DescriptorSet.h vulkan/Image.cpp vulkan/Image.h vulkan/builders/ImageBuilder.cpp vulkan/builders/ImageBuilder.h vulkan/Utils/ShaderIncluder.h utils/Encoder.cpp utils/Encoder.h utils/Capture.cpp utils/Capture.h utils/saver/ImageSaver.h utils/saver/StreamSaver.h utils/saver/ImageStreamSaver.h utils/saver/VideoDiskSaver.cpp utils/saver/VideoDiskSaver.h utils/saver/ScreenshotDiskSaver.cpp utils/saver/ScreenshotDiskSaver.h utils/saver/SaverTypes.h)
 target_link_libraries(VulkanApp PUBLIC
         ${Vulkan_LIBRARIES} glfw spdlog::spdlog imgui::imgui fmt::fmt stb::stb shaderc_combined glslang toml11 range-v3 tinyobjloader ${AVCODEC_LIBRARY} avutil avformat swscale)
 

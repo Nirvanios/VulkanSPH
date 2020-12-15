@@ -12,7 +12,6 @@
 #include <stdexcept>
 
 #include "../utils/Config.h"
-#include "../utils/Encoder.h"
 #include "../window/GlfwWindow.h"
 #include "Buffer.h"
 #include "DescriptorSet.h"
@@ -24,11 +23,13 @@
 #include "Swapchain.h"
 #include "Types.h"
 #include "builders/PipelineBuilder.h"
+#include "../utils/saver/VideoDiskSaver.h"
 
 class VulkanCore {
 
  public:
   explicit VulkanCore(const Config &config, GlfwWindow &window, const glm::vec3 &cameraPos);
+  ~VulkanCore();
   void setViewMatrixGetter(std::function<glm::mat4()> getter);
   void setSimulationInfo(const SimulationInfo &info);
   void run();
@@ -61,11 +62,11 @@ class VulkanCore {
   int currentFrame = 0;
   bool framebufferResized = false;
   int indicesSize;
-  Encoder encoder{800, 600, "./tmp.mp4"};
 
   std::function<glm::mat4()> viewMatrixGetter = []() { return glm::mat4(1.0f); };
   const glm::vec3 &cameraPos;
   SimulationInfo simulationInfo;
+  VideoDiskSaver videoDiskSaver;
 
   std::shared_ptr<Instance> instance;
   std::shared_ptr<Device> device;

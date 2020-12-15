@@ -30,14 +30,14 @@ class Image {
   [[nodiscard]] const vk::UniqueHandle<vk::Image, vk::DispatchLoaderStatic> &getImage() const;
   [[nodiscard]] const vk::Image &getRawImage() const;
 
-  [[nodiscard]] std::vector<char> read(const std::shared_ptr<Device> &device) {
+  [[nodiscard]] std::vector<std::byte> read(const std::shared_ptr<Device> &device) {
     if (not imageMemory.has_value()) {
       throw std::runtime_error("Reading from image without accessible memory!");
     }
 
     //TODO Fromat Size
     auto size = 4 * width * height;
-    std::vector<char> data{};
+    std::vector<std::byte> data{};
     data.resize(size);
     auto bufferData = device->getDevice()->mapMemory(imageMemory->get(), 0, VK_WHOLE_SIZE);
     memcpy(data.data(), bufferData, size);
