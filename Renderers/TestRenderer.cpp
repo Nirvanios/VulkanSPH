@@ -62,8 +62,9 @@ void TestRenderer::cameraMouseButton(MouseButtonMessage message) {
 
 std::vector<ParticleRecord> TestRenderer::createParticles() {
   const auto &simConfig = config.getApp().simulation;
-  const auto particleSize =
+  auto particleSize =
       glm::vec3(std::cbrt(simConfig.fluidVolume / static_cast<float>(simConfig.particleCount)));
+  particleSize = glm::vec3(std::cbrt((3 * simConfig.fluidVolume * 20) / (4 * std::numbers::pi * simConfig.particleCount)))/2.0f;
   std::vector<ParticleRecord> data{static_cast<size_t>(config.getApp().simulation.particleCount)};
 
   int sizeZ = config.getApp().simulation.particleSize.z;

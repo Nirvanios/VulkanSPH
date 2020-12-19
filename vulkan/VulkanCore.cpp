@@ -9,11 +9,11 @@
 #include "spdlog/spdlog.h"
 
 #include "../utils/Utilities.h"
+#include "../utils/saver/ScreenshotDiskSaver.h"
 #include "Utils/VulkanUtils.h"
 #include "VulkanCore.h"
 #include "builders/ImageBuilder.h"
 #include "builders/PipelineBuilder.h"
-#include "../utils/saver/ScreenshotDiskSaver.h"
 
 void VulkanCore::initVulkan(const Model &modelParticle, const std::span<ParticleRecord> particles) {
   spdlog::debug("Vulkan initialization...");
@@ -68,14 +68,16 @@ void VulkanCore::initVulkan(const Model &modelParticle, const std::span<Particle
       device, 1, pipelineComputeMassDensity->getDescriptorSetLayout(), descriptorPool);
   descriptorSetCompute->updateDescriptorSet(descriptorBufferInfosCompute, bindingInfosCompute);
   createOutputImage();
-  //createDescriptorSet();
   spdlog::debug("Created command pool");
   createCommandBuffers();
   spdlog::debug("Created command buffers");
   createSyncObjects();
   spdlog::debug("Created semaphores.");
   spdlog::debug("Vulkan OK.");
-  videoDiskSaver.initStream("./stream.mp4", 1000, swapchain->getExtentWidth(), swapchain->getExtentHeight());
+  videoDiskSaver.initStream(
+      "./stream.mp4",
+      static_cast<unsigned int>(1.0 / static_cast<float>(config.getApp().simulation.timeStep)),
+      swapchain->getExtentWidth(), swapchain->getExtentHeight());
 }
 
 void VulkanCore::run() {
@@ -523,6 +525,4 @@ void VulkanCore::setSimulationInfo(const SimulationInfo &info) {
   VulkanCore::simulationInfo = info;
 }
 
-VulkanCore::~VulkanCore() {
-    videoDiskSaver.endStream();
-}
+VulkanCore::~VulkanCore() { videoDiskSaver.endStream(); }
