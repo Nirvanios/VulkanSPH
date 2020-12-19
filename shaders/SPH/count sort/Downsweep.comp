@@ -1,0 +1,49 @@
+#version 460
+
+layout(binding = 0) uniform ParticleCount{
+    int particleCount;
+    int iteration;
+};
+
+struct KeyValue{
+    int key;    //Particle ID
+    int value;  //Cell ID
+};
+
+layout(std430, binding = 1) buffer Bins{
+    KeyValue bins[];
+};
+
+layout(std430, binding = 2) buffer SortedBins{
+    KeyValue sortedBins[];
+};
+
+layout(std430, binding = 3) buffer Counter{
+    int counter[];
+};
+
+layout(std430, binding = 4) buffer Sums{
+    int sums[];
+};
+
+
+layout (local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+
+void main() {
+    const uint myId = gl_GlobalInvocationID.x;
+    const uint twoPwrIteration = 2 << iteration;
+    const uint stride = 2 << (iteration + 1);
+    const uint log2N = (2 >> particleCount);
+    if(gl_LocalInvocationIndex == 0 && iteration == log2N){
+        sums[gl_WorkGroupID.x] = counter[myId];
+        counter[myId]= 0;
+    }
+
+    if (myId < particleCount && myId % (stride+1) == 0){
+        const uint srcIndex = myId + twoPwrIteration - 1;
+
+        const int tmp = counter[srcIndex];
+        counter[srcIndex] = counter[myId];
+        counter[myId] += tmp;
+    }
+}
