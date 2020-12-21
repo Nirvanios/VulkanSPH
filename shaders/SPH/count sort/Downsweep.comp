@@ -31,16 +31,16 @@ layout (local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 
 void main() {
     const uint myId = gl_GlobalInvocationID.x;
-    const uint twoPwrIteration = 2 << iteration;
-    const uint stride = 2 << (iteration + 1);
-    const uint log2N = (2 >> particleCount);
-    if(gl_LocalInvocationIndex == 0 && iteration == log2N){
-        sums[gl_WorkGroupID.x] = counter[myId];
+    const uint twoPwrIteration = 1 << iteration;
+    const uint stride = 1 << (iteration + 1);
+    const uint log2N = uint(log2(particleCount));
+    if(myId == 255 && iteration == log2N-1){
+        //sums[gl_WorkGroupID.x] = counter[myId];
         counter[myId]= 0;
     }
 
-    if (myId < particleCount && myId % (stride+1) == 0){
-        const uint srcIndex = myId + twoPwrIteration - 1;
+    if ((myId+1) % (stride) == 0){
+        const uint srcIndex = myId - twoPwrIteration;
 
         const int tmp = counter[srcIndex];
         counter[srcIndex] = counter[myId];

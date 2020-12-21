@@ -231,8 +231,7 @@ vk::UniqueDescriptorSetLayout PipelineBuilder::createDescriptorSetLayout() {
 
   return device->getDevice()->createDescriptorSetLayoutUnique(layoutCreateInfo);
 }
-PipelineBuilder::PipelineBuilder(Config config, std::shared_ptr<Device> device,
-                                 std::shared_ptr<Swapchain> swapchain)
+PipelineBuilder::PipelineBuilder(Config config, std::shared_ptr<Device> device, std::shared_ptr<Swapchain> swapchain)
     : config(std::move(config)), device(std::move(device)), swapchain(std::move(swapchain)) {}
 
 PipelineBuilder &PipelineBuilder::setDepthFormat(vk::Format format) {

@@ -33,3 +33,4 @@ void Buffer::copy(const vk::DeviceSize &copySize, const Buffer &srcBuffer, const
 }
 const vk::UniqueBuffer &Buffer::getBuffer() const { return buffer; }
 const vk::UniqueDeviceMemory &Buffer::getDeviceMemory() const { return deviceMemory; }
+vk::DeviceSize Buffer::getSize() const { return size; }

@@ -81,6 +81,7 @@ class Buffer {
   }
   [[nodiscard]] const vk::UniqueBuffer &getBuffer() const;
   [[nodiscard]] const vk::UniqueDeviceMemory &getDeviceMemory() const;
+  [[nodiscard]] vk::DeviceSize getSize() const;
 
  private:
   void copyBuffer(const vk::DeviceSize &copySize, const vk::UniqueBuffer &srcBuffer,

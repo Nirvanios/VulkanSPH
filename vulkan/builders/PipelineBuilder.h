@@ -18,8 +18,7 @@ struct PipelineLayoutBindingInfo {//TODO Separate
 
 class PipelineBuilder {
  public:
-  PipelineBuilder(Config config, std::shared_ptr<Device> device,
-                  std::shared_ptr<Swapchain> swapchain);
+  PipelineBuilder(Config config, std::shared_ptr<Device> device, std::shared_ptr<Swapchain> swapchain);
   std::shared_ptr<Pipeline> build();
   PipelineBuilder &setLayoutBindingInfo(const std::span<PipelineLayoutBindingInfo> &info);
   PipelineBuilder &setDepthFormat(vk::Format format);

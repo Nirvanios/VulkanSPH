@@ -11,6 +11,17 @@
 #include <spdlog/fmt/ostr.h>
 #include <vulkan/vulkan.hpp>
 
+struct KeyValue {
+  int key = 0;  //Particle ID
+  int value = 0;//Cell ID
+
+  template<typename OStream>
+  friend OStream &operator<<(OStream &os, const KeyValue &in) {
+    os << in.value;
+    return os;
+  }
+};
+
 struct Vertex {
   glm::vec3 pos;
   glm::vec3 color;
