@@ -5,9 +5,9 @@
 #ifndef VULKANAPP_BUFFER_H
 #define VULKANAPP_BUFFER_H
 
+#include "../builders/BufferBuilder.h"
 #include "Device.h"
 #include "Types.h"
-#include "builders/BufferBuilder.h"
 #include <span>
 
 template<typename T>

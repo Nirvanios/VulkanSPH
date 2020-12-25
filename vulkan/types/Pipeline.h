@@ -5,7 +5,7 @@
 #ifndef VULKANAPP_PIPELINE_H
 #define VULKANAPP_PIPELINE_H
 
-#include "../utils/Config.h"
+#include "../../utils/Config.h"
 #include "Device.h"
 #include "Swapchain.h"
 #include <vulkan//vulkan.hpp>

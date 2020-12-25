@@ -3,8 +3,8 @@
 //
 
 #include "PipelineBuilder.h"
-#include "../Types.h"
 #include "../Utils/VulkanUtils.h"
+#include "../types/Types.h"
 #include <shaderc/shaderc.h>
 #include <spdlog/spdlog.h>
 

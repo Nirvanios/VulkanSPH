@@ -5,9 +5,9 @@
 #ifndef VULKANAPP_VULKANSORT_H
 #define VULKANAPP_VULKANSORT_H
 
-#include "Buffer.h"
-#include "DescriptorSet.h"
-#include "Pipeline.h"
+#include "types/Buffer.h"
+#include "types/DescriptorSet.h"
+#include "types/Pipeline.h"
 #include <vulkan/vulkan.hpp>
 
 class VulkanSort {

@@ -5,7 +5,7 @@
 #ifndef VULKANTEST_UTILITIES_H
 #define VULKANTEST_UTILITIES_H
 
-#include "../vulkan/Types.h"
+#include "../vulkan/types/Types.h"
 #include <fstream>
 #include <set>
 #include <string>

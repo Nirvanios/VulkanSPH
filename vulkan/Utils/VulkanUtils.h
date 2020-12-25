@@ -9,7 +9,7 @@
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan.hpp>
 
-#include "../Device.h"
+#include "../types/Device.h"
 #include "ShaderIncluder.h"
 
 namespace VulkanUtils {

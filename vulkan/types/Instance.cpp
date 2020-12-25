@@ -3,7 +3,7 @@
 //
 
 #include "Instance.h"
-#include "../utils/Utilities.h"
+#include "../../utils/Utilities.h"
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 

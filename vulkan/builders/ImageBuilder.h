@@ -5,8 +5,8 @@
 #ifndef VULKANAPP_IMAGEBUILDER_H
 #define VULKANAPP_IMAGEBUILDER_H
 
-#include "../Device.h"
-#include "../Image.h"
+#include "../types/Device.h"
+#include "../types/Image.h"
 #include "vulkan/vulkan.hpp"
 
 class ImageBuilder {

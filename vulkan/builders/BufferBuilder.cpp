@@ -3,8 +3,8 @@
 //
 
 #include "BufferBuilder.h"
-#include "../Device.h"
 #include "../Utils/VulkanUtils.h"
+#include "../types/Device.h"
 
 std::pair<vk::UniqueBuffer, vk::UniqueDeviceMemory>
 BufferBuilder::build(const std::shared_ptr<Device> &device) {

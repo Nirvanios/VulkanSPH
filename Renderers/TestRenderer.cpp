@@ -23,8 +23,8 @@ TestRenderer::TestRenderer(const Config &config)
   auto particles = createParticles();
   vulkanCore.initVulkan(Utilities::loadModelFromObj(config.getApp().simulation.particleModel,
                                                     glm::vec3{0.5, 0.8, 1.0}),
-                        std::span<ParticleRecord>{particles.data(), particles.size()});
-  vulkanCore.setSimulationInfo(getSimulationInfo());
+                        particles, getSimulationInfo());
+  //vulkanCore.setSimulationInfo(getSimulationInfo());
 }
 
 void TestRenderer::run() { vulkanCore.run(); }
@@ -64,7 +64,9 @@ std::vector<ParticleRecord> TestRenderer::createParticles() {
   const auto &simConfig = config.getApp().simulation;
   auto particleSize =
       glm::vec3(std::cbrt(simConfig.fluidVolume / static_cast<float>(simConfig.particleCount)));
-  particleSize = glm::vec3(std::cbrt((3 * simConfig.fluidVolume * 20) / (4 * std::numbers::pi * simConfig.particleCount)))/2.0f;
+  particleSize = glm::vec3(std::cbrt((3 * simConfig.fluidVolume * 20)
+                                     / (4 * std::numbers::pi * simConfig.particleCount)))
+      / 2.0f;
   std::vector<ParticleRecord> data{static_cast<size_t>(config.getApp().simulation.particleCount)};
 
   int sizeZ = config.getApp().simulation.particleSize.z;

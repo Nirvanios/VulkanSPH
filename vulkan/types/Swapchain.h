@@ -5,7 +5,7 @@
 #ifndef VULKANAPP_SWAPCHAIN_H
 #define VULKANAPP_SWAPCHAIN_H
 
-#include "../window/GlfwWindow.h"
+#include "../../window/GlfwWindow.h"
 #include "Device.h"
 #include "Image.h"
 #include <vector>

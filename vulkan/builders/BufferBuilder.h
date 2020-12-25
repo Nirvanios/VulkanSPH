@@ -8,7 +8,7 @@
 #include <memory>
 #include <vulkan/vulkan.hpp>
 
-#include "../Device.h"
+#include "../types/Device.h"
 
 class BufferBuilder {
  public:

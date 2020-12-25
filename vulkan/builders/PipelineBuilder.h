@@ -5,7 +5,7 @@
 #ifndef VULKANAPP_PIPELINEBUILDER_H
 #define VULKANAPP_PIPELINEBUILDER_H
 
-#include "../Pipeline.h"
+#include "../types/Pipeline.h"
 #include <span>
 #include <vulkan/vulkan.hpp>
 

@@ -3,7 +3,7 @@
 //
 
 #include "Image.h"
-#include "Utils/VulkanUtils.h"
+#include "../Utils/VulkanUtils.h"
 
 Image::Image(vk::UniqueImage image, vk::UniqueDeviceMemory imageMemory, vk::Format format,
              int width, int height, const vk::ImageAspectFlags &aspect)

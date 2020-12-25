@@ -3,9 +3,9 @@
 //
 
 #include "Pipeline.h"
-#include "../utils/Utilities.h"
+#include "../../utils/Utilities.h"
+#include "../Utils/VulkanUtils.h"
 #include "Types.h"
-#include "Utils/VulkanUtils.h"
 #include <spdlog/spdlog.h>
 
 const vk::RenderPass &Pipeline::getRenderPass() const { return renderPass.get(); }

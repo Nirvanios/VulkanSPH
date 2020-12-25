@@ -3,7 +3,7 @@ DEBUG = true
 outputToFile = true
 
 [App.simulation]
-timeStep = 0.001
+timeStep = 0.0001
 gasStiffness = 100.0
 viscosityCoefficient = 3.5
 fluidVolume = 0.045
@@ -22,7 +22,7 @@ height = 600
 [Vulkan.shaders]
 vertex = "/home/aka/CLionProjects/VulkanSPH/shaders/shader.vert"
 fragment = "/home/aka/CLionProjects/VulkanSPH/shaders/shader.frag"
-compute.massDensity = "/home/aka/CLionProjects/VulkanSPH/shaders/SPH/MassDensity.comp"
-compute.forces = "/home/aka/CLionProjects/VulkanSPH/shaders/SPH/Forces.comp"
+compute.massDensity = "/home/aka/CLionProjects/VulkanSPH/shaders/SPH/BruteSPH/MassDensity.comp"
+compute.forces = "/home/aka/CLionProjects/VulkanSPH/shaders/SPH/BruteSPH/Forces.comp"
 
 
