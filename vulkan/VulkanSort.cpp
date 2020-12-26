@@ -211,7 +211,7 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
     });
   spdlog::info("Sorted end.");
 
-  return vk::UniqueSemaphore(semaphoreOut);
+  return vk::UniqueSemaphore(semaphoreOut, this->device->getDevice().get());
 }
 
 void VulkanSort::recordCommandBuffersCompute(const std::shared_ptr<Pipeline> &pipeline,
