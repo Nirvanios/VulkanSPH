@@ -14,7 +14,9 @@
 #include "../utils/Config.h"
 #include "../utils/saver/VideoDiskSaver.h"
 #include "../window/GlfwWindow.h"
+#include "VulkanGridSPH.h"
 #include "VulkanSPH.h"
+#include "VulkanSort.h"
 #include "builders/PipelineBuilder.h"
 #include "types/Buffer.h"
 #include "types/DescriptorSet.h"
@@ -77,7 +79,7 @@ class VulkanCore {
   vk::UniqueCommandPool commandPoolGraphics;
   std::vector<vk::UniqueCommandBuffer> commandBuffersGraphic;
 
-  std::vector<vk::UniqueSemaphore> semaphoreImageAvailable, semaphoreRenderFinished, semaphoreAfterSimulation;
+  std::vector<vk::UniqueSemaphore> semaphoreImageAvailable, semaphoreRenderFinished, semaphoreAfterSimulation, semaphoreAfterSort;
   std::vector<vk::UniqueFence> fencesInFlight;
   std::vector<std::optional<vk::Fence>> fencesImagesInFlight;
 
@@ -86,6 +88,8 @@ class VulkanCore {
 
   std::shared_ptr<Buffer> bufferVertex;
   std::shared_ptr<Buffer> bufferIndex;
+  std::shared_ptr<Buffer> bufferCellParticlePair;
+  std::shared_ptr<Buffer> bufferIndexes;
   std::vector<std::shared_ptr<Buffer>> buffersUniformMVP;
   std::vector<std::shared_ptr<Buffer>> buffersUniformCameraPos;
 
@@ -99,6 +103,7 @@ class VulkanCore {
   GlfwWindow &window;
 
   std::unique_ptr<VulkanSPH> vulkanSPH;
+  std::unique_ptr<VulkanGridSPH> vulkanGridSPH;
 
   void mainLoop();
   void cleanup();

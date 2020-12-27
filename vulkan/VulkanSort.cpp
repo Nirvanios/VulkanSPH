@@ -3,6 +3,7 @@
 //
 
 #include "VulkanSort.h"
+#include <glm/gtx/component_wise.hpp>
 #include <iostream>
 #include <spdlog/spdlog.h>
 #include <utility>
@@ -24,14 +25,20 @@ void printBuffer(const std::shared_ptr<Buffer> &buff, const std::string &msg) {
 
 VulkanSort::VulkanSort(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device> device,
                        const Config &config, std::shared_ptr<Swapchain> swapchain,
-                       std::shared_ptr<Buffer> bufferToSort)
-    : surface(surface), device(std::move(device)), bufferBins(std::move(bufferToSort)) {
+                       std::shared_ptr<Buffer> bufferToSort, std::shared_ptr<Buffer> bufferIndexes)
+    : config(config), device(std::move(device)), bufferBins(std::move(bufferToSort)),
+      bufferIndexes(std::move(bufferIndexes)) {
 
   auto computePipelineBuilder =
       PipelineBuilder{config, this->device, std::move(swapchain)}
           .setLayoutBindingInfo(bindingInfosCompute)
           .setPipelineType(PipelineType::Compute)
           .addPushConstant(vk::ShaderStageFlagBits::eCompute, sizeof(SimulationInfo));
+  pipelinesSort.emplace_back(
+      computePipelineBuilder
+          .setComputeShaderPath(
+              "/home/aka/CLionProjects/VulkanSPH/shaders/SPH/count sort/zeroCount.comp")
+          .build());
   pipelinesSort.emplace_back(
       computePipelineBuilder
           .setComputeShaderPath(
@@ -51,6 +58,11 @@ VulkanSort::VulkanSort(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Devi
       computePipelineBuilder
           .setComputeShaderPath(
               "/home/aka/CLionProjects/VulkanSPH/shaders/SPH/count sort/addSums.comp")
+          .build());
+  pipelinesSort.emplace_back(
+      computePipelineBuilder
+          .setComputeShaderPath(
+              "/home/aka/CLionProjects/VulkanSPH/shaders/SPH/count sort/createIndexes.comp")
           .build());
   pipelinesSort.emplace_back(
       computePipelineBuilder
@@ -75,18 +87,20 @@ VulkanSort::VulkanSort(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Devi
           .setUsageFlags(vk::BufferUsageFlagBits::eUniformBuffer),
       this->device, commandPool, queue);
   auto builder = BufferBuilder()
-      .setSize(bufferBins->getSize())
-      .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
-                     | vk::BufferUsageFlagBits::eTransferSrc
-                     | vk::BufferUsageFlagBits::eStorageBuffer)
-      .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal);
+                     .setSize(bufferBins->getSize())
+                     .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
+                                    | vk::BufferUsageFlagBits::eTransferSrc
+                                    | vk::BufferUsageFlagBits::eStorageBuffer)
+                     .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal);
 
+  const auto bufferCounterSize =
+      static_cast<int>(std::pow(2, std::log2(glm::compMul(config.getApp().simulation.gridSize))));
   bufferBinsSorted = std::make_shared<Buffer>(builder, this->device, commandPool, queue);
-  bufferCounter = std::make_shared<Buffer>(builder.setSize(sizeof(int) * 256), this->device,
-                                           commandPool, queue);
-  bufferCounter->fill(std::array<int, 256>{});
-  bufferSums =
-      std::make_shared<Buffer>(builder.setSize(64), this->device, commandPool, queue);
+  bufferCounter = std::make_shared<Buffer>(builder.setSize(sizeof(int) * bufferCounterSize),
+                                           this->device, commandPool, queue);
+  bufferCounter->fill(std::vector<int>(bufferCounterSize));
+  bufferSums = std::make_shared<Buffer>(builder.setSize(bufferCounterSize / 32), this->device,
+                                        commandPool, queue);
 
   std::array<vk::DescriptorPoolSize, 2> poolSize{
       vk::DescriptorPoolSize{.type = vk::DescriptorType::eUniformBuffer, .descriptorCount = 1},
@@ -106,17 +120,19 @@ VulkanSort::VulkanSort(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Devi
   };
   descriptorPool = this->device->getDevice()->createDescriptorPoolUnique(poolCreateInfo);
 
-  std::array<DescriptorBufferInfo, 5> descriptorBufferInfosCompute{
+  std::array<DescriptorBufferInfo, 6> descriptorBufferInfosCompute{
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&buffersUniformSort, 1},
                            .bufferSize = sizeof(int) * 2},
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferBins, 1},
-                           .bufferSize = sizeof(KeyValue) * 512},
+                           .bufferSize = bufferBins->getSize()},
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferBinsSorted, 1},
-                           .bufferSize = sizeof(KeyValue) * 512},
+                           .bufferSize = bufferBinsSorted->getSize()},
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferCounter, 1},
-                           .bufferSize = sizeof(int) * 256},
+                           .bufferSize = bufferCounter->getSize()},
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferSums, 1},
-                           .bufferSize = sizeof(int) * 16}};
+                           .bufferSize = bufferSums->getSize()},
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&this->bufferIndexes, 1},
+                           .bufferSize = this->bufferIndexes->getSize()}};
 
   descriptorSet = std::make_shared<DescriptorSet>(
       this->device, 1, pipelinesSort[0]->getDescriptorSetLayout(), descriptorPool);
@@ -126,11 +142,17 @@ VulkanSort::VulkanSort(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Devi
 }
 
 vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
+  const auto dispachCountParticles =
+      static_cast<int>(std::ceil(config.getApp().simulation.particleCount / 32.0));
+  const auto counterSize =
+      static_cast<int>(std::pow(2, std::log2(glm::compMul(config.getApp().simulation.gridSize))));
+  const auto dispachCountCells = counterSize / 32;
 
   std::array<vk::Semaphore, 1> semaphoreInput{semaphoreWait.get()};
   auto semaphoreOut = device->getDevice()->createSemaphore({});
+  std::array<vk::PipelineStageFlags, 1> waitStages{vk::PipelineStageFlagBits::eComputeShader};
 
-  buffersUniformSort->fill(std::array<int, 2>{512, 0}, false);
+  buffersUniformSort->fill(std::array<int, 2>{config.getApp().simulation.particleCount, 0}, false);
 
   int j = 0;
   auto a = bufferBins->read<KeyValue>();
@@ -145,11 +167,12 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
   });
   spdlog::info("Unsorted end.");
 
+  //zero count buffer
   device->getDevice()->resetFences(fence.get());
-  recordCommandBuffersCompute(pipelinesSort[0], 16);
+  recordCommandBuffersCompute(pipelinesSort[0], dispachCountCells);
   vk::SubmitInfo submitInfoCompute{.waitSemaphoreCount = 1,
                                    .pWaitSemaphores = semaphoreInput.data(),
-                                   .pWaitDstStageMask = waitStagesCompute.data(),
+                                   .pWaitDstStageMask = waitStages.data(),
                                    .commandBufferCount = 1,
                                    .pCommandBuffers = &commandBuffer.get(),
                                    .signalSemaphoreCount = 0};
@@ -158,23 +181,32 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
   device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
   device->getDevice()->resetFences(fence.get());
 
+  //Count
+  recordCommandBuffersCompute(pipelinesSort[1], dispachCountParticles);
+  submitInfoCompute.waitSemaphoreCount = 0;
+  submitInfoCompute.pCommandBuffers = &commandBuffer.get();
+  queue.submit(submitInfoCompute, fence.get());
+
+  device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
+  device->getDevice()->resetFences(fence.get());
+
   printBuffer(bufferCounter, "counter");
 
-  submitInfoCompute.waitSemaphoreCount = 0;
-  submitInfoCompute.signalSemaphoreCount = 0;
-  recordCommandBuffersCompute(pipelinesSort[1], 8);
+  //UpSweep
+  recordCommandBuffersCompute(pipelinesSort[2], dispachCountCells);
   submitInfoCompute.pCommandBuffers = &commandBuffer.get();
   for (int i = 0; i < 8; i++) {
-    buffersUniformSort->fill(std::array<int, 2>{256, i}, false);
+    buffersUniformSort->fill(std::array<int, 2>{counterSize, i}, false);
     queue.submit(submitInfoCompute, fence.get());
     device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
     device->getDevice()->resetFences(fence.get());
   }
 
-  recordCommandBuffersCompute(pipelinesSort[2], 8);
+  //DownSweep
+  recordCommandBuffersCompute(pipelinesSort[3], dispachCountCells);
   submitInfoCompute.pCommandBuffers = &commandBuffer.get();
   for (int i = 7; i >= 0; i--) {
-    buffersUniformSort->fill(std::array<int, 2>{256, i}, false);
+    buffersUniformSort->fill(std::array<int, 2>{counterSize, i}, false);
     queue.submit(submitInfoCompute, fence.get());
     device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
     device->getDevice()->resetFences(fence.get());
@@ -192,8 +224,18 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
   device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
   device->getDevice()->resetFences(fence.get());*/
 
-  recordCommandBuffersCompute(pipelinesSort[4], 16);
-  buffersUniformSort->fill(std::array<int, 2>{512, 0}, false);
+  //Create Indexes
+  recordCommandBuffersCompute(pipelinesSort[5], dispachCountCells);
+  buffersUniformSort->fill(std::array<int, 2>{config.getApp().simulation.particleCount, 0}, false);
+  submitInfoCompute.pCommandBuffers = &commandBuffer.get();
+  queue.submit(submitInfoCompute, fence.get());
+
+  device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
+  device->getDevice()->resetFences(fence.get());
+
+  // Create Soretd
+  recordCommandBuffersCompute(pipelinesSort[6], dispachCountParticles);
+  buffersUniformSort->fill(std::array<int, 2>{config.getApp().simulation.particleCount, 0}, false);
   submitInfoCompute.pCommandBuffers = &commandBuffer.get();
   submitInfoCompute.waitSemaphoreCount = 0;
   submitInfoCompute.signalSemaphoreCount = 1;
@@ -203,12 +245,15 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
   device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
   device->getDevice()->resetFences(fence.get());
 
-    auto b = bufferBinsSorted->read<KeyValue>();
-    spdlog::info("Sorted");
-    std::for_each(b.begin(), b.end(), [&j](auto &in){
-      std::cout << in << " ";
-      if(j++ == 31){ std::cout << "| "; j = 0;}
-    });
+  auto b = bufferBinsSorted->read<KeyValue>();
+  spdlog::info("Sorted");
+  std::for_each(b.begin(), b.end(), [&j](auto &in) {
+    std::cout << in << " ";
+    if (j++ == 31) {
+      std::cout << "| ";
+      j = 0;
+    }
+  });
   spdlog::info("Sorted end.");
 
   return vk::UniqueSemaphore(semaphoreOut, this->device->getDevice().get());

@@ -25,6 +25,10 @@ Config::Config(const std::string &configFile) {
   app.simulation.fluidDensity = toml::find<float>(tomlSimulation, "fluidDensity");
   app.simulation.particleSize =
       glm::make_vec3(toml::find<std::vector<int>>(tomlSimulation, "particleModelSize").data());
+  app.simulation.gridOrigin =
+      glm::make_vec3(toml::find<std::vector<float>>(tomlSimulation, "gridOrigin").data());
+  app.simulation.gridSize =
+      glm::make_vec3(toml::find<std::vector<int>>(tomlSimulation, "gridSize").data());
   app.simulation.gasStiffness = toml::find<float>(tomlSimulation, "gasStiffness");
   app.simulation.viscosityCoefficient = toml::find<float>(tomlSimulation, "viscosityCoefficient");
   app.simulation.timeStep = toml::find<float>(tomlSimulation, "timeStep");

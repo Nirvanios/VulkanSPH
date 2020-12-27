@@ -10,6 +10,8 @@ fluidVolume = 0.045
 fluidDensity = 998.29
 particleCount = 2304
 particleModelSize = [12, 16, 12]
+gridOrigin = [-0.1, -0.6, -0.1]
+gridSize = [16, 55, 16]
 particleModel = "/home/aka/CLionProjects/VulkanSPH/resources/sphere.obj"
 
 [Vulkan]
@@ -22,7 +24,7 @@ height = 600
 [Vulkan.shaders]
 vertex = "/home/aka/CLionProjects/VulkanSPH/shaders/shader.vert"
 fragment = "/home/aka/CLionProjects/VulkanSPH/shaders/shader.frag"
-compute.massDensity = "/home/aka/CLionProjects/VulkanSPH/shaders/SPH/BruteSPH/MassDensity.comp"
-compute.forces = "/home/aka/CLionProjects/VulkanSPH/shaders/SPH/BruteSPH/Forces.comp"
+compute.massDensity = "/home/aka/CLionProjects/VulkanSPH/shaders/SPH/GridSPH/MassDensity.comp"
+compute.forces = "/home/aka/CLionProjects/VulkanSPH/shaders/SPH/GridSPH/Forces.comp"
 
 

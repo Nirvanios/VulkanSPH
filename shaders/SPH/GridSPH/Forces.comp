@@ -32,6 +32,7 @@ layout(push_constant) uniform Info{
     float tensionThreshold;
     float tensionCoefficient;
     uint particleCount;
+    int neighbourOffsets [27];
 } simulationInfo;
 
 struct ParticleRecord {
@@ -40,17 +41,14 @@ struct ParticleRecord {
     vec4 previousVelocity;
     float massDensity;
     float pressure;
-    vec2 dummy;
+    int gridID;
+    float dummy;
 };
 
 #define WALL_DAMPING 0.3f
 
 layout(std430, binding = 0) buffer positionBuffer{
     ParticleRecord particleRecords[];
-};
-
-layout(binding = 1) uniform NeighbourOffsets{
-    int neighbourOffsets [26];
 };
 
 struct KeyValue{
@@ -61,7 +59,7 @@ struct KeyValue{
 layout(std430, binding = 1) buffer Grid{
     KeyValue grid[];
 };
-layout(std430, binding = 3) buffer Indexes{
+layout(std430, binding = 2) buffer Indexes{
     int indexes[];
 };
 

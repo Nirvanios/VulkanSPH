@@ -1,11 +1,32 @@
 #version 460
 
+layout(binding = 0) uniform ParticleCount{
+    int particleCount;
+    int iteration;
+};
+
+struct KeyValue{
+    int key;    //Particle ID
+    int value;  //Cell ID
+};
+
+layout(std430, binding = 1) buffer Bins{
+    KeyValue bins[];
+};
+
+layout(std430, binding = 2) buffer SortedBins{
+    KeyValue sortedBins[];
+};
 
 layout(std430, binding = 3) buffer Counter{
     int counter[];
 };
 
-layout(std430, binding = 3) buffer Indexes{
+layout(std430, binding = 4) buffer Sums{
+    int sums[];
+};
+
+layout(std430, binding = 5) buffer Indexes{
     int indexes[];
 };
 

@@ -9,18 +9,23 @@
 VulkanSPH::VulkanSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device> device,
                      Config config, std::shared_ptr<Swapchain> swapchain,
                      const SimulationInfo &simulationInfo,
-                     const std::vector<ParticleRecord> &particles)
-    : config(std::move(config)), simulationInfo(simulationInfo), device(std::move(device)) {
-  auto computePipelineBuilder =
-      PipelineBuilder{this->config, this->device, swapchain}
-          .setLayoutBindingInfo(bindingInfosCompute)
-          .setPipelineType(PipelineType::Compute)
-          .addPushConstant(vk::ShaderStageFlagBits::eCompute, sizeof(SimulationInfo));
+                     const std::vector<ParticleRecord> &particles,
+                     std::shared_ptr<Buffer> bufferIndexes,
+                     std::shared_ptr<Buffer> bufferSortedPairs)
+    : config(std::move(config)), simulationInfo(simulationInfo), device(std::move(device)),
+      bufferGrid(std::move(bufferSortedPairs)), bufferIndexes(std::move(bufferIndexes)) {
+  auto computePipelineBuilder = PipelineBuilder{this->config, this->device, swapchain}
+                                    .setLayoutBindingInfo(bindingInfosCompute)
+                                    .setPipelineType(PipelineType::Compute)
+                                    .addPushConstant(vk::ShaderStageFlagBits::eCompute,
+                                                     sizeof(SimulationInfo) + sizeof(int) * 27);
   pipelineComputeMassDensity =
-      computePipelineBuilder.setComputeShaderPath(this->config.getVulkan().shaders.computeMassDensity)
+      computePipelineBuilder
+          .setComputeShaderPath(this->config.getVulkan().shaders.computeMassDensity)
           .build();
   pipelineComputeForces =
-      computePipelineBuilder.setComputeShaderPath(this->config.getVulkan().shaders.computeForces).build();
+      computePipelineBuilder.setComputeShaderPath(this->config.getVulkan().shaders.computeForces)
+          .build();
 
   auto queueFamilyIndices = Device::findQueueFamilies(this->device->getPhysicalDevice(), surface);
   vk::CommandPoolCreateInfo commandPoolCreateInfoCompute{
@@ -31,7 +36,7 @@ VulkanSPH::VulkanSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device
   commandBufferCompute = std::move(this->device->allocateCommandBuffer(commandPool, 1)[0]);
   queue = this->device->getComputeQueue();
 
-  bufferShaderStorage = std::make_shared<Buffer>(
+  bufferParticles = std::make_shared<Buffer>(
       BufferBuilder()
           .setSize(sizeof(ParticleRecord) * particles.size())
           .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
@@ -39,7 +44,7 @@ VulkanSPH::VulkanSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device
                          | vk::BufferUsageFlagBits::eStorageBuffer)
           .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
       this->device, commandPool, queue);
-  bufferShaderStorage->fill(particles);
+  bufferParticles->fill(particles);
 
   std::array<vk::DescriptorPoolSize, 1> poolSize{
       vk::DescriptorPoolSize{.type = vk::DescriptorType::eStorageBuffer, .descriptorCount = 3}};
@@ -57,9 +62,13 @@ VulkanSPH::VulkanSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device
   };
   descriptorPool = this->device->getDevice()->createDescriptorPoolUnique(poolCreateInfo);
 
-  std::array<DescriptorBufferInfo, 1> descriptorBufferInfosCompute{
-      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferShaderStorage, 1},
-          .bufferSize = sizeof(ParticleRecord) * particles.size()}};
+  std::array<DescriptorBufferInfo, 3> descriptorBufferInfosCompute{
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferParticles, 1},
+                           .bufferSize = bufferParticles->getSize()},
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferGrid, 1},
+                           .bufferSize = bufferGrid->getSize()},
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&this->bufferIndexes, 1},
+                           .bufferSize = this->bufferIndexes->getSize()}};
   descriptorSetCompute = std::make_shared<DescriptorSet>(
       this->device, 1, pipelineComputeMassDensity->getDescriptorSetLayout(), descriptorPool);
   descriptorSetCompute->updateDescriptorSet(descriptorBufferInfosCompute, bindingInfosCompute);
@@ -67,6 +76,8 @@ VulkanSPH::VulkanSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device
   fence = this->device->getDevice()->createFenceUnique({});
   semaphoreMassDensityFinished = this->device->getDevice()->createSemaphoreUnique({});
 }
+
+
 
 vk::UniqueSemaphore VulkanSPH::run(const vk::UniqueSemaphore &semaphoreWait) {
   vk::Semaphore semaphoreOut = this->device->getDevice()->createSemaphore({});
@@ -99,6 +110,15 @@ vk::UniqueSemaphore VulkanSPH::run(const vk::UniqueSemaphore &semaphoreWait) {
 }
 
 void VulkanSPH::recordCommandBuffer(const std::shared_ptr<Pipeline> &pipeline) {
+  const auto &gridSize = config.getApp().simulation.gridSize;
+
+  //TODO Separate
+  std::vector<int> neighbourOffset{};
+  for (auto z = -1; z < 2; ++z)
+    for (auto y = -1; y < 2; ++y)
+      for (auto x = -1; x < 2; ++x)
+        neighbourOffset.emplace_back(x + gridSize.x * (y + gridSize.z * z));
+
   vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse,
                                        .pInheritanceInfo = nullptr};
 
@@ -111,10 +131,11 @@ void VulkanSPH::recordCommandBuffer(const std::shared_ptr<Pipeline> &pipeline) {
   commandBufferCompute->pushConstants(pipeline->getPipelineLayout().get(),
                                       vk::ShaderStageFlagBits::eCompute, 0, sizeof(SimulationInfo),
                                       &simulationInfo);
+  commandBufferCompute->pushConstants(pipeline->getPipelineLayout().get(),
+                                      vk::ShaderStageFlagBits::eCompute, sizeof(SimulationInfo),
+                                      sizeof(int) * neighbourOffset.size(), neighbourOffset.data());
   commandBufferCompute->dispatch(
       static_cast<int>(std::ceil(config.getApp().simulation.particleCount / 32.0)), 1, 1);
   commandBufferCompute->end();
 }
-const std::shared_ptr<Buffer> &VulkanSPH::getBufferParticles() const {
-  return bufferShaderStorage;
-}
+const std::shared_ptr<Buffer> &VulkanSPH::getBufferParticles() const { return bufferParticles; }

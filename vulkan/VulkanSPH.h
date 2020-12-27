@@ -11,19 +11,28 @@
 #include "types/Swapchain.h"
 class VulkanSPH {
  public:
-  VulkanSPH (const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device> device,
-             Config config, std::shared_ptr<Swapchain> swapchain,
-             const SimulationInfo &simulationInfo, const std::vector<ParticleRecord> &particles);
+  VulkanSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device> device, Config config,
+            std::shared_ptr<Swapchain> swapchain, const SimulationInfo &simulationInfo,
+            const std::vector<ParticleRecord> &particles, std::shared_ptr<Buffer> bufferIndexes,
+            std::shared_ptr<Buffer> bufferSortedPairs);
   vk::UniqueSemaphore run(const vk::UniqueSemaphore &semaphoreWait);
 
-  const std::shared_ptr<Buffer> &getBufferParticles() const;
+  [[nodiscard]] const std::shared_ptr<Buffer> &getBufferParticles() const;
 
  private:
-  std::array<PipelineLayoutBindingInfo, 1> bindingInfosCompute{
+  std::array<PipelineLayoutBindingInfo, 3> bindingInfosCompute{
       PipelineLayoutBindingInfo{.binding = 0,
-          .descriptorType = vk::DescriptorType::eStorageBuffer,
-          .descriptorCount = 1,
-          .stageFlags = vk::ShaderStageFlagBits::eCompute}};
+                                .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                .descriptorCount = 1,
+                                .stageFlags = vk::ShaderStageFlagBits::eCompute},
+      PipelineLayoutBindingInfo{.binding = 1,
+                                .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                .descriptorCount = 1,
+                                .stageFlags = vk::ShaderStageFlagBits::eCompute},
+      PipelineLayoutBindingInfo{.binding = 2,
+                                .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                .descriptorCount = 1,
+                                .stageFlags = vk::ShaderStageFlagBits::eCompute}};
 
   Config config;
   SimulationInfo simulationInfo;
@@ -38,7 +47,9 @@ class VulkanSPH {
   vk::UniqueDescriptorPool descriptorPool;
   std::shared_ptr<DescriptorSet> descriptorSetCompute;
 
-  std::shared_ptr<Buffer> bufferShaderStorage;
+  std::shared_ptr<Buffer> bufferParticles;
+  std::shared_ptr<Buffer> bufferGrid;
+  std::shared_ptr<Buffer> bufferIndexes;
 
   vk::UniqueCommandPool commandPool;
   vk::UniqueCommandBuffer commandBufferCompute;
@@ -46,9 +57,7 @@ class VulkanSPH {
   vk::UniqueSemaphore semaphoreMassDensityFinished;
   vk::UniqueFence fence;
 
-
   void recordCommandBuffer(const std::shared_ptr<Pipeline> &pipeline);
-
 };
 
 #endif//VULKANAPP_VULKANSPH_H

@@ -80,7 +80,8 @@ struct ParticleRecord {
   glm::vec4 currentVelocity;
   float massDensity;
   float pressure;
-  glm::vec2 dummy;
+  int gridID;
+  float dummy;
 
   template<typename OStream>
   friend OStream &operator<<(OStream &os, const ParticleRecord &particleRecord) {
@@ -92,7 +93,6 @@ struct ParticleRecord {
                       particleRecord.currentVelocity.y, particleRecord.currentVelocity.z);
     os << fmt::format(" MassDensity: {}", particleRecord.massDensity);
     os << fmt::format(" Pressure: {}", particleRecord.pressure);
-    os << fmt::format(" PressureForce: x:{} y:{}", particleRecord.dummy.x, particleRecord.dummy.y);
     return os;
   }
 };
@@ -107,6 +107,13 @@ struct SimulationInfo {
   float supportRadius;
   float tensionThreshold;
   float tensionCoefficient;
+  unsigned int particleCount;
+};
+
+struct GridInfo{
+  glm::ivec4 gridSize;
+  glm::vec4 gridOrigin;
+  float cellSize;
   unsigned int particleCount;
 };
 

@@ -35,6 +35,8 @@ struct SimulationConfig {
   int particleCount;
   glm::ivec3 particleSize;
   std::string particleModel;
+  glm::vec3 gridOrigin;
+  glm::ivec3 gridSize;
 };
 
 struct AppConfig {

@@ -1,6 +1,6 @@
 #version 460
 
-layout(binding = 0) uniform GridInfo{
+layout(push_constant) uniform GridInfo{
     ivec4 gridSize;
     vec4 gridOrigin;
     float cellSize;
@@ -12,7 +12,7 @@ struct KeyValue{
     int value;  //Cell ID
 };
 
-layout(std430, binding = 1) buffer Grid{
+layout(std430, binding = 0) buffer Grid{
     KeyValue grid[];
 };
 
@@ -27,7 +27,7 @@ struct ParticleRecord {
 };
 
 
-layout(std430, binding = 2) buffer positionBuffer{
+layout(std430, binding = 1) buffer positionBuffer{
     ParticleRecord particleRecords[];
 };
 
@@ -39,6 +39,7 @@ void main() {
         int gridIndexFlatten = gridIndex3D.x + gridSize.x * (gridIndex3D.y + gridSize.z * gridIndex3D.z);
         grid[myId].key = int(myId);
         grid[myId].value = gridIndexFlatten;
-        particleRecords[myId].gridID = gridIndexFlatten;
+        grid[myId].value = 1;
+        particleRecords[myId].gridID = int(myId);
     }
 }

@@ -14,12 +14,12 @@ class VulkanSort {
  public:
   VulkanSort(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device> device,
              const Config &config, std::shared_ptr<Swapchain> swapchain,
-             std::shared_ptr<Buffer> bufferToSort);
+             std::shared_ptr<Buffer> bufferToSort, std::shared_ptr<Buffer> bufferIndexes);
   vk::UniqueSemaphore run(const vk::UniqueSemaphore &semaphoreWait);
 
 
  private:
-  std::array<PipelineLayoutBindingInfo, 5> bindingInfosCompute{
+  std::array<PipelineLayoutBindingInfo, 6> bindingInfosCompute{
       PipelineLayoutBindingInfo{.binding = 0,
           .descriptorType = vk::DescriptorType::eUniformBuffer,
           .descriptorCount = 1,
@@ -40,12 +40,17 @@ class VulkanSort {
           .descriptorType = vk::DescriptorType::eStorageBuffer,
           .descriptorCount = 1,
           .stageFlags = vk::ShaderStageFlagBits::eCompute},
+      PipelineLayoutBindingInfo{.binding = 5,
+          .descriptorType = vk::DescriptorType::eStorageBuffer,
+          .descriptorCount = 1,
+          .stageFlags = vk::ShaderStageFlagBits::eCompute}
   };
 
   const std::array<vk::PipelineStageFlags, 1> waitStagesCompute{
       vk::PipelineStageFlagBits::eComputeShader};
 
-  const vk::UniqueSurfaceKHR &surface;
+  Config config;
+
   std::shared_ptr<Device> device;
 
   std::vector<std::shared_ptr<Pipeline>> pipelinesSort;
@@ -65,6 +70,7 @@ class VulkanSort {
   std::shared_ptr<Buffer> bufferBins;
   std::shared_ptr<Buffer> bufferBinsSorted;
   std::shared_ptr<Buffer> bufferCounter;
+  std::shared_ptr<Buffer> bufferIndexes;
   std::shared_ptr<Buffer> bufferSums;
 
   void recordCommandBuffersCompute(const std::shared_ptr<Pipeline> &pipeline,

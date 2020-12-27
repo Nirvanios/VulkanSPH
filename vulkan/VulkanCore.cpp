@@ -14,9 +14,10 @@
 #include "VulkanCore.h"
 #include "builders/ImageBuilder.h"
 #include "builders/PipelineBuilder.h"
+#include <glm/gtx/component_wise.hpp>
 
-void VulkanCore::initVulkan(const Model &modelParticle,
-                            const std::vector<ParticleRecord> particles, const SimulationInfo &simulationInfo) {
+void VulkanCore::initVulkan(const Model &modelParticle, const std::vector<ParticleRecord> particles,
+                            const SimulationInfo &simulationInfo) {
   this->simulationInfo = simulationInfo;
   spdlog::debug("Vulkan initialization...");
   instance = std::make_shared<Instance>(window.getWindowName(), config.getApp().DEBUG);
@@ -43,7 +44,26 @@ void VulkanCore::initVulkan(const Model &modelParticle,
   createUniformBuffers();
   createDescriptorPool();
 
-  vulkanSPH = std::make_unique<VulkanSPH>(surface, device, config, swapchain, simulationInfo, particles);
+  bufferCellParticlePair = std::make_shared<Buffer>(
+      BufferBuilder()
+          .setSize(sizeof(int) * glm::compMul(config.getApp().simulation.gridSize))
+          .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc
+                         | vk::BufferUsageFlagBits::eStorageBuffer)
+          .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
+      device, commandPoolGraphics, queueGraphics);
+  bufferIndexes = std::make_shared<Buffer>(
+      BufferBuilder()
+          .setSize(sizeof(int) * static_cast<int>(std::pow(2, std::log2(config.getApp().simulation.particleCount))))
+          .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
+                         | vk::BufferUsageFlagBits::eStorageBuffer)
+          .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
+      device, commandPoolGraphics, queueGraphics);
+
+  vulkanSPH = std::make_unique<VulkanSPH>(surface, device, config, swapchain, simulationInfo,
+                                          particles, bufferIndexes, bufferCellParticlePair);
+  vulkanGridSPH = std::make_unique<VulkanGridSPH>(surface, device, config, swapchain,
+                                                  vulkanSPH->getBufferParticles(),
+                                                  bufferCellParticlePair, bufferIndexes);
 
   auto tmpBuffer = std::vector{vulkanSPH->getBufferParticles()};
   std::array<DescriptorBufferInfo, 3> descriptorBufferInfosGraphic{
@@ -66,7 +86,6 @@ void VulkanCore::initVulkan(const Model &modelParticle,
       "./stream.mp4",
       static_cast<unsigned int>(1.0 / static_cast<float>(config.getApp().simulation.timeStep)),
       swapchain->getExtentWidth(), swapchain->getExtentHeight());
-
 }
 
 void VulkanCore::run() {
@@ -208,6 +227,7 @@ void VulkanCore::createCommandBuffers() {
 void VulkanCore::createSyncObjects() {
   fencesImagesInFlight.resize(swapchain->getSwapchainImageCount());
   semaphoreAfterSimulation.resize(swapchain->getSwapchainImageCount());
+  semaphoreAfterSort.resize(swapchain->getSwapchainImageCount());
 
   for (auto i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
     semaphoreImageAvailable.emplace_back(device->getDevice()->createSemaphoreUnique({}));
@@ -244,7 +264,8 @@ void VulkanCore::drawFrame() {
 
   device->getDevice()->resetFences(fencesInFlight[currentFrame].get());
 
-  semaphoreAfterSimulation[currentFrame] = vulkanSPH->run(semaphoreImageAvailable[currentFrame]);
+  semaphoreAfterSort[currentFrame] = vulkanGridSPH->run(semaphoreImageAvailable[currentFrame]);
+  semaphoreAfterSimulation[currentFrame] = vulkanSPH->run(semaphoreAfterSort[currentFrame]);
 
   vk::SubmitInfo submitInfoRender{.waitSemaphoreCount = 1,
                                   .pWaitSemaphores = &semaphoreAfterSimulation[currentFrame].get(),
