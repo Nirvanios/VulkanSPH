@@ -18,7 +18,7 @@ VulkanSPH::VulkanSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device
                                     .setLayoutBindingInfo(bindingInfosCompute)
                                     .setPipelineType(PipelineType::Compute)
                                     .addPushConstant(vk::ShaderStageFlagBits::eCompute,
-                                                     sizeof(SimulationInfo) + sizeof(int) * 27);
+                                                     sizeof(SimulationInfo));
   pipelineComputeMassDensity =
       computePipelineBuilder
           .setComputeShaderPath(this->config.getVulkan().shaders.computeMassDensity)
@@ -45,6 +45,8 @@ VulkanSPH::VulkanSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device
           .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
       this->device, commandPool, queue);
   bufferParticles->fill(particles);
+
+  [[maybe_unused]] auto a = bufferParticles->read<ParticleRecord>();
 
   std::array<vk::DescriptorPoolSize, 1> poolSize{
       vk::DescriptorPoolSize{.type = vk::DescriptorType::eStorageBuffer, .descriptorCount = 3}};
@@ -113,11 +115,13 @@ void VulkanSPH::recordCommandBuffer(const std::shared_ptr<Pipeline> &pipeline) {
   const auto &gridSize = config.getApp().simulation.gridSize;
 
   //TODO Separate
-  std::vector<int> neighbourOffset{};
+  auto i = 0;
   for (auto z = -1; z < 2; ++z)
     for (auto y = -1; y < 2; ++y)
-      for (auto x = -1; x < 2; ++x)
-        neighbourOffset.emplace_back(x + gridSize.x * (y + gridSize.z * z));
+      for (auto x = -1; x < 2; ++x) {
+        simulationInfo.neighbourOffsets[i] = x + gridSize.x * (y + gridSize.z * z);
+        ++i;
+      }
 
   vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse,
                                        .pInheritanceInfo = nullptr};
@@ -131,9 +135,9 @@ void VulkanSPH::recordCommandBuffer(const std::shared_ptr<Pipeline> &pipeline) {
   commandBufferCompute->pushConstants(pipeline->getPipelineLayout().get(),
                                       vk::ShaderStageFlagBits::eCompute, 0, sizeof(SimulationInfo),
                                       &simulationInfo);
-  commandBufferCompute->pushConstants(pipeline->getPipelineLayout().get(),
+/*  commandBufferCompute->pushConstants(pipeline->getPipelineLayout().get(),
                                       vk::ShaderStageFlagBits::eCompute, sizeof(SimulationInfo),
-                                      sizeof(int) * neighbourOffset.size(), neighbourOffset.data());
+                                      sizeof(int) * neighbourOffset.size(), neighbourOffset.data());*/
   commandBufferCompute->dispatch(
       static_cast<int>(std::ceil(config.getApp().simulation.particleCount / 32.0)), 1, 1);
   commandBufferCompute->end();

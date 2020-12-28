@@ -1,43 +1,34 @@
 #version 460
 
-layout(binding = 0) uniform ParticleCount{
-    int particleCount;
-    int iteration;
+layout(binding = 0) uniform ParticleCount {
+  int particleCount;
+  int iteration;
 };
 
-struct KeyValue{
-    int key;    //Particle ID
-    int value;  //Cell ID
+struct KeyValue {
+  int key;  //Particle ID
+  int value;//Cell ID
 };
 
-layout(std430, binding = 1) buffer Bins{
-    KeyValue bins[];
-};
+layout(std430, binding = 1) buffer Bins { KeyValue bins[]; };
 
-layout(std430, binding = 2) buffer SortedBins{
-    KeyValue sortedBins[];
-};
+layout(std430, binding = 2) buffer SortedBins { KeyValue sortedBins[]; };
 
-layout(std430, binding = 3) buffer Counter{
-    int counter[];
-};
+layout(std430, binding = 3) buffer Counter { int counter[]; };
 
-layout(std430, binding = 4) buffer Sums{
-    int sums[];
-};
+layout(std430, binding = 4) buffer Sums { int sums[]; };
 
-layout(std430, binding = 5) buffer Indexes{
-    int indexes[];
-};
+layout(std430, binding = 5) buffer Indexes { int indexes[]; };
 
-layout (local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 
 void main() {
-    const uint myId = gl_GlobalInvocationID.x;
+  const uint myId = gl_GlobalInvocationID.x;
 
-    if(indexes[myId - 1] == indexes[myId])
-        indexes[myId] = -1;
+  if (myId < particleCount - 1) {
+
+    if (counter[myId + 1] == counter[myId]) indexes[myId] = -1;
     else
-        indexes[myId] = counter[myId];
-
+      indexes[myId] = counter[myId];
+  }
 }

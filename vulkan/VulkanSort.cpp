@@ -147,6 +147,7 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
   const auto counterSize =
       static_cast<int>(std::pow(2, std::log2(glm::compMul(config.getApp().simulation.gridSize))));
   const auto dispachCountCells = counterSize / 32;
+  const auto iterationCount = std::log2(counterSize);
 
   std::array<vk::Semaphore, 1> semaphoreInput{semaphoreWait.get()};
   auto semaphoreOut = device->getDevice()->createSemaphore({});
@@ -154,7 +155,7 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
 
   buffersUniformSort->fill(std::array<int, 2>{config.getApp().simulation.particleCount, 0}, false);
 
-  int j = 0;
+/*  int j = 0;
   auto a = bufferBins->read<KeyValue>();
   spdlog::info("Unsorted");
   j = 0;
@@ -165,7 +166,7 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
       j = 0;
     }
   });
-  spdlog::info("Unsorted end.");
+  spdlog::info("Unsorted end.");*/
 
   //zero count buffer
   device->getDevice()->resetFences(fence.get());
@@ -190,12 +191,12 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
   device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
   device->getDevice()->resetFences(fence.get());
 
-  printBuffer(bufferCounter, "counter");
+//  printBuffe/r(bufferCounter, "counter");
 
   //UpSweep
   recordCommandBuffersCompute(pipelinesSort[2], dispachCountCells);
   submitInfoCompute.pCommandBuffers = &commandBuffer.get();
-  for (int i = 0; i < 8; i++) {
+  for (int i = 0; i < iterationCount; i++) {
     buffersUniformSort->fill(std::array<int, 2>{counterSize, i}, false);
     queue.submit(submitInfoCompute, fence.get());
     device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
@@ -205,14 +206,14 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
   //DownSweep
   recordCommandBuffersCompute(pipelinesSort[3], dispachCountCells);
   submitInfoCompute.pCommandBuffers = &commandBuffer.get();
-  for (int i = 7; i >= 0; i--) {
+  for (int i = iterationCount - 1; i >= 0; i--) {
     buffersUniformSort->fill(std::array<int, 2>{counterSize, i}, false);
     queue.submit(submitInfoCompute, fence.get());
     device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
     device->getDevice()->resetFences(fence.get());
   }
 
-  printBuffer(bufferCounter, "Prefix sum");
+//  printBuffer(bufferCounter, "Prefix sum");
 
   /*  recordCommandBuffersCompute(pipelinesSort[3]);
   submitInfoCompute.pCommandBuffers = &commandBuffersCompute[imageindex].get();
@@ -233,6 +234,8 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
   device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
   device->getDevice()->resetFences(fence.get());
 
+//  printBuffer(bufferIndexes, "Indexes");
+
   // Create Soretd
   recordCommandBuffersCompute(pipelinesSort[6], dispachCountParticles);
   buffersUniformSort->fill(std::array<int, 2>{config.getApp().simulation.particleCount, 0}, false);
@@ -245,16 +248,32 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
   device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
   device->getDevice()->resetFences(fence.get());
 
-  auto b = bufferBinsSorted->read<KeyValue>();
+//  auto b = bufferBinsSorted->read<KeyValue>();
+//  spdlog::info("Sorted");
+//  std::for_each(b.begin(), b.end(), [&j](auto &in) {
+//    std::cout << in << " ";
+//    if (j++ == 31) {
+//      std::cout << "| ";
+//      j = 0;
+//    }
+//  });
+//  spdlog::info("Sorted end.");
+
+
+  bufferBins->copy(bufferBins->getSize(), *bufferBinsSorted);
+  printBuffer(bufferIndexes, "Indexes");
+  auto b = bufferBins->read<KeyValue>();
+  auto j = 0;
   spdlog::info("Sorted");
   std::for_each(b.begin(), b.end(), [&j](auto &in) {
-    std::cout << in << " ";
+    std::cout << "K:" << in.key << " V:" << in.value << " ";
     if (j++ == 31) {
       std::cout << "| ";
       j = 0;
     }
   });
   spdlog::info("Sorted end.");
+
 
   return vk::UniqueSemaphore(semaphoreOut, this->device->getDevice().get());
 }

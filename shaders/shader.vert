@@ -1,12 +1,13 @@
 #version 450
 
 struct ParticleRecord {
-    vec4 position;
-    vec4 velocity;
-    vec4 currentVelocity;
-    float massDensity;
-    float pressure;
-    vec2 dummy;
+  vec4 position;
+  vec4 velocity;
+  vec4 previousVelocity;
+  float massDensity;
+  float pressure;
+  int gridID;
+  float dummy;
 };
 
 layout(std430, binding = 2) buffer positionBuffer{

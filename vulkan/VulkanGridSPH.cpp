@@ -51,10 +51,11 @@ VulkanGridSPH::VulkanGridSPH(const vk::UniqueSurfaceKHR &surface, std::shared_pt
   descriptorPool = this->device->getDevice()->createDescriptorPoolUnique(poolCreateInfo);
 
   std::array<DescriptorBufferInfo, 2> descriptorBufferInfosCompute{
-      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&this->bufferParticles, 1},
-                           .bufferSize = this->bufferParticles->getSize()},
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferCellParticlePair, 1},
-                           .bufferSize = bufferCellParticlePair->getSize()}};
+          .bufferSize = bufferCellParticlePair->getSize()},
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&this->bufferParticles, 1},
+                           .bufferSize = this->bufferParticles->getSize()}
+      };
   descriptorSetCompute = std::make_shared<DescriptorSet>(
       this->device, 1, pipeline->getDescriptorSetLayout(), descriptorPool);
   descriptorSetCompute->updateDescriptorSet(descriptorBufferInfosCompute, bindingInfosCompute);
@@ -97,18 +98,18 @@ vk::UniqueSemaphore VulkanGridSPH::run(const vk::UniqueSemaphore &waitSemaphore)
   device->getDevice()->waitForFences(fence, VK_TRUE, UINT64_MAX);
   device->getDevice()->resetFences(fence);
 
-  int j = 0;
-  auto a = bufferCellParticlePair->read<ParticleRecord>();
+/*  int j = 0;
+  auto a = bufferCellParticlePair->read<KeyValue>();
   spdlog::info("Unsorted");
   j = 0;
   std::for_each(a.begin(), a.end(), [&j](auto &in) {
-    std::cout << in.gridID << " ";
+    std::cout << in << " ";
     if (j++ == 31) {
       std::cout << "| ";
       j = 0;
     }
   });
-  spdlog::info("Unsorted end.");
+  spdlog::info("Unsorted end.");*/
 
   return vulkanSort->run(vk::UniqueSemaphore(semaphoreBeforeSort, this->device->getDevice().get()));
 }

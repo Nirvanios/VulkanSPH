@@ -23,9 +23,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 
   switch (messageSeverity) {
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-      //spdlog::info(msg);
-      break;
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: spdlog::info(msg); break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: spdlog::warn(msg); break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: spdlog::error(msg); break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_FLAG_BITS_MAX_ENUM_EXT: break;
@@ -52,10 +50,17 @@ void Instance::createInstance() {
                                     .pEngineName = "No Engine",
                                     .engineVersion = VK_MAKE_VERSION(0, 0, 0),
                                     .apiVersion = VK_API_VERSION_1_1};
-  vk::InstanceCreateInfo createInfo{.pApplicationInfo = &appInfo,
+
+  std::array<vk::ValidationFeatureEnableEXT, 1> enables{
+      vk::ValidationFeatureEnableEXT::eDebugPrintf};
+  vk::ValidationFeaturesEXT validationFeaturesExt{.enabledValidationFeatureCount = 1,
+                                                  .pEnabledValidationFeatures = enables.data()};
+  vk::InstanceCreateInfo createInfo{.pNext = &validationFeaturesExt,
+                                    .pApplicationInfo = &appInfo,
                                     .enabledExtensionCount =
                                         static_cast<uint32_t>(extensions.size()),
                                     .ppEnabledExtensionNames = extensions.data()};
+
   auto debugCreateInfo = getDebugMessengerCreateInfo();
   if (debug) {
     createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
@@ -99,7 +104,7 @@ void Instance::setupDebugMessenger() {
 
 vk::DebugUtilsMessengerCreateInfoEXT Instance::getDebugMessengerCreateInfo() {
   return vk::DebugUtilsMessengerCreateInfoEXT{
-      .messageSeverity = /*vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo |*/ vk::
+      .messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo | vk::
                              DebugUtilsMessageSeverityFlagBitsEXT::eError
           | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose
           | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning,

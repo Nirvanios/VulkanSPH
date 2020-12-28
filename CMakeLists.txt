@@ -12,6 +12,7 @@ include(FetchContent)
 
 set(CPM_DOWNLOAD_LOCATION "${CMAKE_SOURCE_DIR}/cmake/CPM.cmake")
 set(CPM_DOWNLOAD_VERSION 0.27.4)
+set(VK_LAYER_ENABLES VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT)
 
 if (NOT (EXISTS ${CPM_DOWNLOAD_LOCATION} AND CPM_VERSION STREQUAL CPM_DOWNLOAD_VERSION))
     message(STATUS "Downloading CPM.cmake")
@@ -30,10 +31,12 @@ list(APPEND flags "-Wall" "-Wextra" "-Werror" "-Wpedantic" "-Wno-unknown-pragmas
 list(APPEND flags "-Wno-unused-function")
 
 
-find_program(CCACHE_PROGRAM ccache)
+#find_program(CCACHE_PROGRAM ccache)
+#[[
 if (CCACHE_PROGRAM)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
 endif ()
+]]
 
 set(RANGE_V3_TESTS OFF)
 set(SHADERC_SKIP_TESTS ON)

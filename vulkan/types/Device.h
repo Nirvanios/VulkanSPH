@@ -20,7 +20,10 @@ class Device {
     }
   };
 
-  const std::vector<const char *> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+  const std::vector<const char *> deviceExtensions = {
+      VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+      VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME
+  };
 
   QueueFamilyIndices indices;
 

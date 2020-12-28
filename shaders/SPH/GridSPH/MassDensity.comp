@@ -1,78 +1,84 @@
 #version 450
 
+#extension GL_EXT_debug_printf : enable
+
 float M_PI = 3.1415;
 
-float defaultKernel(in vec4 position, in float positionNorm, in float supportRadius){
-    if(positionNorm >= 0.0f && positionNorm <= supportRadius)
-        return (315/(64 * M_PI * pow(supportRadius, 9))) * pow(pow(supportRadius, 2) - pow(positionNorm, 2), 3);
-    else
-        return 0.0f;
+float defaultKernel(in vec4 position, in float positionNorm, in float supportRadius) {
+  if (positionNorm >= 0.0f && positionNorm <= supportRadius)
+    return (315 / (64 * M_PI * pow(supportRadius, 9)))
+        * pow(pow(supportRadius, 2) - pow(positionNorm, 2), 3);
+  else
+    return 0.0f;
 }
 
-layout(push_constant) uniform Info{
-    vec4 gravityForce;
-    float particleMass;
-    float restDensity;
-    float viscosityCoefficient;
-    float gasStiffnessConstant;
-    float timeStep;
-    float supportRadius;
-    float tensionThreshold;
-    float tensionCoefficient;
-    uint particleCount;
-    int neighbourOffsets [27];
-} simulationInfo;
+layout(push_constant) uniform Info {
+  vec4 gravityForce;
+  float particleMass;
+  float restDensity;
+  float viscosityCoefficient;
+  float gasStiffnessConstant;
+  float timeStep;
+  float supportRadius;
+  float tensionThreshold;
+  float tensionCoefficient;
+  uint particleCount;
+  int neighbourOffsets[27];
+}
+simulationInfo;
 
 struct ParticleRecord {
-    vec4 position;
-    vec4 velocity;
-    vec4 previousVelocity;
-    float massDensity;
-    float pressure;
-    int gridID;
-    float dummy;
+  vec4 position;
+  vec4 velocity;
+  vec4 previousVelocity;
+  float massDensity;
+  float pressure;
+  int gridID;
+  float dummy;
 };
 
 #define WALL_DAMPING 0.3f
 
-layout(std430, binding = 0) buffer positionBuffer{
-    ParticleRecord particleRecords[];
+layout(std430, binding = 0) buffer positionBuffer { ParticleRecord particleRecords[]; };
+
+struct KeyValue {
+  int key;  //Particle ID
+  int value;//Cell ID
 };
 
-struct KeyValue{
-    int key;    //Particle ID
-    int value;  //Cell ID
-};
+layout(std430, binding = 1) buffer Grid { KeyValue grid[]; };
+layout(std430, binding = 2) buffer Indexes { int indexes[]; };
 
-layout(std430, binding = 1) buffer Grid{
-    KeyValue grid[];
-};
-layout(std430, binding = 2) buffer Indexes{
-    int indexes[];
-};
-
-layout (local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 
 void main() {
-    const uint myId = gl_GlobalInvocationID.x;
-    if (myId < simulationInfo.particleCount){
-        int gridID = particleRecords[myId].gridID;
-        //Compute mass-density
-        float massDensity = 0.0f;
-        for (int i = 0; i < 27; ++i){
-            int sortedID = indexes[gridID + simulationInfo.neighbourOffsets[i]];
-            if(sortedID == -1)
-                continue;
-            while(grid[sortedID].value == gridID){
-                const int neighbourID = grid[sortedID].value;
-                if(myId != neighbourID){
-                    vec4 positionDiff = particleRecords[myId].position - particleRecords[neighbourID].position;
-                    massDensity += simulationInfo.particleMass * defaultKernel(positionDiff, length(positionDiff), simulationInfo.supportRadius);
-                }
-            }
-        }
+  const uint myId = gl_GlobalInvocationID.x;
+  if (myId < simulationInfo.particleCount) {
+    int myGridID = particleRecords[myId].gridID;
+    //Compute mass-density
+    float massDensity = 0.0f;
+    for (int i = 0; i < 27; ++i) {
+      int currentGridID = myGridID + simulationInfo.neighbourOffsets[i];
+      if (currentGridID < 0 || currentGridID > 14079) continue;
+      int sortedID = indexes[currentGridID];
+      if (myId == 18) debugPrintfEXT("gridID: %d", myGridID);
+      if (sortedID == -1) { continue; }
+      while (grid[sortedID].value == currentGridID && sortedID < 14079) {
 
-        particleRecords[myId].massDensity = massDensity;
-        particleRecords[myId].pressure = simulationInfo.gasStiffnessConstant * (massDensity - simulationInfo.restDensity);
+        const int neighbourID = grid[sortedID].key;
+        if (myId != neighbourID) {
+          vec4 positionDiff =
+              particleRecords[myId].position - particleRecords[neighbourID].position;
+          massDensity += simulationInfo.particleMass
+              * defaultKernel(positionDiff, length(positionDiff), simulationInfo.supportRadius);
+        }
+        ++sortedID;
+      }
     }
+    particleRecords[myId].massDensity = massDensity;
+    if (myId == 0) debugPrintfEXT("massDensity: %d", massDensity);
+
+    particleRecords[myId].pressure =
+        simulationInfo.gasStiffnessConstant * (massDensity - simulationInfo.restDensity);
+  }
 }

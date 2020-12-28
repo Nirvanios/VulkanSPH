@@ -74,7 +74,7 @@ struct UniformBufferObject {
   glm::mat4 proj;
 };
 
-struct ParticleRecord {
+struct alignas(16) ParticleRecord {
   glm::vec4 position;
   glm::vec4 velocity;
   glm::vec4 currentVelocity;
@@ -108,6 +108,7 @@ struct SimulationInfo {
   float tensionThreshold;
   float tensionCoefficient;
   unsigned int particleCount;
+  std::array<int, 27> neighbourOffsets;
 };
 
 struct GridInfo{

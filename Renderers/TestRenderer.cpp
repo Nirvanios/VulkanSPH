@@ -108,5 +108,6 @@ SimulationInfo TestRenderer::getSimulationInfo() {
                         .supportRadius = static_cast<float>(supportRadius),
                         .tensionThreshold = 7.065,
                         .tensionCoefficient = 0.0728,
-                        .particleCount = static_cast<unsigned int>(simConfig.particleCount)};
+                        .particleCount = static_cast<unsigned int>(simConfig.particleCount),
+                        .neighbourOffsets = {}};
 }
