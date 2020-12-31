@@ -7,11 +7,11 @@
 #include <iostream>
 
 VulkanGridSPH::VulkanGridSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device> device,
-                             Config config, std::shared_ptr<Swapchain> swapchain,
+                             Config config, std::shared_ptr<Swapchain> swapchain, SimulationInfo simulationInfo,
                              std::shared_ptr<Buffer> bufferParticles,
                              std::shared_ptr<Buffer> bufferCellParticlesPair,
                              std::shared_ptr<Buffer> bufferIndexes)
-    : config(std::move(config)), device(std::move(device)),
+    : config(std::move(config)), simulationInfo(simulationInfo), device(std::move(device)),
       bufferParticles(std::move(bufferParticles)),
       bufferCellParticlePair(std::move(bufferCellParticlesPair)),
       bufferIndexes(std::move(bufferIndexes)) {
@@ -98,27 +98,28 @@ vk::UniqueSemaphore VulkanGridSPH::run(const vk::UniqueSemaphore &waitSemaphore)
   device->getDevice()->waitForFences(fence, VK_TRUE, UINT64_MAX);
   device->getDevice()->resetFences(fence);
 
-/*  int j = 0;
+
+  int j = 0;
   auto a = bufferCellParticlePair->read<KeyValue>();
   spdlog::info("Unsorted");
   j = 0;
   std::for_each(a.begin(), a.end(), [&j](auto &in) {
-    std::cout << in << " ";
+    std::cout << "k" << in.key << " v" << in.value << " ";
     if (j++ == 31) {
       std::cout << "| ";
       j = 0;
     }
   });
-  spdlog::info("Unsorted end.");*/
+  spdlog::info("Unsorted end.");
+
 
   return vulkanSort->run(vk::UniqueSemaphore(semaphoreBeforeSort, this->device->getDevice().get()));
 }
 
 void VulkanGridSPH::recordCommandBuffer(const std::shared_ptr<Pipeline> &pipeline) {
-  //TODO CellSize
   GridInfo gridInfo{.gridSize = glm::ivec4(config.getApp().simulation.gridSize, 0),
                     .gridOrigin = glm::vec4(config.getApp().simulation.gridOrigin, 0),
-                    .cellSize = 0.03,
+                    .cellSize = simulationInfo.supportRadius,
                     .particleCount =
                         static_cast<unsigned int>(config.getApp().simulation.particleCount)};
 

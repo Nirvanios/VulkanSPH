@@ -2,13 +2,18 @@
 
 #extension GL_EXT_debug_printf : enable
 
+#define GRID
+
 float M_PI = 3.1415;
 
+int count = 0;
+
 float defaultKernel(in vec4 position, in float positionNorm, in float supportRadius) {
-  if (positionNorm >= 0.0f && positionNorm <= supportRadius)
+  ++count;
+  if (positionNorm >= 0.0f && positionNorm <= supportRadius) {
     return (315 / (64 * M_PI * pow(supportRadius, 9)))
         * pow(pow(supportRadius, 2) - pow(positionNorm, 2), 3);
-  else
+  } else
     return 0.0f;
 }
 
@@ -34,10 +39,13 @@ struct ParticleRecord {
   float massDensity;
   float pressure;
   int gridID;
-  float dummy;
+  int dummy;
 };
 
 #define WALL_DAMPING 0.3f
+
+const ivec3 gridSize = ivec3(50,100,50);
+const int cellCount = gridSize.x * gridSize.y * gridSize.z;
 
 layout(std430, binding = 0) buffer positionBuffer { ParticleRecord particleRecords[]; };
 
@@ -55,28 +63,80 @@ void main() {
   const uint myId = gl_GlobalInvocationID.x;
   if (myId < simulationInfo.particleCount) {
     int myGridID = particleRecords[myId].gridID;
+    int myGridIDxy = myGridID - ((myGridID / (gridSize.x * gridSize.y)) * gridSize.x * gridSize.y);
+    ivec3 myGridID3D = ivec3(myGridIDxy % gridSize.x, myGridIDxy / gridSize.x,
+                             myGridID / (gridSize.x * gridSize.y));
     //Compute mass-density
     float massDensity = 0.0f;
-    for (int i = 0; i < 27; ++i) {
-      int currentGridID = myGridID + simulationInfo.neighbourOffsets[i];
-      if (currentGridID < 0 || currentGridID > 14079) continue;
-      int sortedID = indexes[currentGridID];
-      if (myId == 18) debugPrintfEXT("gridID: %d", myGridID);
-      if (sortedID == -1) { continue; }
-      while (grid[sortedID].value == currentGridID && sortedID < 14079) {
 
-        const int neighbourID = grid[sortedID].key;
-        if (myId != neighbourID) {
-          vec4 positionDiff =
-              particleRecords[myId].position - particleRecords[neighbourID].position;
-          massDensity += simulationInfo.particleMass
-              * defaultKernel(positionDiff, length(positionDiff), simulationInfo.supportRadius);
+#if defined(GRID)
+    int[16] tmp = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+    int i = 0;
+    //for (int i = 0; i < 27; ++i) {
+    for (int z = -1; z < 2; ++z) {
+      if (myGridID3D.z + z < 0 || myGridID3D.z + z > gridSize.z) continue;
+      for (int y = -1; y < 2; ++y) {
+        if (myGridID3D.y + y < 0 || myGridID3D.y + y > gridSize.y) {
+          /* if (myId == 48)
+            debugPrintfEXT("myGridID: %d y: %d gridID3d: %v3d", myGridID, y, myGridID3D); */
+          continue;
         }
-        ++sortedID;
+        for (int x = -1; x < 2; ++x) {
+          if (myGridID3D.x + x < 0 || myGridID3D.x + x > gridSize.x - 1) continue;
+          int currentGridID = myGridID + x + gridSize.x * (y + gridSize.y * z);
+          if (currentGridID < 0 || currentGridID > cellCount) continue;
+          int sortedID = indexes[currentGridID];
+          if (sortedID == -1) { continue; }
+            
+          if (myId == 0)
+            debugPrintfEXT(
+                "gridID: %d sortedID: %d myGridID: %d xyz: %v3d grid[sortedID].value: %d",
+                currentGridID, sortedID, myId, ivec3(x, y, z), grid[sortedID].value);
+
+          while (grid[sortedID].value == currentGridID && sortedID < simulationInfo.particleCount) {
+            /*             if (myId == 0 && currentGridID == 21)
+              debugPrintfEXT(
+                  "gridID: %d sortedID: %d myGridID: %d xyz: %v3d grid[sortedID].value: %d",
+                  currentGridID, sortedID, myId, ivec3(x, y, z), grid[sortedID].value);
+ */
+            const int neighbourID = grid[sortedID].key;
+            if (myId != neighbourID) {
+              vec4 positionDiff =
+                  particleRecords[myId].position - particleRecords[neighbourID].position;
+              massDensity += simulationInfo.particleMass
+                  * defaultKernel(positionDiff, length(positionDiff), simulationInfo.supportRadius);
+            }
+            /* if (myId == 2) {
+              tmp[i] = sortedID;
+              ++i;
+            } */
+            ++sortedID;
+          }
+          /*           if (myId == 2)
+            for (int i = 0; i < 16; ++i) { /*debugPrintfEXT("%d | sortedIDs: %d", i, tmp[i]); */
+          /*}
+          i = 0; */
+          //tmp = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+        }
       }
     }
+#else
+    count *= -1;
+    float massDensity2 = 0;
+    for (int i = 0; i < simulationInfo.particleCount; ++i) {
+      vec4 positionDiff =
+          particleRecords[gl_GlobalInvocationID.x].position - particleRecords[i].position;
+      if (gl_GlobalInvocationID.x != i)
+        massDensity += simulationInfo.particleMass
+            * defaultKernel(positionDiff, length(positionDiff), simulationInfo.supportRadius);
+    }
+#endif
+
     particleRecords[myId].massDensity = massDensity;
-    if (myId == 0) debugPrintfEXT("massDensity: %d", massDensity);
+    debugPrintfEXT("ID %d particle counted: %d", myId, count);
+    /*if (massDensity != massDensity2 && myId == 2)
+      debugPrintfEXT("ID: %d | massD1: %f massD2 %f", myId, massDensity, massDensity2); */
+    particleRecords[myId].dummy = count;
 
     particleRecords[myId].pressure =
         simulationInfo.gasStiffnessConstant * (massDensity - simulationInfo.restDensity);

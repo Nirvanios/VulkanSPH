@@ -46,14 +46,15 @@ void VulkanCore::initVulkan(const Model &modelParticle, const std::vector<Partic
 
   bufferCellParticlePair = std::make_shared<Buffer>(
       BufferBuilder()
-          .setSize(sizeof(int) * glm::compMul(config.getApp().simulation.gridSize))
+          .setSize(sizeof(KeyValue) * config.getApp().simulation.particleCount)
           .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc
                          | vk::BufferUsageFlagBits::eStorageBuffer)
           .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
       device, commandPoolGraphics, queueGraphics);
   bufferIndexes = std::make_shared<Buffer>(
       BufferBuilder()
-          .setSize(sizeof(int) * static_cast<int>(std::pow(2, std::log2(config.getApp().simulation.particleCount))))
+          .setSize(sizeof(int) * static_cast<int>(std::pow(2, std::ceil(std::log2(glm::compMul(config.getApp().simulation.gridSize))))))
+          //.setSize(64*sizeof(int))
           .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
                          | vk::BufferUsageFlagBits::eStorageBuffer)
           .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
@@ -61,7 +62,7 @@ void VulkanCore::initVulkan(const Model &modelParticle, const std::vector<Partic
 
   vulkanSPH = std::make_unique<VulkanSPH>(surface, device, config, swapchain, simulationInfo,
                                           particles, bufferIndexes, bufferCellParticlePair);
-  vulkanGridSPH = std::make_unique<VulkanGridSPH>(surface, device, config, swapchain,
+  vulkanGridSPH = std::make_unique<VulkanGridSPH>(surface, device, config, swapchain, simulationInfo,
                                                   vulkanSPH->getBufferParticles(),
                                                   bufferCellParticlePair, bufferIndexes);
 

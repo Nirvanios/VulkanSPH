@@ -3,6 +3,7 @@
 //
 
 #include "VulkanSPH.h"
+#include "spdlog/spdlog.h"
 
 #include <utility>
 
@@ -108,6 +109,9 @@ vk::UniqueSemaphore VulkanSPH::run(const vk::UniqueSemaphore &semaphoreWait) {
   this->device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
   this->device->getDevice()->resetFences(fence.get());
 
+  auto a = bufferParticles->read<ParticleRecord>();
+  spdlog::info(a[0].dummy);
+
   return vk::UniqueSemaphore(semaphoreOut, device->getDevice().get());
 }
 
@@ -119,7 +123,7 @@ void VulkanSPH::recordCommandBuffer(const std::shared_ptr<Pipeline> &pipeline) {
   for (auto z = -1; z < 2; ++z)
     for (auto y = -1; y < 2; ++y)
       for (auto x = -1; x < 2; ++x) {
-        simulationInfo.neighbourOffsets[i] = x + gridSize.x * (y + gridSize.z * z);
+        simulationInfo.neighbourOffsets[i] = x + gridSize.x * (y + gridSize.y * z);
         ++i;
       }
 

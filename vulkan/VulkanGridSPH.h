@@ -14,7 +14,7 @@ class VulkanGridSPH {
 
  public:
   VulkanGridSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device> device, Config config,
-                std::shared_ptr<Swapchain> swapchain, std::shared_ptr<Buffer> bufferParticles,
+                std::shared_ptr<Swapchain> swapchain, SimulationInfo simulationInfo, std::shared_ptr<Buffer> bufferParticles,
                 std::shared_ptr<Buffer> bufferCellParticlesPair,
                 std::shared_ptr<Buffer> bufferIndexes);
   vk::UniqueSemaphore run(const vk::UniqueSemaphore &waitSemaphore);

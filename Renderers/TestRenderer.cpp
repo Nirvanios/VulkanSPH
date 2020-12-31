@@ -76,7 +76,7 @@ std::vector<ParticleRecord> TestRenderer::createParticles() {
     for (int y = 0; y < sizeY; ++y) {
       for (int x = 0; x < sizeX; ++x) {
         data[(z * sizeY * sizeX) + (y * sizeX) + x].position =
-            glm::vec4{x, y, z, 0.0f} * glm::vec4(particleSize, 0.0f);
+            0.01f + glm::vec4{x, y, z, 0.0f} * glm::vec4(particleSize, 0.0f);
         data[(z * sizeY * sizeX) + (y * sizeX) + x].currentVelocity = glm::vec4{0.0f};
         data[(z * sizeY * sizeX) + (y * sizeX) + x].velocity = glm::vec4{0.0f};
         data[(z * sizeY * sizeX) + (y * sizeX) + x].massDensity = -1.0f;

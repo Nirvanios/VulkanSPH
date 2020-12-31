@@ -1,5 +1,7 @@
 #version 450
 
+//#define GRID
+
 float M_PI = 3.1415;
 
 float defaultKernel(in vec4 position, in float positionNorm, in float supportRadius) {
@@ -65,7 +67,9 @@ layout(std430, binding = 2) buffer Indexes { int indexes[]; };
 layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 
 void main() {
-  if (gl_GlobalInvocationID.x < simulationInfo.particleCount) {
+  const uint myId = gl_GlobalInvocationID.x;
+  if (myId < simulationInfo.particleCount) {
+    int myGridID = particleRecords[myId].gridID;
     /**
         * INTERNAL FORCES
         */
@@ -75,16 +79,46 @@ void main() {
     vec4 viscosityForce = vec4(0.0f);
     float colorField = 0.0f;
     vec4 inwardSurfaceNormal = vec4(0.0f);
+#if defined(GRID)
+
+    for (int i = 0; i < 27; ++i) {
+      int currentGridID = myGridID + simulationInfo.neighbourOffsets[i];
+      if (currentGridID < 0 || currentGridID > 14079) continue;
+      int sortedID = indexes[currentGridID];
+      if (sortedID == -1) { continue; }
+      while (grid[sortedID].value == currentGridID && sortedID < 14079) {
+        //if (myId == 0) debugPrintfEXT("gridID: %d", myGridID);
+        const int neighbourID = grid[sortedID].key;
+        vec4 positionDiff = particleRecords[myId].position - particleRecords[neighbourID].position;
+        if (neighbourID != myId && length(positionDiff) < simulationInfo.supportRadius) {
+          pressureForce -= simulationInfo.particleMass
+              * (particleRecords[myId].pressure + particleRecords[neighbourID].pressure)
+              / (2.f * particleRecords[neighbourID].massDensity)
+              * spikyGradientKernel(positionDiff, length(positionDiff),
+                                    simulationInfo.supportRadius);
+          viscosityForce += (particleRecords[neighbourID].velocity - particleRecords[myId].velocity)
+              * (simulationInfo.particleMass / particleRecords[neighbourID].massDensity)
+              * viscosityLaplacianKernel(positionDiff, length(positionDiff),
+                                         simulationInfo.supportRadius);
+          colorField += (simulationInfo.particleMass / particleRecords[neighbourID].massDensity)
+              * laplacianKernel(positionDiff, length(positionDiff), simulationInfo.supportRadius);
+          inwardSurfaceNormal +=
+              (simulationInfo.particleMass / particleRecords[neighbourID].massDensity)
+              * gradientKernel(positionDiff, length(positionDiff), simulationInfo.supportRadius);
+        }
+        ++sortedID;
+      }
+    }
+
+#else
     for (int i = 0; i < simulationInfo.particleCount; ++i) {
-      vec4 positionDiff =
-          particleRecords[gl_GlobalInvocationID.x].position - particleRecords[i].position;
-      if (i != gl_GlobalInvocationID.x && length(positionDiff) < simulationInfo.supportRadius) {
+      vec4 positionDiff = particleRecords[myId].position - particleRecords[i].position;
+      if (i != myId && length(positionDiff) < simulationInfo.supportRadius) {
         pressureForce -= simulationInfo.particleMass
-            * (particleRecords[gl_GlobalInvocationID.x].pressure + particleRecords[i].pressure)
+            * (particleRecords[myId].pressure + particleRecords[i].pressure)
             / (2.f * particleRecords[i].massDensity)
             * spikyGradientKernel(positionDiff, length(positionDiff), simulationInfo.supportRadius);
-        viscosityForce +=
-            (particleRecords[i].velocity - particleRecords[gl_GlobalInvocationID.x].velocity)
+        viscosityForce += (particleRecords[i].velocity - particleRecords[myId].velocity)
             * (simulationInfo.particleMass / particleRecords[i].massDensity)
             * viscosityLaplacianKernel(positionDiff, length(positionDiff),
                                        simulationInfo.supportRadius);
@@ -94,6 +128,7 @@ void main() {
             * gradientKernel(positionDiff, length(positionDiff), simulationInfo.supportRadius);
       }
     }
+#endif
 
     viscosityForce *= simulationInfo.viscosityCoefficient;
     vec4 internalForces = pressureForce + viscosityForce;
@@ -107,41 +142,39 @@ void main() {
           * (inwardSurfaceNormal / length(inwardSurfaceNormal));
     }
     vec4 externalForces =
-        simulationInfo.gravityForce * particleRecords[gl_GlobalInvocationID.x].massDensity
-        + surfaceForce;
+        simulationInfo.gravityForce * particleRecords[myId].massDensity + surfaceForce;
 
     /**
         * TIME INTEGRATION
         */
     vec4 force = internalForces + externalForces;
 
-    vec4 acceleration = force / particleRecords[gl_GlobalInvocationID.x].massDensity;
+    vec4 acceleration = force / particleRecords[myId].massDensity;
 
-    vec4 newVelocity = particleRecords[gl_GlobalInvocationID.x].previousVelocity
-        + acceleration * simulationInfo.timeStep;
+    vec4 newVelocity =
+        particleRecords[myId].previousVelocity + acceleration * simulationInfo.timeStep;
 
-    vec4 newPosition =
-        particleRecords[gl_GlobalInvocationID.x].position + newVelocity * simulationInfo.timeStep;
-    newVelocity = (particleRecords[gl_GlobalInvocationID.x].velocity + newVelocity) / 2.0;
+    vec4 newPosition = particleRecords[myId].position + newVelocity * simulationInfo.timeStep;
+    newVelocity = (particleRecords[myId].velocity + newVelocity) / 2.0;
 
-    if (newPosition.x < -0.001) {
-      newPosition.x = -0.001;
+    if (newPosition.x < -0.000) {
+      newPosition.x = -0.000;
       newVelocity.x *= -1 * WALL_DAMPING;
     }
     if (newPosition.x > 0.35) {
       newPosition.x = 0.35;
       newVelocity.x *= -1 * WALL_DAMPING;
     }
-    if (newPosition.y < -0.5) {
-      newPosition.y = -0.5;
+    if (newPosition.y < -0.0) {
+      newPosition.y = -0.0;
       newVelocity.y *= -1 * WALL_DAMPING;
     }
     if (newPosition.y > 1) {
       newPosition.y = 1;
       newVelocity.y *= -1 * WALL_DAMPING;
     }
-    if (newPosition.z < -0.001) {
-      newPosition.z = -0.001;
+    if (newPosition.z < -0.000) {
+      newPosition.z = -0.000;
       newVelocity.z *= -1 * WALL_DAMPING;
     }
     if (newPosition.z > 0.35) {
@@ -149,9 +182,8 @@ void main() {
       newVelocity.z *= -1 * WALL_DAMPING;
     }
 
-    particleRecords[gl_GlobalInvocationID.x].velocity =
-        (newVelocity + particleRecords[gl_GlobalInvocationID.x].velocity) / 2;
-    particleRecords[gl_GlobalInvocationID.x].previousVelocity = newVelocity;
-    particleRecords[gl_GlobalInvocationID.x].position = newPosition;
+    particleRecords[myId].velocity = (newVelocity + particleRecords[myId].velocity) / 2;
+    particleRecords[myId].previousVelocity = newVelocity;
+    particleRecords[myId].position = newPosition;
   }
 }

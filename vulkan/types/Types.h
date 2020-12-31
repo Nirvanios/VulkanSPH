@@ -81,7 +81,7 @@ struct alignas(16) ParticleRecord {
   float massDensity;
   float pressure;
   int gridID;
-  float dummy;
+  int dummy;
 
   template<typename OStream>
   friend OStream &operator<<(OStream &os, const ParticleRecord &particleRecord) {
