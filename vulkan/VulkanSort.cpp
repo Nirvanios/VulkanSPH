@@ -84,7 +84,8 @@ VulkanSort::VulkanSort(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Devi
           .setSize(sizeof(int) * 2)
           .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eHostVisible
                                   | vk::MemoryPropertyFlagBits::eHostCoherent)
-          .setUsageFlags(vk::BufferUsageFlagBits::eUniformBuffer),
+          .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
+                         | vk::BufferUsageFlagBits::eUniformBuffer),
       this->device, commandPool, queue);
   auto builder = BufferBuilder()
                      .setSize(bufferBins->getSize())
@@ -93,14 +94,14 @@ VulkanSort::VulkanSort(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Devi
                                     | vk::BufferUsageFlagBits::eStorageBuffer)
                      .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-  const auto bufferCounterSize =
-      static_cast<int>(std::pow(2, std::ceil(std::log2(glm::compMul(config.getApp().simulation.gridSize)))));
+  const auto bufferCounterSize = static_cast<int>(
+      std::pow(2, std::ceil(std::log2(glm::compMul(config.getApp().simulation.gridSize)))));
   bufferBinsSorted = std::make_shared<Buffer>(builder, this->device, commandPool, queue);
   bufferCounter = std::make_shared<Buffer>(builder.setSize(sizeof(int) * bufferCounterSize),
                                            this->device, commandPool, queue);
   bufferCounter->fill(std::vector<int>(bufferCounterSize));
-  bufferSums = std::make_shared<Buffer>(builder.setSize(std::max(1, bufferCounterSize / 32)), this->device,
-                                        commandPool, queue);
+  bufferSums = std::make_shared<Buffer>(builder.setSize(std::max(1, bufferCounterSize / 32)),
+                                        this->device, commandPool, queue);
 
   std::array<vk::DescriptorPoolSize, 2> poolSize{
       vk::DescriptorPoolSize{.type = vk::DescriptorType::eUniformBuffer, .descriptorCount = 1},
@@ -144,8 +145,8 @@ VulkanSort::VulkanSort(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Devi
 vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
   const auto dispachCountParticles =
       static_cast<int>(std::ceil(config.getApp().simulation.particleCount / 32.0));
-  const auto counterSize =
-      static_cast<int>(std::pow(2, std::ceil(std::log2(glm::compMul(config.getApp().simulation.gridSize)))));
+  const auto counterSize = static_cast<int>(
+      std::pow(2, std::ceil(std::log2(glm::compMul(config.getApp().simulation.gridSize)))));
   const auto dispachCountCells = counterSize / 32;
   const auto iterationCount = std::log2(counterSize);
 
@@ -156,7 +157,7 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
   buffersUniformSort->fill(std::array<int, 2>{config.getApp().simulation.particleCount, 0}, false);
 
   [[maybe_unused]] int j = 0;
-/*  auto a = bufferBins->read<KeyValue>();
+  /*  auto a = bufferBins->read<KeyValue>();
   spdlog::info("Unsorted");
   j = 0;
   std::for_each(a.begin(), a.end(), [&j](auto &in) {
@@ -191,7 +192,7 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
   device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
   device->getDevice()->resetFences(fence.get());
 
-  printBuffer(bufferCounter, "counter");
+  //  printBuffer(bufferCounter, "counter");
 
   //UpSweep
   recordCommandBuffersCompute(pipelinesSort[2], dispachCountCells);
@@ -203,7 +204,7 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
     device->getDevice()->resetFences(fence.get());
   }
 
-  printBuffer(bufferCounter, "UpSwepd");
+  //  printBuffer(bufferCounter, "UpSwepd");
 
   //DownSweep
   recordCommandBuffersCompute(pipelinesSort[3], dispachCountCells);
@@ -215,7 +216,7 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
     device->getDevice()->resetFences(fence.get());
   }
 
-  printBuffer(bufferCounter, "Prefix sum");
+  //  printBuffer(bufferCounter, "Prefix sum");
 
   /*  recordCommandBuffersCompute(pipelinesSort[3]);
   submitInfoCompute.pCommandBuffers = &commandBuffersCompute[imageindex].get();
@@ -229,14 +230,15 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
 
   //Create Indexes
   recordCommandBuffersCompute(pipelinesSort[5], dispachCountCells);
-  buffersUniformSort->fill(std::array<int, 2>{glm::compMul(config.getApp().simulation.gridSize), 0}, false);
+  buffersUniformSort->fill(std::array<int, 2>{glm::compMul(config.getApp().simulation.gridSize), 0},
+                           false);
   submitInfoCompute.pCommandBuffers = &commandBuffer.get();
   queue.submit(submitInfoCompute, fence.get());
 
   device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
   device->getDevice()->resetFences(fence.get());
 
-  printBuffer(bufferIndexes, "Indexes");
+  //  printBuffer(bufferIndexes, "Indexes");
 
   // Create Soretd
   recordCommandBuffersCompute(pipelinesSort[6], dispachCountParticles);
@@ -250,7 +252,7 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
   device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
   device->getDevice()->resetFences(fence.get());
 
-  auto b = bufferBinsSorted->read<KeyValue>();
+  /*auto b = bufferBinsSorted->read<KeyValue>();
   spdlog::info("Sorted");
   std::for_each(b.begin(), b.end(), [&j](auto &in) {
     std::cout << in << " ";
@@ -259,11 +261,10 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
       j = 0;
     }
   });
-  spdlog::info("Sorted end.");
-
+  spdlog::info("Sorted end.");*/
 
   bufferBins->copy(bufferBins->getSize(), *bufferBinsSorted);
-/*  printBuffer(bufferIndexes, "Indexes");
+  /*  printBuffer(bufferIndexes, "Indexes");
   auto b = bufferBins->read<KeyValue>();
   auto j = 0;
   spdlog::info("Sorted");
@@ -275,7 +276,6 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
     }
   });
   spdlog::info("Sorted end.");*/
-
 
   return vk::UniqueSemaphore(semaphoreOut, this->device->getDevice().get());
 }

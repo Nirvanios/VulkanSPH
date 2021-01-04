@@ -1,16 +1,11 @@
-#include <vulkan/vulkan.hpp>
-
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
 #include <cstdlib>
-#include <iostream>
 #include <stdexcept>
 
 #include "spdlog/spdlog.h"
 
 #include "Renderers/TestRenderer.h"
 #include "utils/Config.h"
+
 
 void setupLogger(bool debug = false) {
   if (debug) spdlog::set_level(spdlog::level::debug);

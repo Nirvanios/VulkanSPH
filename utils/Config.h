@@ -9,9 +9,9 @@
 #include <string>
 class Config {
  public:
-  Config(const std::string &configFile);
-  const AppConfig &getApp() const;
-  const VulkanConfig &getVulkan() const;
+  explicit Config(const std::string &configFile);
+  [[nodiscard]] const AppConfig &getApp() const;
+  [[nodiscard]] const VulkanConfig &getVulkan() const;
 
  private:
   AppConfig app;

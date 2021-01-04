@@ -84,8 +84,8 @@ void printBuffer1(const std::shared_ptr<Buffer> &buff, const std::string &msg) {
 vk::UniqueSemaphore VulkanGridSPH::run(const vk::UniqueSemaphore &waitSemaphore) {
   vk::Semaphore semaphoreBeforeSort = device->getDevice()->createSemaphore({});
   std::array<vk::PipelineStageFlags, 1> stageFlags{vk::PipelineStageFlagBits::eComputeShader};
-  auto fence = device->getDevice()->createFence({});
-  device->getDevice()->resetFences(fence);
+  auto fence = device->getDevice()->createFenceUnique({});
+  device->getDevice()->resetFences(fence.get());
   vk::SubmitInfo submitInfoGridInit{.waitSemaphoreCount = 1,
                                     .pWaitSemaphores = &waitSemaphore.get(),
                                     .pWaitDstStageMask = stageFlags.data(),
@@ -93,13 +93,13 @@ vk::UniqueSemaphore VulkanGridSPH::run(const vk::UniqueSemaphore &waitSemaphore)
                                     .pCommandBuffers = &commandBufferCompute.get(),
                                     .signalSemaphoreCount = 1,
                                     .pSignalSemaphores = &semaphoreBeforeSort};
-  queue.submit(submitInfoGridInit, fence);
+  queue.submit(submitInfoGridInit, fence.get());
 
-  device->getDevice()->waitForFences(fence, VK_TRUE, UINT64_MAX);
-  device->getDevice()->resetFences(fence);
+  device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
+  device->getDevice()->resetFences(fence.get());
 
 
-  int j = 0;
+/*  int j = 0;
   auto a = bufferCellParticlePair->read<KeyValue>();
   spdlog::info("Unsorted");
   j = 0;
@@ -110,7 +110,7 @@ vk::UniqueSemaphore VulkanGridSPH::run(const vk::UniqueSemaphore &waitSemaphore)
       j = 0;
     }
   });
-  spdlog::info("Unsorted end.");
+  spdlog::info("Unsorted end.");*/
 
 
   return vulkanSort->run(vk::UniqueSemaphore(semaphoreBeforeSort, this->device->getDevice().get()));

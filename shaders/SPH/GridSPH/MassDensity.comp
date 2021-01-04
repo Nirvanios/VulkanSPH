@@ -2,7 +2,7 @@
 
 #extension GL_EXT_debug_printf : enable
 
-#define GRID
+//#define GRID
 
 float M_PI = 3.1415;
 
@@ -44,7 +44,7 @@ struct ParticleRecord {
 
 #define WALL_DAMPING 0.3f
 
-const ivec3 gridSize = ivec3(50,100,50);
+const ivec3 gridSize = ivec3(50, 100, 50);
 const int cellCount = gridSize.x * gridSize.y * gridSize.z;
 
 layout(std430, binding = 0) buffer positionBuffer { ParticleRecord particleRecords[]; };
@@ -70,8 +70,7 @@ void main() {
     float massDensity = 0.0f;
 
 #if defined(GRID)
-    int[16] tmp = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-    int i = 0;
+    if (myId == 0) debugPrintfEXT("test");
     //for (int i = 0; i < 27; ++i) {
     for (int z = -1; z < 2; ++z) {
       if (myGridID3D.z + z < 0 || myGridID3D.z + z > gridSize.z) continue;
@@ -87,11 +86,11 @@ void main() {
           if (currentGridID < 0 || currentGridID > cellCount) continue;
           int sortedID = indexes[currentGridID];
           if (sortedID == -1) { continue; }
-            
-          if (myId == 0)
+
+          /*          if (myId == 0)
             debugPrintfEXT(
                 "gridID: %d sortedID: %d myGridID: %d xyz: %v3d grid[sortedID].value: %d",
-                currentGridID, sortedID, myId, ivec3(x, y, z), grid[sortedID].value);
+                currentGridID, sortedID, myId, ivec3(x, y, z), grid[sortedID].value);*/
 
           while (grid[sortedID].value == currentGridID && sortedID < simulationInfo.particleCount) {
             /*             if (myId == 0 && currentGridID == 21)
@@ -133,7 +132,7 @@ void main() {
 #endif
 
     particleRecords[myId].massDensity = massDensity;
-    debugPrintfEXT("ID %d particle counted: %d", myId, count);
+    //debugPrintfEXT("ID %d particle counted: %d", myId, count);
     /*if (massDensity != massDensity2 && myId == 2)
       debugPrintfEXT("ID: %d | massD1: %f massD2 %f", myId, massDensity, massDensity2); */
     particleRecords[myId].dummy = count;

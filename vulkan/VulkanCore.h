@@ -14,6 +14,7 @@
 #include "../utils/Config.h"
 #include "../utils/saver/VideoDiskSaver.h"
 #include "../window/GlfwWindow.h"
+
 #include "VulkanGridSPH.h"
 #include "VulkanSPH.h"
 #include "VulkanSort.h"
@@ -62,6 +63,9 @@ class VulkanCore {
   int currentFrame = 0;
   bool framebufferResized = false;
   int indicesSize;
+
+  double time = 0;
+  uint steps = 0;
 
   std::function<glm::mat4()> viewMatrixGetter = []() { return glm::mat4(1.0f); };
   const glm::vec3 &cameraPos;

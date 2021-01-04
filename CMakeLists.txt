@@ -102,6 +102,8 @@ CPMAddPackage(
         GIT_TAG v2.0.0rc7
 )
 
+include_directories("Third Party/")
+
 add_compile_definitions(
         STB_IMAGE_IMPLEMENTATION
         STB_IMAGE_WRITE_IMPLEMENTATION
@@ -111,6 +113,7 @@ add_compile_definitions(
         GLM_FORCE_RADIANS
         GLM_FORCE_DEPTH_ZERO_TO_ONE
         GLM_FORCE_SWIZZLE
+        ANKERL_NANOBENCH_IMPLEMENT
 )
 
 # doporucuji si udelat seznam cpp a h souboru, pak je to tu prehlednejsi, mrkni na muj projekt jak to tam mam

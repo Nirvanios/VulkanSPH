@@ -8,6 +8,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "spdlog/spdlog.h"
 
+#include <plf_nanotimer.h>
 #include "../utils/Utilities.h"
 #include "../utils/saver/ScreenshotDiskSaver.h"
 #include "Utils/VulkanUtils.h"
@@ -47,13 +48,16 @@ void VulkanCore::initVulkan(const Model &modelParticle, const std::vector<Partic
   bufferCellParticlePair = std::make_shared<Buffer>(
       BufferBuilder()
           .setSize(sizeof(KeyValue) * config.getApp().simulation.particleCount)
-          .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc
+          .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
+                         | vk::BufferUsageFlagBits::eTransferSrc
                          | vk::BufferUsageFlagBits::eStorageBuffer)
           .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
       device, commandPoolGraphics, queueGraphics);
   bufferIndexes = std::make_shared<Buffer>(
       BufferBuilder()
-          .setSize(sizeof(int) * static_cast<int>(std::pow(2, std::ceil(std::log2(glm::compMul(config.getApp().simulation.gridSize))))))
+          .setSize(sizeof(int)
+                   * static_cast<int>(std::pow(
+                       2, std::ceil(std::log2(glm::compMul(config.getApp().simulation.gridSize))))))
           //.setSize(64*sizeof(int))
           .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
                          | vk::BufferUsageFlagBits::eStorageBuffer)
@@ -62,8 +66,8 @@ void VulkanCore::initVulkan(const Model &modelParticle, const std::vector<Partic
 
   vulkanSPH = std::make_unique<VulkanSPH>(surface, device, config, swapchain, simulationInfo,
                                           particles, bufferIndexes, bufferCellParticlePair);
-  vulkanGridSPH = std::make_unique<VulkanGridSPH>(surface, device, config, swapchain, simulationInfo,
-                                                  vulkanSPH->getBufferParticles(),
+  vulkanGridSPH = std::make_unique<VulkanGridSPH>(surface, device, config, swapchain,
+                                                  simulationInfo, vulkanSPH->getBufferParticles(),
                                                   bufferCellParticlePair, bufferIndexes);
 
   auto tmpBuffer = std::vector{vulkanSPH->getBufferParticles()};
@@ -238,6 +242,7 @@ void VulkanCore::createSyncObjects() {
   }
 }
 void VulkanCore::drawFrame() {
+  auto tmpfence = device->getDevice()->createFenceUnique({});
   std::array<vk::Semaphore, 1> semaphoresAfterNextImage{
       semaphoreImageAvailable[currentFrame].get()};
   std::array<vk::Semaphore, 1> semaphoresAfterRender{semaphoreRenderFinished[currentFrame].get()};
@@ -250,7 +255,7 @@ void VulkanCore::drawFrame() {
   device->getDevice()->waitForFences(fencesInFlight[currentFrame].get(), VK_TRUE, UINT64_MAX);
   try {
     device->getDevice()->acquireNextImageKHR(swapchain->getSwapchain().get(), UINT64_MAX,
-                                             *semaphoresAfterNextImage.begin(), nullptr,
+                                             *semaphoresAfterNextImage.begin(), tmpfence.get(),
                                              &imageindex);
   } catch (const std::exception &e) {
     recreateSwapchain();
@@ -265,8 +270,16 @@ void VulkanCore::drawFrame() {
 
   device->getDevice()->resetFences(fencesInFlight[currentFrame].get());
 
+
+  device->getDevice()->waitForFences(tmpfence.get(), VK_TRUE, UINT64_MAX);
+
+  plf::nanotimer nanotimer;
+  nanotimer.start();
   semaphoreAfterSort[currentFrame] = vulkanGridSPH->run(semaphoreImageAvailable[currentFrame]);
+
   semaphoreAfterSimulation[currentFrame] = vulkanSPH->run(semaphoreAfterSort[currentFrame]);
+  time += nanotimer.get_elapsed_ms();
+  ++steps;
 
   vk::SubmitInfo submitInfoRender{.waitSemaphoreCount = 1,
                                   .pWaitSemaphores = &semaphoreAfterSimulation[currentFrame].get(),
@@ -466,4 +479,7 @@ void VulkanCore::setViewMatrixGetter(std::function<glm::mat4()> getter) {
   viewMatrixGetter = getter;
 }
 
-VulkanCore::~VulkanCore() { videoDiskSaver.endStream(); }
+VulkanCore::~VulkanCore() {
+  videoDiskSaver.endStream();
+  spdlog::info("Avg time to SPH: {}ms.", time / static_cast<double>(steps));
+}
