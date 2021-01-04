@@ -5,6 +5,7 @@
 #ifndef VULKANAPP_PIPELINEBUILDER_H
 #define VULKANAPP_PIPELINEBUILDER_H
 
+#include "../Utils/VulkanUtils.h"
 #include "../types/Pipeline.h"
 #include <span>
 #include <vulkan/vulkan.hpp>
@@ -26,6 +27,7 @@ class PipelineBuilder {
   PipelineBuilder &setVertexShaderPath(const std::string &path);
   PipelineBuilder &setFragmentShaderPath(const std::string &path);
   PipelineBuilder &setComputeShaderPath(const std::string &path);
+  PipelineBuilder &addShaderMacro(const std::string &name, const std::string &code = "");
   PipelineBuilder &addPushConstant(vk::ShaderStageFlagBits stage, size_t pushConstantSize);
 
  private:
@@ -50,6 +52,7 @@ class PipelineBuilder {
   std::string vertexFile;
   std::string fragmentFile;
   std::string computeFile;
+  std::vector<VulkanUtils::ShaderMacro> macros;
 };
 
 #endif//VULKANAPP_PIPELINEBUILDER_H

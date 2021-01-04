@@ -33,7 +33,7 @@ VulkanSort::VulkanSort(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Devi
       PipelineBuilder{config, this->device, std::move(swapchain)}
           .setLayoutBindingInfo(bindingInfosCompute)
           .setPipelineType(PipelineType::Compute)
-          .addPushConstant(vk::ShaderStageFlagBits::eCompute, sizeof(SimulationInfo));
+          .addPushConstant(vk::ShaderStageFlagBits::eCompute, sizeof(int));
   pipelinesSort.emplace_back(
       computePipelineBuilder
           .setComputeShaderPath(
@@ -94,8 +94,8 @@ VulkanSort::VulkanSort(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Devi
                                     | vk::BufferUsageFlagBits::eStorageBuffer)
                      .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-  const auto bufferCounterSize = static_cast<int>(
-      std::pow(2, std::ceil(std::log2(glm::compMul(config.getApp().simulation.gridSize)))));
+  const auto bufferCounterSize =
+      Utilities::getNextPow2Number(glm::compMul(config.getApp().simulation.gridSize));
   bufferBinsSorted = std::make_shared<Buffer>(builder, this->device, commandPool, queue);
   bufferCounter = std::make_shared<Buffer>(builder.setSize(sizeof(int) * bufferCounterSize),
                                            this->device, commandPool, queue);
@@ -145,8 +145,8 @@ VulkanSort::VulkanSort(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Devi
 vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
   const auto dispachCountParticles =
       static_cast<int>(std::ceil(config.getApp().simulation.particleCount / 32.0));
-  const auto counterSize = static_cast<int>(
-      std::pow(2, std::ceil(std::log2(glm::compMul(config.getApp().simulation.gridSize)))));
+  const auto counterSize =
+     Utilities::getNextPow2Number(glm::compMul(config.getApp().simulation.gridSize));
   const auto dispachCountCells = counterSize / 32;
   const auto iterationCount = std::log2(counterSize);
 
@@ -284,6 +284,7 @@ void VulkanSort::recordCommandBuffersCompute(const std::shared_ptr<Pipeline> &pi
                                              int dispatchCount) {
   vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse,
                                        .pInheritanceInfo = nullptr};
+  auto cellCount = Utilities::getNextPow2Number(glm::compMul(config.getApp().simulation.gridSize));
 
   commandBuffer->begin(beginInfo);
   commandBuffer->bindPipeline(vk::PipelineBindPoint::eCompute, pipeline->getPipeline().get());
@@ -291,6 +292,10 @@ void VulkanSort::recordCommandBuffersCompute(const std::shared_ptr<Pipeline> &pi
   commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eCompute,
                                     pipeline->getPipelineLayout().get(), 0, 1,
                                     &descriptorSet->getDescriptorSets()[0].get(), 0, nullptr);
+  if (pipeline == pipelinesSort[3]) {
+    commandBuffer->pushConstants(pipeline->getPipelineLayout().get(),
+                                 vk::ShaderStageFlagBits::eCompute, 0, sizeof(int), &cellCount);
+  }
 
   commandBuffer->dispatch(static_cast<int>(dispatchCount), 1, 1);
 

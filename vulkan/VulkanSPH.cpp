@@ -15,17 +15,21 @@ VulkanSPH::VulkanSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device
                      std::shared_ptr<Buffer> bufferSortedPairs)
     : config(std::move(config)), simulationInfo(simulationInfo), device(std::move(device)),
       bufferGrid(std::move(bufferSortedPairs)), bufferIndexes(std::move(bufferIndexes)) {
+
   auto computePipelineBuilder = PipelineBuilder{this->config, this->device, swapchain}
                                     .setLayoutBindingInfo(bindingInfosCompute)
                                     .setPipelineType(PipelineType::Compute)
                                     .addPushConstant(vk::ShaderStageFlagBits::eCompute,
                                                      sizeof(SimulationInfo));
+  if(config.getApp().simulation.useNNS)
+    computePipelineBuilder.addShaderMacro("GRID");
   pipelineComputeMassDensity =
       computePipelineBuilder
           .setComputeShaderPath(this->config.getVulkan().shaders.computeMassDensity)
           .build();
   pipelineComputeForces =
-      computePipelineBuilder.setComputeShaderPath(this->config.getVulkan().shaders.computeForces)
+      computePipelineBuilder
+          .setComputeShaderPath(this->config.getVulkan().shaders.computeForces)
           .build();
 
   auto queueFamilyIndices = Device::findQueueFamilies(this->device->getPhysicalDevice(), surface);
@@ -109,24 +113,10 @@ vk::UniqueSemaphore VulkanSPH::run(const vk::UniqueSemaphore &semaphoreWait) {
   this->device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
   this->device->getDevice()->resetFences(fence.get());
 
-  auto a = bufferParticles->read<ParticleRecord>();
-  spdlog::info(a[0].dummy);
-
   return vk::UniqueSemaphore(semaphoreOut, device->getDevice().get());
 }
 
 void VulkanSPH::recordCommandBuffer(const std::shared_ptr<Pipeline> &pipeline) {
-  const auto &gridSize = config.getApp().simulation.gridSize;
-
-  //TODO Separate
-  auto i = 0;
-  for (auto z = -1; z < 2; ++z)
-    for (auto y = -1; y < 2; ++y)
-      for (auto x = -1; x < 2; ++x) {
-        simulationInfo.neighbourOffsets[i] = x + gridSize.x * (y + gridSize.y * z);
-        ++i;
-      }
-
   vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse,
                                        .pInheritanceInfo = nullptr};
 
@@ -136,12 +126,10 @@ void VulkanSPH::recordCommandBuffer(const std::shared_ptr<Pipeline> &pipeline) {
   commandBufferCompute->bindDescriptorSets(
       vk::PipelineBindPoint::eCompute, pipeline->getPipelineLayout().get(), 0, 1,
       &descriptorSetCompute->getDescriptorSets()[0].get(), 0, nullptr);
+
   commandBufferCompute->pushConstants(pipeline->getPipelineLayout().get(),
                                       vk::ShaderStageFlagBits::eCompute, 0, sizeof(SimulationInfo),
                                       &simulationInfo);
-/*  commandBufferCompute->pushConstants(pipeline->getPipelineLayout().get(),
-                                      vk::ShaderStageFlagBits::eCompute, sizeof(SimulationInfo),
-                                      sizeof(int) * neighbourOffset.size(), neighbourOffset.data());*/
   commandBufferCompute->dispatch(
       static_cast<int>(std::ceil(config.getApp().simulation.particleCount / 32.0)), 1, 1);
   commandBufferCompute->end();

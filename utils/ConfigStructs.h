@@ -37,6 +37,7 @@ struct SimulationConfig {
   std::string particleModel;
   glm::vec3 gridOrigin;
   glm::ivec3 gridSize;
+  bool useNNS;
 };
 
 struct AppConfig {

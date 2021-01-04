@@ -4,6 +4,7 @@
 
 #include "TestRenderer.h"
 
+#include "glm/gtx/component_wise.hpp"
 #include "glm/gtx/string_cast.hpp"
 #include <numbers>
 #include <spdlog/spdlog.h>
@@ -64,8 +65,9 @@ std::vector<ParticleRecord> TestRenderer::createParticles() {
   const auto &simConfig = config.getApp().simulation;
   auto particleSize =
       glm::vec3(std::cbrt(simConfig.fluidVolume / static_cast<float>(simConfig.particleCount)));
-  particleSize = glm::vec3(std::cbrt((3 * simConfig.fluidVolume * 20)
-                                     / (4 * std::numbers::pi * simConfig.particleCount)))
+  particleSize = glm::vec3(1.1
+                           * std::cbrt((3 * simConfig.fluidVolume * 20)
+                                       / (4 * std::numbers::pi * simConfig.particleCount)))
       / 2.0f;
   std::vector<ParticleRecord> data{static_cast<size_t>(config.getApp().simulation.particleCount)};
 
@@ -99,15 +101,17 @@ SimulationInfo TestRenderer::getSimulationInfo() {
   const auto x = 20;
   const auto supportRadius =
       std::cbrt((3 * simConfig.fluidVolume * x) / (4 * std::numbers::pi * simConfig.particleCount));
-  return SimulationInfo{.gravityForce = glm::vec4{0.0f, -9.8, 0.0, 0.0},
-                        .particleMass = mass,
-                        .restDensity = simConfig.fluidDensity,
-                        .viscosityCoefficient = simConfig.viscosityCoefficient,
-                        .gasStiffnessConstant = simConfig.gasStiffness,
-                        .timeStep = simConfig.timeStep,
-                        .supportRadius = static_cast<float>(supportRadius),
-                        .tensionThreshold = 7.065,
-                        .tensionCoefficient = 0.0728,
-                        .particleCount = static_cast<unsigned int>(simConfig.particleCount),
-                        .neighbourOffsets = {}};
+  return SimulationInfo{
+      .gridSize = glm::ivec4(config.getApp().simulation.gridSize,static_cast<unsigned int>(glm::compMul(config.getApp().simulation.gridSize))),
+      .gravityForce = glm::vec4{0.0f, -9.8, 0.0, 0.0},
+      .particleMass = mass,
+      .restDensity = simConfig.fluidDensity,
+      .viscosityCoefficient = simConfig.viscosityCoefficient,
+      .gasStiffnessConstant = simConfig.gasStiffness,
+      .timeStep = simConfig.timeStep,
+      .supportRadius = static_cast<float>(supportRadius),
+      .tensionThreshold = 7.065,
+      .tensionCoefficient = 0.0728,
+      .particleCount = static_cast<unsigned int>(simConfig.particleCount)
+      /*.cellCount = static_cast<unsigned int>(glm::compMul(config.getApp().simulation.gridSize))*/};
 }

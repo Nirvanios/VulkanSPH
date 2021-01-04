@@ -1,6 +1,7 @@
 #version 450
 
-//#define GRID
+#define gridSize simulationInfo.gridSizeXYZcountW.xyz
+#define cellCount simulationInfo.gridSizeXYZcountW.w
 
 float M_PI = 3.1415;
 
@@ -28,6 +29,7 @@ float viscosityLaplacianKernel(in vec4 position, in float positionNorm, in float
 }
 
 layout(push_constant) uniform Info {
+  ivec4 gridSizeXYZcountW;
   vec4 gravityForce;
   float particleMass;
   float restDensity;
@@ -38,7 +40,6 @@ layout(push_constant) uniform Info {
   float tensionThreshold;
   float tensionCoefficient;
   uint particleCount;
-  int neighbourOffsets[27];
 }
 simulationInfo;
 
@@ -54,8 +55,8 @@ struct ParticleRecord {
 
 #define WALL_DAMPING 0.3f
 
-const ivec3 gridSize = ivec3(50, 100, 50);
-const int cellCount = gridSize.x * gridSize.y * gridSize.z;
+//const ivec3 gridSize = ivec3(50, 100, 50);
+//const int cellCount = gridSize.x * gridSize.y * gridSize.z;
 
 layout(std430, binding = 0) buffer positionBuffer { ParticleRecord particleRecords[]; };
 

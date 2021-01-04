@@ -14,11 +14,24 @@
 
 namespace VulkanUtils {
 
+struct ShaderMacro {
+  std::string name;
+  std::string code;
+
+  ShaderMacro(const std::string &name, const std::string &code) : name(name), code(code) {}
+};
+
 inline std::vector<uint32_t> compileShader(const std::string &source_name, shaderc_shader_kind kind,
-                                           const std::string &source) {
+                                           const std::string &source,
+                                           const std::vector<ShaderMacro> &macros = {}) {
   shaderc::Compiler compiler;
   shaderc::CompileOptions options;
   options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_1);
+  std::for_each(macros.begin(), macros.end(), [&](const ShaderMacro &macro) {
+    if (macro.code.empty()) options.AddMacroDefinition(macro.name);
+    else
+      options.AddMacroDefinition(macro.name, macro.code);
+  });
 
   options.SetTargetSpirv(shaderc_spirv_version_1_3);
   options.SetIncluder(std::make_unique<ShaderIncluder>());

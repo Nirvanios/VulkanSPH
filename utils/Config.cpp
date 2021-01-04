@@ -32,6 +32,7 @@ Config::Config(const std::string &configFile) {
   app.simulation.gasStiffness = toml::find<float>(tomlSimulation, "gasStiffness");
   app.simulation.viscosityCoefficient = toml::find<float>(tomlSimulation, "viscosityCoefficient");
   app.simulation.timeStep = toml::find<float>(tomlSimulation, "timeStep");
+  app.simulation.useNNS = toml::find<bool>(tomlSimulation, "useNNS");
 
   Vulkan.window.height = toml::find<int>(tomlWindow, "height");
   Vulkan.window.width = toml::find<int>(tomlWindow, "width");

@@ -98,6 +98,7 @@ struct alignas(16) ParticleRecord {
 };
 
 struct SimulationInfo {
+  glm::ivec4 gridSize;
   glm::vec4 gravityForce;
   float particleMass;
   float restDensity;
@@ -108,7 +109,7 @@ struct SimulationInfo {
   float tensionThreshold;
   float tensionCoefficient;
   unsigned int particleCount;
-  std::array<int, 27> neighbourOffsets;
+  //unsigned int cellCount;
 };
 
 struct GridInfo{

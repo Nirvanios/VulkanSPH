@@ -2,8 +2,6 @@
 
 #extension GL_EXT_debug_printf : enable
 
-//#define GRID
-
 float M_PI = 3.1415;
 
 int count = 0;
@@ -18,6 +16,7 @@ float defaultKernel(in vec4 position, in float positionNorm, in float supportRad
 }
 
 layout(push_constant) uniform Info {
+  ivec4 gridSizeXYZcountW;
   vec4 gravityForce;
   float particleMass;
   float restDensity;
@@ -28,7 +27,6 @@ layout(push_constant) uniform Info {
   float tensionThreshold;
   float tensionCoefficient;
   uint particleCount;
-  int neighbourOffsets[27];
 }
 simulationInfo;
 

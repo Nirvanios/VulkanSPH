@@ -7,6 +7,8 @@ layout(binding = 0) uniform ParticleCount {
   int iteration;
 };
 
+layout(push_constant) uniform GridInfo { int cellCount; }; 
+
 struct KeyValue {
   int key;  //Particle ID
   int value;//Cell ID
@@ -27,8 +29,7 @@ void main() {
   const uint twoPwrIteration = 1 << iteration;
   const uint stride = 1 << (iteration + 1);
   const uint log2N = uint(log2(particleCount));
-  //if (counter[myId] == 2304 && iteration == log2N - 1) debugPrintfEXT("myID: %d", myId);
-  if (myId == 262144 - 1 && iteration == log2N - 1) {
+  if (myId == cellCount - 1 && iteration == log2N - 1) {
     //sums[gl_WorkGroupID.x] = counter[myId];
     counter[myId] = 0;
   }

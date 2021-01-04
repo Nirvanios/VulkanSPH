@@ -104,6 +104,11 @@ struct IdGenerator {
   std::size_t getNextID() { return id++; }
   std::size_t id = 0;
 };
+
+template <typename T>
+int getNextPow2Number(T number){
+  return std::pow(2, std::ceil(std::log2(number)));
+}
 }// namespace Utilities
 
 #endif//VULKANTEST_UTILITIES_H

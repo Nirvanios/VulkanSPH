@@ -3,6 +3,7 @@ DEBUG = true
 outputToFile = true
 
 [App.simulation]
+useNNS = true
 timeStep = 0.001
 gasStiffness = 100.0
 viscosityCoefficient = 3.5

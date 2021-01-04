@@ -33,9 +33,9 @@ std::pair<vk::UniquePipelineLayout, vk::UniquePipeline>
 PipelineBuilder::createGraphicsPipeline(const vk::UniqueDescriptorSetLayout &descriptorSetLayout,
                                         const vk::UniqueRenderPass &renderPass) {
   auto vertShaderModule = createShaderModule(VulkanUtils::compileShader(
-      vertexFile, shaderc_shader_kind::shaderc_vertex_shader, Utilities::readFile(vertexFile)));
+      vertexFile, shaderc_shader_kind::shaderc_vertex_shader, Utilities::readFile(vertexFile), macros));
   auto fragShaderModule = createShaderModule(VulkanUtils::compileShader(
-      vertexFile, shaderc_shader_kind::shaderc_fragment_shader, Utilities::readFile(fragmentFile)));
+      vertexFile, shaderc_shader_kind::shaderc_fragment_shader, Utilities::readFile(fragmentFile), macros));
   auto bindingDescription = Vertex::getBindingDescription();
   auto attributeDescriptions = Vertex::getAttributeDescriptions();
 
@@ -247,7 +247,7 @@ std::pair<vk::UniquePipelineLayout, vk::UniquePipeline>
 PipelineBuilder::createComputePipeline(const vk::UniqueDescriptorSetLayout &descriptorSetLayout) {
 
   auto computeModule = createShaderModule(VulkanUtils::compileShader(
-      computeFile, shaderc_shader_kind::shaderc_compute_shader, Utilities::readFile(computeFile)));
+      computeFile, shaderc_shader_kind::shaderc_compute_shader, Utilities::readFile(computeFile), macros));
 
   vk::PipelineShaderStageCreateInfo pipelineShaderStageCreateInfo{
       .stage = vk::ShaderStageFlagBits::eCompute,
@@ -290,5 +290,9 @@ PipelineBuilder &PipelineBuilder::addPushConstant(vk::ShaderStageFlagBits stage,
       vk::PushConstantRange{.stageFlags = stage,
                             .offset = 0,
                             .size = static_cast<uint32_t>(pushConstantSize)});
+  return *this;
+}
+PipelineBuilder &PipelineBuilder::addShaderMacro(const std::string &name, const std::string &code) {
+  macros.emplace_back(name, code);
   return *this;
 }
