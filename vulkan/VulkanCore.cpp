@@ -8,7 +8,6 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "spdlog/spdlog.h"
 
-#include <plf_nanotimer.h>
 #include "../utils/Utilities.h"
 #include "../utils/saver/ScreenshotDiskSaver.h"
 #include "Utils/VulkanUtils.h"
@@ -16,9 +15,12 @@
 #include "builders/ImageBuilder.h"
 #include "builders/PipelineBuilder.h"
 #include <glm/gtx/component_wise.hpp>
+#include <plf_nanotimer.h>
 
-void VulkanCore::initVulkan(const Model &modelParticle, const std::vector<ParticleRecord> particles,
+void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
+                            const std::vector<ParticleRecord> particles,
                             const SimulationInfo &simulationInfo) {
+
   this->simulationInfo = simulationInfo;
   spdlog::debug("Vulkan initialization...");
   instance = std::make_shared<Instance>(window.getWindowName(), config.getApp().DEBUG);
@@ -29,19 +31,21 @@ void VulkanCore::initVulkan(const Model &modelParticle, const std::vector<Partic
   queuePresent = device->getPresentQueue();
   spdlog::debug("Queues created.");
   swapchain = std::make_shared<Swapchain>(device, surface, window);
-  pipelineGraphics = PipelineBuilder{config, device, swapchain}
-                         .setDepthFormat(findDepthFormat())
-                         .setLayoutBindingInfo(bindingInfosRender)
-                         .setPipelineType(PipelineType::Graphics)
-                         .setVertexShaderPath(config.getVulkan().shaders.vertex)
-                         .setFragmentShaderPath(config.getVulkan().shaders.fragemnt)
-                         .build();
+  auto pipelineBuilder = PipelineBuilder{config, device, swapchain}
+                             .setDepthFormat(findDepthFormat())
+                             .setLayoutBindingInfo(bindingInfosRender)
+                             .setPipelineType(PipelineType::Graphics)
+                             .setVertexShaderPath(config.getVulkan().shaders.vertex)
+                             .setFragmentShaderPath(config.getVulkan().shaders.fragemnt)
+                             .addPushConstant(vk::ShaderStageFlagBits::eVertex, sizeof(int));
+  pipelineGraphics = pipelineBuilder.build();
+  pipelineGraphicsGrid = pipelineBuilder.setAssemblyInfo(vk::PrimitiveTopology::eLineStrip, true).build();
   createCommandPool();
   createDepthResources();
   framebuffers = std::make_shared<Framebuffers>(
       device, swapchain, pipelineGraphics->getRenderPass(), imageDepth->getImageView());
-  createVertexBuffer(modelParticle.vertices);
-  createIndexBuffer(modelParticle.indices);
+  createVertexBuffer(modelParticle);
+  createIndexBuffer(modelParticle);
   createUniformBuffers();
   createDescriptorPool();
 
@@ -55,9 +59,9 @@ void VulkanCore::initVulkan(const Model &modelParticle, const std::vector<Partic
       device, commandPoolGraphics, queueGraphics);
   bufferIndexes = std::make_shared<Buffer>(
       BufferBuilder()
-          .setSize(sizeof(int)
-                   * static_cast<int>(std::pow(
-                       2, std::ceil(std::log2(glm::compMul(config.getApp().simulation.gridSize))))))
+          .setSize(
+              sizeof(int)
+              * Utilities::getNextPow2Number(glm::compMul(config.getApp().simulation.gridSize)))
           //.setSize(64*sizeof(int))
           .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
                          | vk::BufferUsageFlagBits::eStorageBuffer)
@@ -137,6 +141,8 @@ void VulkanCore::createCommandBuffers() {
       device->allocateCommandBuffer(commandPoolGraphics, commandBuffersGraphic.size());
 
   int i = 0;
+  int drawType = 0;
+  int drawType2 = 1;
   std::array<vk::Buffer, 1> vertexBuffers{bufferVertex->getBuffer().get()};
   std::array<vk::DeviceSize, 1> offsets{0};
   auto &swapchainFramebuffers = framebuffers->getSwapchainFramebuffers();
@@ -166,9 +172,25 @@ void VulkanCore::createCommandBuffers() {
     commandBufferGraphics->bindDescriptorSets(
         vk::PipelineBindPoint::eGraphics, pipelineGraphics->getPipelineLayout().get(), 0, 1,
         &descriptorSetGraphics->getDescriptorSets()[i].get(), 0, nullptr);
-    commandBufferGraphics->drawIndexed(indicesSize, config.getApp().simulation.particleCount, 0, 0,
-                                       0);
+    drawType = 0;
+    commandBufferGraphics->pushConstants(pipelineGraphics->getPipelineLayout().get(),
+                                         vk::ShaderStageFlagBits::eVertex, 0, sizeof(int),
+                                         &drawType);
 
+    [[maybe_unused]]auto a = bufferIndex->read<uint16_t>();
+    [[maybe_unused]]auto b = bufferVertex->read<Vertex>();
+    commandBufferGraphics->drawIndexed(indicesSize[0], config.getApp().simulation.particleCount, 0,
+                                       0, 0);
+
+    commandBufferGraphics->bindPipeline(vk::PipelineBindPoint::eGraphics,
+                                        pipelineGraphicsGrid->getPipeline().get());
+    drawType = 1;
+    commandBufferGraphics->bindIndexBuffer(bufferIndex->getBuffer().get(), 2880*sizeof(uint16_t),
+                                           vk::IndexType::eUint16);
+    commandBufferGraphics->pushConstants(pipelineGraphicsGrid->getPipelineLayout().get(),
+                                         vk::ShaderStageFlagBits::eVertex, 0, sizeof(int),
+                                         &drawType2);
+    commandBufferGraphics->drawIndexed(24, 1, 0, 2880, 0);
     commandBufferGraphics->endRenderPass();
 
     if (config.getApp().outputToFile) {
@@ -270,7 +292,6 @@ void VulkanCore::drawFrame() {
 
   device->getDevice()->resetFences(fencesInFlight[currentFrame].get());
 
-
   device->getDevice()->waitForFences(tmpfence.get(), VK_TRUE, UINT64_MAX);
 
   plf::nanotimer nanotimer;
@@ -339,27 +360,46 @@ bool VulkanCore::isFramebufferResized() const { return framebufferResized; }
 
 void VulkanCore::setFramebufferResized(bool resized) { VulkanCore::framebufferResized = resized; }
 
-void VulkanCore::createVertexBuffer(const std::vector<Vertex> &vertices) {
+void VulkanCore::createVertexBuffer(const std::vector<Model> &models) {
+  auto size = 0;
+  auto offset = 0;
+  std::for_each(models.begin(), models.end(),
+                [&](const auto &model) { size += model.vertices.size(); });
+
   bufferVertex = std::make_shared<Buffer>(
       BufferBuilder()
-          .setSize(sizeof(vertices[0]) * vertices.size())
+          .setSize(sizeof(Vertex) * size)
           .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
                          | vk::BufferUsageFlagBits::eVertexBuffer)
           .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
       device, commandPoolGraphics, queueGraphics);
-  bufferVertex->fill(vertices);
+
+  std::for_each(models.begin(), models.end(), [&](const auto &model) {
+    bufferVertex->fill(model.vertices, true, offset);
+    offset += model.vertices.size() * sizeof(Vertex);
+    verticesSize.emplace_back(offset);
+  });
 }
 
-void VulkanCore::createIndexBuffer(const std::vector<uint16_t> &indices) {
+void VulkanCore::createIndexBuffer(const std::vector<Model> &models) {
+  auto size = 0;
+  auto offset = 0;
+  std::for_each(models.begin(), models.end(),
+                [&](const auto &model) { size += model.indices.size(); });
   bufferIndex = std::make_shared<Buffer>(
       BufferBuilder()
-          .setSize(sizeof(indices[0]) * indices.size())
+          .setSize(sizeof(uint16_t) * size)
           .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
                          | vk::BufferUsageFlagBits::eIndexBuffer)
           .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
       device, commandPoolGraphics, queueGraphics);
-  bufferIndex->fill(indices);
-  indicesSize = indices.size();
+  std::for_each(models.begin(), models.end(), [&](const auto &model) {
+    bufferIndex->fill(model.indices, true, offset);
+    offset += model.indices.size() * sizeof(uint16_t);
+    indicesSize.emplace_back(model.indices.size());
+  });
+  [[maybe_unused]] auto a = bufferIndex->read<uint16_t>();
+  size = 0;
 }
 
 void VulkanCore::createOutputImage() {

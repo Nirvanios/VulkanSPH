@@ -57,10 +57,6 @@ PipelineBuilder::createGraphicsPipeline(const vk::UniqueDescriptorSetLayout &des
       .vertexAttributeDescriptionCount = attributeDescriptions.size(),
       .pVertexAttributeDescriptions = attributeDescriptions.data()};
 
-  vk::PipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo{
-      .topology = vk::PrimitiveTopology::eTriangleList,
-      .primitiveRestartEnable = VK_FALSE};
-
   vk::Viewport viewport{.x = 0.0f,
                         .y = 0.0f,
                         .width = static_cast<float>(swapchain->getSwapchainExtent().width),
@@ -140,7 +136,7 @@ PipelineBuilder::createGraphicsPipeline(const vk::UniqueDescriptorSetLayout &des
       .stageCount = 2,
       .pStages = shaderStages.data(),
       .pVertexInputState = &vertexInputCreateInfo,
-      .pInputAssemblyState = &inputAssemblyCreateInfo,
+      .pInputAssemblyState = &inputAssemblyStateCreateInfo,
       .pViewportState = &viewportStateCreateInfo,
       .pRasterizationState = &rasterizationStateCreateInfo,
       .pMultisampleState = &multisampleStateCreateInfo,
@@ -294,5 +290,11 @@ PipelineBuilder &PipelineBuilder::addPushConstant(vk::ShaderStageFlagBits stage,
 }
 PipelineBuilder &PipelineBuilder::addShaderMacro(const std::string &name, const std::string &code) {
   macros.emplace_back(name, code);
+  return *this;
+}
+PipelineBuilder &PipelineBuilder::setAssemblyInfo(vk::PrimitiveTopology topology,
+                                                  bool usePrimitiveRestartIndex) {
+  inputAssemblyStateCreateInfo.topology = topology;
+  inputAssemblyStateCreateInfo.primitiveRestartEnable = usePrimitiveRestartIndex;
   return *this;
 }

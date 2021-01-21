@@ -37,7 +37,7 @@ class VulkanCore {
   void setViewMatrixGetter(std::function<glm::mat4()> getter);
   [[nodiscard]] bool isFramebufferResized() const;
   void setFramebufferResized(bool resized);
-  void initVulkan(const Model &modelParticle, const std::vector<ParticleRecord> particles, const SimulationInfo &simulationInfo);
+  void initVulkan(const std::vector<Model> &modelParticle, const std::vector<ParticleRecord> particles, const SimulationInfo &simulationInfo);
   void run();
 
  private:
@@ -62,7 +62,9 @@ class VulkanCore {
   static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
   int currentFrame = 0;
   bool framebufferResized = false;
-  int indicesSize;
+  std::vector<int> indicesSize;
+  std::vector<int> verticesSize;
+
 
   double time = 0;
   uint steps = 0;
@@ -78,6 +80,7 @@ class VulkanCore {
   std::shared_ptr<Swapchain> swapchain;
 
   std::shared_ptr<Pipeline> pipelineGraphics;
+  std::shared_ptr<Pipeline> pipelineGraphicsGrid;
 
   std::shared_ptr<Framebuffers> framebuffers;
   vk::UniqueCommandPool commandPoolGraphics;
@@ -114,8 +117,8 @@ class VulkanCore {
 
   void createSurface();
 
-  void createVertexBuffer(const std::vector<Vertex> &vertices);
-  void createIndexBuffer(const std::vector<uint16_t> &indices);
+  void createVertexBuffer(const std::vector<Model> &models);
+  void createIndexBuffer(const std::vector<Model> &models);
   void createOutputImage();
   void createUniformBuffers();
 

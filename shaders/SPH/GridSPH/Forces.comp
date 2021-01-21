@@ -30,6 +30,7 @@ float viscosityLaplacianKernel(in vec4 position, in float positionNorm, in float
 
 layout(push_constant) uniform Info {
   ivec4 gridSizeXYZcountW;
+  vec4 GridOrigin;
   vec4 gravityForce;
   float particleMass;
   float restDensity;
@@ -55,8 +56,6 @@ struct ParticleRecord {
 
 #define WALL_DAMPING 0.3f
 
-//const ivec3 gridSize = ivec3(50, 100, 50);
-//const int cellCount = gridSize.x * gridSize.y * gridSize.z;
 
 layout(std430, binding = 0) buffer positionBuffer { ParticleRecord particleRecords[]; };
 
@@ -160,7 +159,7 @@ void main() {
         * EXTERNAL FORCES
         */
     vec4 surfaceForce = vec4(0.0f);
-    if (length(inwardSurfaceNormal) < simulationInfo.tensionThreshold) {
+    if (length(inwardSurfaceNormal) > simulationInfo.tensionThreshold) {
       surfaceForce = -simulationInfo.tensionCoefficient * colorField
           * (inwardSurfaceNormal / length(inwardSurfaceNormal));
     }
@@ -180,28 +179,31 @@ void main() {
     vec4 newPosition = particleRecords[myId].position + newVelocity * simulationInfo.timeStep;
     newVelocity = (particleRecords[myId].velocity + newVelocity) / 2.0;
 
-    if (newPosition.x < -0.000) {
-      newPosition.x = -0.000;
+    vec3 minBorder = simulationInfo.GridOrigin.xyz;
+    vec3 maxBorder = minBorder + gridSize * simulationInfo.supportRadius;
+
+    if (newPosition.x < minBorder.x) {
+      newPosition.x = minBorder.x;
       newVelocity.x *= -1 * WALL_DAMPING;
     }
-    if (newPosition.x > 0.35 * 2) {
-      newPosition.x = 0.35 * 2;
+    if (newPosition.x > maxBorder.x) {
+      newPosition.x = maxBorder.x;
       newVelocity.x *= -1 * WALL_DAMPING;
     }
-    if (newPosition.y < -0.0) {
-      newPosition.y = -0.0;
+    if (newPosition.y < minBorder.y) {
+      newPosition.y = minBorder.y;
       newVelocity.y *= -1 * WALL_DAMPING;
     }
-    if (newPosition.y > 1 * 2) {
-      newPosition.y = 1 * 2;
+    if (newPosition.y > maxBorder.y) {
+      newPosition.y = maxBorder.y;
       newVelocity.y *= -1 * WALL_DAMPING;
     }
-    if (newPosition.z < -0.000) {
-      newPosition.z = -0.000;
+    if (newPosition.z < minBorder.z) {
+      newPosition.z = minBorder.z;
       newVelocity.z *= -1 * WALL_DAMPING;
     }
-    if (newPosition.z > 0.35 * 2) {
-      newPosition.z = 0.35 * 2;
+    if (newPosition.z > maxBorder.z) {
+      newPosition.z = maxBorder.z;
       newVelocity.z *= -1 * WALL_DAMPING;
     }
 

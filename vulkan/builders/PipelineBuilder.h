@@ -19,7 +19,8 @@ struct PipelineLayoutBindingInfo {//TODO Separate
 
 class PipelineBuilder {
  public:
-  PipelineBuilder(Config config, std::shared_ptr<Device> device, std::shared_ptr<Swapchain> swapchain);
+  PipelineBuilder(Config config, std::shared_ptr<Device> device,
+                  std::shared_ptr<Swapchain> swapchain);
   std::shared_ptr<Pipeline> build();
   PipelineBuilder &setLayoutBindingInfo(const std::span<PipelineLayoutBindingInfo> &info);
   PipelineBuilder &setDepthFormat(vk::Format format);
@@ -29,6 +30,7 @@ class PipelineBuilder {
   PipelineBuilder &setComputeShaderPath(const std::string &path);
   PipelineBuilder &addShaderMacro(const std::string &name, const std::string &code = "");
   PipelineBuilder &addPushConstant(vk::ShaderStageFlagBits stage, size_t pushConstantSize);
+  PipelineBuilder &setAssemblyInfo(vk::PrimitiveTopology topology, bool usePrimitiveRestartIndex);
 
  private:
   Config config;
@@ -53,6 +55,10 @@ class PipelineBuilder {
   std::string fragmentFile;
   std::string computeFile;
   std::vector<VulkanUtils::ShaderMacro> macros;
+
+  vk::PipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo{
+      .topology = vk::PrimitiveTopology::eTriangleList,
+      .primitiveRestartEnable = VK_FALSE};
 };
 
 #endif//VULKANAPP_PIPELINEBUILDER_H

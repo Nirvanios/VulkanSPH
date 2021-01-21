@@ -17,6 +17,7 @@ float defaultKernel(in vec4 position, in float positionNorm, in float supportRad
 
 layout(push_constant) uniform Info {
   ivec4 gridSizeXYZcountW;
+  vec4 GridOrigin;
   vec4 gravityForce;
   float particleMass;
   float restDensity;
@@ -42,8 +43,8 @@ struct ParticleRecord {
 
 #define WALL_DAMPING 0.3f
 
-const ivec3 gridSize = ivec3(50, 100, 50);
-const int cellCount = gridSize.x * gridSize.y * gridSize.z;
+#define gridSize simulationInfo.gridSizeXYZcountW.xyz
+#define cellCount simulationInfo.gridSizeXYZcountW.w
 
 layout(std430, binding = 0) buffer positionBuffer { ParticleRecord particleRecords[]; };
 

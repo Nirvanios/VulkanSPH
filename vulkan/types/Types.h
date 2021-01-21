@@ -24,7 +24,7 @@ struct KeyValue {
 
 struct Vertex {
   glm::vec3 pos;
-  glm::vec3 color;
+  glm::vec3 color{1.0,0.0,0.0};
   glm::vec3 normal{1.0f};
 
   static vk::VertexInputBindingDescription getBindingDescription() {
@@ -99,6 +99,7 @@ struct alignas(16) ParticleRecord {
 
 struct SimulationInfo {
   glm::ivec4 gridSize;
+  glm::vec4 gridOrigin;
   glm::vec4 gravityForce;
   float particleMass;
   float restDensity;

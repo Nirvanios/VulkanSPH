@@ -33,6 +33,7 @@ class TestRenderer {
   void cameraMouseButton(MouseButtonMessage message);
 
   std::vector<ParticleRecord> createParticles();
+  Model createGrid(const SimulationInfo &simulationInfo);
   SimulationInfo getSimulationInfo();
 };
 

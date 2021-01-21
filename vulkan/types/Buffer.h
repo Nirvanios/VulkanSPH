@@ -29,7 +29,7 @@ class Buffer {
   Buffer(BufferBuilder builder, std::shared_ptr<Device> device,
          const vk::UniqueCommandPool &commandPool, const vk::Queue &queue);
 
-  void fill(const RawDataProvider auto &input, bool useStaging = true) {
+  void fill(const RawDataProvider auto &input, bool useStaging = true, int offset = 0) {
     assert(size >= input.size());
     using ValueType = ptr_val<decltype(input.data())>;
     auto fillSize = sizeof(ValueType) * input.size();
@@ -48,17 +48,17 @@ class Buffer {
       memcpy(data, input.data(), fillSize);
       device->getDevice()->unmapMemory(stagingBuffer.getDeviceMemory().get());
 
-      copy(fillSize, stagingBuffer);
+      copy(fillSize, stagingBuffer, offset);
     } else {
-      auto data = device->getDevice()->mapMemory(deviceMemory.get(), 0, fillSize);
+      auto data = device->getDevice()->mapMemory(deviceMemory.get(), offset, fillSize);
       memcpy(data, input.data(), fillSize);
       device->getDevice()->unmapMemory(deviceMemory.get());
     }
   };
 
-  void copy(const vk::DeviceSize &copySize, const Buffer &srcBuffer,
+  void copy(const vk::DeviceSize &copySize, const Buffer &srcBuffer, int offset = 0,
             const std::vector<vk::Semaphore> &semaphores = {});
-  void copy(const vk::DeviceSize &copySize, const Buffer &srcBuffer, const Buffer &dstBuffer,
+  void copy(const vk::DeviceSize &copySize, const Buffer &srcBuffer, const Buffer &dstBuffer, int offset = 0,
             const std::vector<vk::Semaphore> &semaphores = {});
   template<typename T>
   [[nodiscard]] std::vector<T> read() {
@@ -70,7 +70,7 @@ class Buffer {
                                            | vk::MemoryPropertyFlagBits::eHostVisible),
                device, commandPool, queue);
 
-    stagingBuffer.copy(size, *this);
+    stagingBuffer.copy(size, *this, 0);
 
     std::vector<T> data{};
     data.resize(size / sizeof(T));
@@ -85,7 +85,8 @@ class Buffer {
 
  private:
   void copyBuffer(const vk::DeviceSize &copySize, const vk::UniqueBuffer &srcBuffer,
-                  const vk::UniqueBuffer &dstBuffer, const std::vector<vk::Semaphore> &semaphores);
+                  const vk::UniqueBuffer &dstBuffer, const std::vector<vk::Semaphore> &semaphores,
+                  int offset);
 
   vk::UniqueBuffer buffer;
   vk::UniqueDeviceMemory deviceMemory;
