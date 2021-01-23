@@ -12,8 +12,6 @@ Config::Config(const std::string &configFile) {
   const auto &tomlApp = toml::find(data, "App");
   const auto &tomlSimulation = toml::find(tomlApp, "simulation");
   const auto &tomlVulkan = toml::find(data, "Vulkan");
-  const auto &tomlShaders = toml::find(tomlVulkan, "shaders");
-  const auto &tomlComputeShaders = toml::find(tomlShaders, "compute");
   const auto &tomlWindow = toml::find(tomlVulkan, "window");
 
   app.DEBUG = toml::find<bool>(tomlApp, "DEBUG");
@@ -34,14 +32,12 @@ Config::Config(const std::string &configFile) {
   app.simulation.timeStep = toml::find<float>(tomlSimulation, "timeStep");
   app.simulation.useNNS = toml::find<bool>(tomlSimulation, "useNNS");
 
+  Vulkan.shaderFolder = toml::find<std::string>(tomlVulkan, "pathToShaders");
+
   Vulkan.window.height = toml::find<int>(tomlWindow, "height");
   Vulkan.window.width = toml::find<int>(tomlWindow, "width");
   Vulkan.window.name = toml::find<std::string>(tomlWindow, "name");
 
-  Vulkan.shaders.fragemnt = toml::find<std::string>(tomlShaders, "fragment");
-  Vulkan.shaders.vertex = toml::find<std::string>(tomlShaders, "vertex");
-  Vulkan.shaders.computeMassDensity = toml::find<std::string>(tomlComputeShaders, "massDensity");
-  Vulkan.shaders.computeForces = toml::find<std::string>(tomlComputeShaders, "forces");
 }
 const AppConfig &Config::getApp() const { return app; }
 const VulkanConfig &Config::getVulkan() const { return Vulkan; }

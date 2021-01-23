@@ -7,13 +7,8 @@
 
 #include "glm/glm.hpp"
 #include <string>
+#include <filesystem>
 
-struct ShadersConfig {
-  std::string vertex;
-  std::string fragemnt;
-  std::string computeMassDensity;
-  std::string computeForces;
-};
 
 struct WindowConfig {
   std::string name;
@@ -23,7 +18,7 @@ struct WindowConfig {
 
 struct VulkanConfig {
   WindowConfig window;
-  ShadersConfig shaders;
+  std::filesystem::path shaderFolder;
 };
 
 struct SimulationConfig {

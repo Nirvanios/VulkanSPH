@@ -20,8 +20,7 @@ VulkanGridSPH::VulkanGridSPH(const vk::UniqueSurfaceKHR &surface, std::shared_pt
                  .setLayoutBindingInfo(bindingInfosCompute)
                  .setPipelineType(PipelineType::Compute)
                  .addPushConstant(vk::ShaderStageFlagBits::eCompute, sizeof(SimulationInfo))
-                 .setComputeShaderPath(
-                     "/home/aka/CLionProjects/VulkanSPH/shaders/SPH/GridSearch/Init.comp")
+                 .setComputeShaderPath( this->config.getVulkan().shaderFolder / "SPH/GridSearch/Init.comp")
                  .build();
 
   auto queueFamilyIndices = Device::findQueueFamilies(this->device->getPhysicalDevice(), surface);
@@ -66,21 +65,6 @@ VulkanGridSPH::VulkanGridSPH(const vk::UniqueSurfaceKHR &surface, std::shared_pt
                                             this->bufferCellParticlePair, this->bufferIndexes);
 }
 
-void printBuffer1(const std::shared_ptr<Buffer> &buff, const std::string &msg) {
-  int i = 0;
-  auto a = buff->read<int>();
-  spdlog::info(msg);
-  i = 0;
-  std::for_each(a.begin(), a.end(), [&i](auto &in) {
-    std::cout << in << " ";
-    if (i++ == 31) {
-      std::cout << "| ";
-      i = 0;
-    }
-  });
-  spdlog::info(msg + " end.");
-}
-
 vk::UniqueSemaphore VulkanGridSPH::run(const vk::UniqueSemaphore &waitSemaphore) {
   vk::Semaphore semaphoreBeforeSort = device->getDevice()->createSemaphore({});
   std::array<vk::PipelineStageFlags, 1> stageFlags{vk::PipelineStageFlagBits::eComputeShader};
@@ -97,20 +81,6 @@ vk::UniqueSemaphore VulkanGridSPH::run(const vk::UniqueSemaphore &waitSemaphore)
 
   device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
   device->getDevice()->resetFences(fence.get());
-
-
-/*  int j = 0;
-  auto a = bufferCellParticlePair->read<KeyValue>();
-  spdlog::info("Unsorted");
-  j = 0;
-  std::for_each(a.begin(), a.end(), [&j](auto &in) {
-    std::cout << "k" << in.key << " v" << in.value << " ";
-    if (j++ == 31) {
-      std::cout << "| ";
-      j = 0;
-    }
-  });
-  spdlog::info("Unsorted end.");*/
 
 
   return vulkanSort->run(vk::UniqueSemaphore(semaphoreBeforeSort, this->device->getDevice().get()));

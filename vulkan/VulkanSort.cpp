@@ -37,37 +37,37 @@ VulkanSort::VulkanSort(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Devi
   pipelinesSort.emplace_back(
       computePipelineBuilder
           .setComputeShaderPath(
-              "/home/aka/CLionProjects/VulkanSPH/shaders/SPH/count sort/zeroCount.comp")
+              config.getVulkan().shaderFolder / "SPH/count sort/zeroCount.comp")
           .build());
   pipelinesSort.emplace_back(
       computePipelineBuilder
           .setComputeShaderPath(
-              "/home/aka/CLionProjects/VulkanSPH/shaders/SPH/count sort/Count.comp")
+              config.getVulkan().shaderFolder / "SPH/count sort/Count.comp")
           .build());
   pipelinesSort.emplace_back(
       computePipelineBuilder
           .setComputeShaderPath(
-              "/home/aka/CLionProjects/VulkanSPH/shaders/SPH/count sort/Upsweep.comp")
+              config.getVulkan().shaderFolder / "SPH/count sort/Upsweep.comp")
           .build());
   pipelinesSort.emplace_back(
       computePipelineBuilder
           .setComputeShaderPath(
-              "/home/aka/CLionProjects/VulkanSPH/shaders/SPH/count sort/Downsweep.comp")
+              config.getVulkan().shaderFolder / "SPH/count sort/Downsweep.comp")
           .build());
   pipelinesSort.emplace_back(
       computePipelineBuilder
           .setComputeShaderPath(
-              "/home/aka/CLionProjects/VulkanSPH/shaders/SPH/count sort/addSums.comp")
+              config.getVulkan().shaderFolder / "SPH/count sort/addSums.comp")
           .build());
   pipelinesSort.emplace_back(
       computePipelineBuilder
           .setComputeShaderPath(
-              "/home/aka/CLionProjects/VulkanSPH/shaders/SPH/count sort/createIndexes.comp")
+              config.getVulkan().shaderFolder / "SPH/count sort/createIndexes.comp")
           .build());
   pipelinesSort.emplace_back(
       computePipelineBuilder
           .setComputeShaderPath(
-              "/home/aka/CLionProjects/VulkanSPH/shaders/SPH/count sort/CreateSorted.comp")
+              config.getVulkan().shaderFolder / "SPH/count sort/CreateSorted.comp")
           .build());
 
   auto queueFamilyIndices = Device::findQueueFamilies(this->device->getPhysicalDevice(), surface);

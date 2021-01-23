@@ -36,8 +36,8 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
                              .setDepthFormat(findDepthFormat())
                              .setLayoutBindingInfo(bindingInfosRender)
                              .setPipelineType(PipelineType::Graphics)
-                             .setVertexShaderPath(config.getVulkan().shaders.vertex)
-                             .setFragmentShaderPath(config.getVulkan().shaders.fragemnt)
+                             .setVertexShaderPath(config.getVulkan().shaderFolder / "shader.vert")
+                             .setFragmentShaderPath(config.getVulkan().shaderFolder / "shader.frag")
                              .addPushConstant(vk::ShaderStageFlagBits::eVertex, sizeof(int));
   pipelineGraphics = pipelineBuilder.build();
   pipelineGraphicsGrid =
@@ -359,8 +359,8 @@ void VulkanCore::recreateSwapchain() {
                          .setDepthFormat(findDepthFormat())
                          .setLayoutBindingInfo(bindingInfosRender)
                          .setPipelineType(PipelineType::Graphics)
-                         .setVertexShaderPath(config.getVulkan().shaders.vertex)
-                         .setFragmentShaderPath(config.getVulkan().shaders.fragemnt)
+                         .setVertexShaderPath(config.getVulkan().shaderFolder / "shader.vert")
+                         .setFragmentShaderPath(config.getVulkan().shaderFolder / "shader.frag")
                          .build();
   framebuffers->createFramebuffers();
   createUniformBuffers();
@@ -568,5 +568,5 @@ void VulkanCore::initGui() {
       stepButton.setEnabled(pf::Enabled::Yes);
     }
   });
-  stepButton.addClickListener([this](){step = true;});
+  stepButton.addClickListener([this]() { step = true; });
 }

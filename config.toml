@@ -16,16 +16,11 @@ gridSize = [20, 30, 20] #[8, 8, 8]
 particleModel = "/home/aka/CLionProjects/VulkanSPH/resources/sphere.obj"
 
 [Vulkan]
+pathToShaders = "/home/aka/CLionProjects/VulkanSPH/shaders/"
 
 [Vulkan.window]
 name = "VulkanApp"
 width = 1280
 height = 720
-
-[Vulkan.shaders]
-vertex = "/home/aka/CLionProjects/VulkanSPH/shaders/shader.vert"
-fragment = "/home/aka/CLionProjects/VulkanSPH/shaders/shader.frag"
-compute.massDensity = "/home/aka/CLionProjects/VulkanSPH/shaders/SPH/GridSPH/MassDensity.comp"
-compute.forces = "/home/aka/CLionProjects/VulkanSPH/shaders/SPH/GridSPH/Forces.comp"
 
 

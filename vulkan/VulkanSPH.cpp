@@ -25,11 +25,11 @@ VulkanSPH::VulkanSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device
     computePipelineBuilder.addShaderMacro("GRID");
   pipelineComputeMassDensity =
       computePipelineBuilder
-          .setComputeShaderPath(this->config.getVulkan().shaders.computeMassDensity)
+          .setComputeShaderPath(this->config.getVulkan().shaderFolder / "SPH/GridSPH/MassDensity.comp")
           .build();
   pipelineComputeForces =
       computePipelineBuilder
-          .setComputeShaderPath(this->config.getVulkan().shaders.computeForces)
+          .setComputeShaderPath(this->config.getVulkan().shaderFolder / "SPH/GridSPH/Forces.comp")
           .build();
 
   auto queueFamilyIndices = Device::findQueueFamilies(this->device->getPhysicalDevice(), surface);
