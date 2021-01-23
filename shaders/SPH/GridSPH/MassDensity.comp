@@ -69,7 +69,6 @@ void main() {
     float massDensity = 0.0f;
 
 #if defined(GRID)
-    if (myId == 0) debugPrintfEXT("test");
     //for (int i = 0; i < 27; ++i) {
     for (int z = -1; z < 2; ++z) {
       if (myGridID3D.z + z < 0 || myGridID3D.z + z > gridSize.z) continue;

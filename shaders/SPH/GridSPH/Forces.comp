@@ -179,8 +179,8 @@ void main() {
     vec4 newPosition = particleRecords[myId].position + newVelocity * simulationInfo.timeStep;
     newVelocity = (particleRecords[myId].velocity + newVelocity) / 2.0;
 
-    vec3 minBorder = simulationInfo.GridOrigin.xyz;
-    vec3 maxBorder = minBorder + gridSize * simulationInfo.supportRadius;
+    vec3 minBorder = simulationInfo.GridOrigin.xyz + simulationInfo.supportRadius * 0.1;
+    vec3 maxBorder = minBorder + gridSize * simulationInfo.supportRadius - simulationInfo.supportRadius * 0.1;
 
     if (newPosition.x < minBorder.x) {
       newPosition.x = minBorder.x;

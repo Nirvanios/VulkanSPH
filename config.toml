@@ -12,15 +12,15 @@ fluidDensity = 998.29
 particleCount = 24000 #2304 #64
 particleModelSize = [20,60,20] #[12, 16, 12] #[4, 4, 4]
 gridOrigin =  [-0.2, 0.0, -0.2]
-gridSize = [20, 60, 20] #[8, 8, 8]
+gridSize = [20, 30, 20] #[8, 8, 8]
 particleModel = "/home/aka/CLionProjects/VulkanSPH/resources/sphere.obj"
 
 [Vulkan]
 
 [Vulkan.window]
 name = "VulkanApp"
-width = 800
-height = 600
+width = 1280
+height = 720
 
 [Vulkan.shaders]
 vertex = "/home/aka/CLionProjects/VulkanSPH/shaders/shader.vert"

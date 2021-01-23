@@ -43,6 +43,8 @@ class EventDispatchingWindow {
     return Unsubscriber([this, id]() { mouseMovementListeners.erase(id); });
   }
 
+  void setIgnorePredicate(std::function<bool()> predicate);
+
  protected:
   void notifyMouseButton(const MouseButtonMessage &message);
   void notifyMouseMovement(const MouseMovementMessage &message);
@@ -53,6 +55,8 @@ class EventDispatchingWindow {
   std::unordered_map<int, std::function<void(KeyMessage)>> keyListeners;
   std::unordered_map<int, std::function<void(MouseButtonMessage)>> mouseButtonListeners;
   std::unordered_map<int, std::function<void(MouseMovementMessage)>> mouseMovementListeners;
+
+  std::function<bool()> ignorePredicate = [](){return false;};
 };
 
 #endif//VULKANAPP_EVENTDISPATCHINGWINDOW_H

@@ -52,8 +52,6 @@ find_package(Vulkan REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 hunter_add_package(glm)
 find_package(glm CONFIG REQUIRED)
-hunter_add_package(imgui)
-find_package(imgui CONFIG REQUIRED)
 hunter_add_package(fmt)
 find_package(fmt CONFIG REQUIRED)
 hunter_add_package(spdlog)
@@ -101,6 +99,11 @@ CPMAddPackage(
         GITHUB_REPOSITORY tinyobjloader/tinyobjloader
         GIT_TAG v2.0.0rc7
 )
+CPMAddPackage(
+        NAME pf_imgui
+        GITHUB_REPOSITORY PetrFlajsingr/pf_imgui
+        GIT_TAG 0.1
+)
 
 include_directories("Third Party/")
 
@@ -120,8 +123,28 @@ add_compile_definitions(
 add_executable(VulkanApp main.cpp
         utils/Utilities.h
         vulkan/VulkanCore.cpp vulkan/VulkanCore.h
-        window/GlfwWindow.cpp window/GlfwWindow.h vulkan/types/Instance.cpp vulkan/types/Instance.h vulkan/types/Device.cpp vulkan/types/Device.h vulkan/types/Swapchain.cpp vulkan/types/Swapchain.h vulkan/types/Pipeline.cpp vulkan/types/Pipeline.h vulkan/types/Framebuffers.cpp vulkan/types/Framebuffers.h window/Callbacks.h vulkan/types/Types.h vulkan/builders/BufferBuilder.cpp vulkan/builders/BufferBuilder.h vulkan/types/Buffer.cpp vulkan/types/Buffer.h vulkan/Utils/VulkanUtils.h window/EventDispatchingWindow.cpp window/EventDispatchingWindow.h window/Messages.h Renderers/TestRenderer.cpp Renderers/TestRenderer.h utils/Config.cpp utils/Config.h utils/ConfigStructs.h vulkan/builders/PipelineBuilder.cpp vulkan/builders/PipelineBuilder.h vulkan/types/DescriptorSet.cpp vulkan/types/DescriptorSet.h vulkan/types/Image.cpp vulkan/types/Image.h vulkan/builders/ImageBuilder.cpp vulkan/builders/ImageBuilder.h vulkan/Utils/ShaderIncluder.h utils/Encoder.cpp utils/Encoder.h utils/Capture.cpp utils/Capture.h utils/saver/ImageSaver.h utils/saver/StreamSaver.h utils/saver/ImageStreamSaver.h utils/saver/VideoDiskSaver.cpp utils/saver/VideoDiskSaver.h utils/saver/ScreenshotDiskSaver.cpp utils/saver/ScreenshotDiskSaver.h utils/saver/SaverTypes.h vulkan/VulkanSort.cpp vulkan/VulkanSort.h vulkan/VulkanSPH.cpp vulkan/VulkanSPH.h vulkan/VulkanGridSPH.cpp vulkan/VulkanGridSPH.h)
-target_link_libraries(VulkanApp PUBLIC
-        ${Vulkan_LIBRARIES} glfw spdlog::spdlog imgui::imgui fmt::fmt stb::stb shaderc_combined glslang toml11 range-v3 tinyobjloader ${AVCODEC_LIBRARY} avutil avformat swscale)
+        window/GlfwWindow.cpp window/GlfwWindow.h vulkan/types/Instance.cpp vulkan/types/Instance.h
+        vulkan/types/Device.cpp vulkan/types/Device.h vulkan/types/Swapchain.cpp vulkan/types/Swapchain.h
+        vulkan/types/Pipeline.cpp vulkan/types/Pipeline.h vulkan/types/Framebuffers.cpp vulkan/types/Framebuffers.h
+        window/Callbacks.h vulkan/types/Types.h vulkan/builders/BufferBuilder.cpp vulkan/builders/BufferBuilder.h
+        vulkan/types/Buffer.cpp vulkan/types/Buffer.h vulkan/Utils/VulkanUtils.h window/EventDispatchingWindow.cpp
+        window/EventDispatchingWindow.h window/Messages.h Renderers/TestRenderer.cpp Renderers/TestRenderer.h
+        utils/Config.cpp utils/Config.h utils/ConfigStructs.h vulkan/builders/PipelineBuilder.cpp
+        vulkan/builders/PipelineBuilder.h vulkan/types/DescriptorSet.cpp vulkan/types/DescriptorSet.h
+        vulkan/types/Image.cpp vulkan/types/Image.h vulkan/builders/ImageBuilder.cpp vulkan/builders/ImageBuilder.h
+        vulkan/Utils/ShaderIncluder.h utils/Encoder.cpp utils/Encoder.h utils/Capture.cpp utils/Capture.h
+        utils/saver/ImageSaver.h utils/saver/StreamSaver.h utils/saver/ImageStreamSaver.h utils/saver/VideoDiskSaver.cpp
+        utils/saver/VideoDiskSaver.h utils/saver/ScreenshotDiskSaver.cpp utils/saver/ScreenshotDiskSaver.h
+        utils/saver/SaverTypes.h vulkan/VulkanSort.cpp vulkan/VulkanSort.h vulkan/VulkanSPH.cpp vulkan/VulkanSPH.h
+        vulkan/VulkanGridSPH.cpp vulkan/VulkanGridSPH.h ui/ImGuiGlfwVulkan.cpp ui/ImGuiGlfwVulkan.h
+        Third\ Party/imgui/imgui_impl_glfw.cpp Third\ Party/imgui/imgui_impl_vulkan.cpp utils/FPSCounter.cpp utils/FPSCounter.h
+        )
 
+
+target_link_libraries(VulkanApp PUBLIC
+        -lbfd -ldl
+        ${Vulkan_LIBRARIES} glfw spdlog::spdlog fmt::fmt stb::stb
+        shaderc_combined glslang toml11 range-v3 tinyobjloader ${AVCODEC_LIBRARY} avutil avformat swscale
+        pf_imgui::pf_imgui pf_common::pf_common)
+add_backward(VulkanApp)
 target_compile_options(VulkanApp PRIVATE ${flags})

@@ -15,6 +15,8 @@
 #include "../utils/saver/VideoDiskSaver.h"
 #include "../window/GlfwWindow.h"
 
+#include "../ui/ImGuiGlfwVulkan.h"
+#include "../utils/FPSCounter.h"
 #include "VulkanGridSPH.h"
 #include "VulkanSPH.h"
 #include "VulkanSort.h"
@@ -68,6 +70,8 @@ class VulkanCore {
 
   double time = 0;
   uint steps = 0;
+  bool simulate = false;
+  bool step = false;
 
   std::function<glm::mat4()> viewMatrixGetter = []() { return glm::mat4(1.0f); };
   const glm::vec3 &cameraPos;
@@ -109,11 +113,16 @@ class VulkanCore {
   const Config &config;
   GlfwWindow &window;
 
+  FPSCounter fpsCounter;
+  std::unique_ptr<pf::ui::ig::ImGuiGlfwVulkan> imgui;
+
   std::unique_ptr<VulkanSPH> vulkanSPH;
   std::unique_ptr<VulkanGridSPH> vulkanGridSPH;
 
   void mainLoop();
   void cleanup();
+
+  void initGui();
 
   void createSurface();
 
@@ -124,6 +133,7 @@ class VulkanCore {
 
   void createCommandPool();
   void createCommandBuffers();
+  void recordCommandBuffers();
   void createDescriptorPool();
 
   void createDepthResources();

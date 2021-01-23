@@ -43,7 +43,6 @@ void main() {
       fragColor = vec4(inColor, 0.1f);
       break;
     case DRAW_OTHER:
-      debugPrintfEXT("%d", gl_VertexIndex);
       gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);
       fragColor = vec4(inColor, 1.0f);
       break;

@@ -3,12 +3,18 @@
 //
 
 #include "EventDispatchingWindow.h"
+
+#include <utility>
 void EventDispatchingWindow::notifyMouseButton(const MouseButtonMessage &message) {
-  for (auto &[id, listener] : mouseButtonListeners) { listener(message); }
+  if(not ignorePredicate()) for (auto &[id, listener] : mouseButtonListeners) { listener(message); }
 }
 void EventDispatchingWindow::notifyKey(const KeyMessage &message) {
-  for (auto &[id, listener] : keyListeners) { listener(message); }
+  if(not ignorePredicate()) for (auto &[id, listener] : keyListeners) { listener(message); }
 }
 void EventDispatchingWindow::notifyMouseMovement(const MouseMovementMessage &message) {
-  for (auto &[id, listener] : mouseMovementListeners) { listener(message); }
+  if(not ignorePredicate()) for (auto &[id, listener] : mouseMovementListeners) { listener(message); }
+}
+
+void EventDispatchingWindow::setIgnorePredicate(std::function<bool()> predicate) {
+  ignorePredicate = std::move(predicate);
 }

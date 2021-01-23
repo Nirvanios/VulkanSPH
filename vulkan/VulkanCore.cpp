@@ -15,6 +15,7 @@
 #include "builders/ImageBuilder.h"
 #include "builders/PipelineBuilder.h"
 #include <glm/gtx/component_wise.hpp>
+#include <pf_imgui/elements.h>
 #include <plf_nanotimer.h>
 
 void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
@@ -39,7 +40,8 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
                              .setFragmentShaderPath(config.getVulkan().shaders.fragemnt)
                              .addPushConstant(vk::ShaderStageFlagBits::eVertex, sizeof(int));
   pipelineGraphics = pipelineBuilder.build();
-  pipelineGraphicsGrid = pipelineBuilder.setAssemblyInfo(vk::PrimitiveTopology::eLineStrip, true).build();
+  pipelineGraphicsGrid =
+      pipelineBuilder.setAssemblyInfo(vk::PrimitiveTopology::eLineStrip, true).build();
   createCommandPool();
   createDepthResources();
   framebuffers = std::make_shared<Framebuffers>(
@@ -86,6 +88,9 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
   descriptorSetGraphics->updateDescriptorSet(descriptorBufferInfosGraphic, bindingInfosRender);
   createOutputImage();
   spdlog::debug("Created command pool");
+  initGui();
+  window.setIgnorePredicate(
+      [this]() { return imgui->isWindowHovered() || imgui->isKeyboardCaptured(); });
   createCommandBuffers();
   spdlog::debug("Created command buffers");
   createSyncObjects();
@@ -105,7 +110,10 @@ void VulkanCore::run() {
 void VulkanCore::mainLoop() {
   while (!glfwWindowShouldClose(window.getWindow().get())) {
     glfwPollEvents();
+    imgui->render();
+    recordCommandBuffers();
     drawFrame();
+    fpsCounter.newFrame();
   }
 
   device->getDevice()->waitIdle();
@@ -129,6 +137,7 @@ void VulkanCore::createCommandPool() {
   auto queueFamilyIndices = Device::findQueueFamilies(device->getPhysicalDevice(), surface);
 
   vk::CommandPoolCreateInfo commandPoolCreateInfoGraphics{
+      .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
       .queueFamilyIndex = queueFamilyIndices.graphicsFamily.value()};
 
   commandPoolGraphics = device->getDevice()->createCommandPoolUnique(commandPoolCreateInfoGraphics);
@@ -140,6 +149,10 @@ void VulkanCore::createCommandBuffers() {
   commandBuffersGraphic =
       device->allocateCommandBuffer(commandPoolGraphics, commandBuffersGraphic.size());
 
+  //recordCommandBuffers();
+}
+
+void VulkanCore::recordCommandBuffers() {
   int i = 0;
   int drawType = 0;
   int drawType2 = 1;
@@ -177,20 +190,19 @@ void VulkanCore::createCommandBuffers() {
                                          vk::ShaderStageFlagBits::eVertex, 0, sizeof(int),
                                          &drawType);
 
-    [[maybe_unused]]auto a = bufferIndex->read<uint16_t>();
-    [[maybe_unused]]auto b = bufferVertex->read<Vertex>();
     commandBufferGraphics->drawIndexed(indicesSize[0], config.getApp().simulation.particleCount, 0,
                                        0, 0);
 
     commandBufferGraphics->bindPipeline(vk::PipelineBindPoint::eGraphics,
                                         pipelineGraphicsGrid->getPipeline().get());
     drawType = 1;
-    commandBufferGraphics->bindIndexBuffer(bufferIndex->getBuffer().get(), 2880*sizeof(uint16_t),
+    commandBufferGraphics->bindIndexBuffer(bufferIndex->getBuffer().get(), 2880 * sizeof(uint16_t),
                                            vk::IndexType::eUint16);
     commandBufferGraphics->pushConstants(pipelineGraphicsGrid->getPipelineLayout().get(),
                                          vk::ShaderStageFlagBits::eVertex, 0, sizeof(int),
                                          &drawType2);
     commandBufferGraphics->drawIndexed(24, 1, 0, 2880, 0);
+    imgui->addToCommandBuffer(commandBufferGraphics);
     commandBufferGraphics->endRenderPass();
 
     if (config.getApp().outputToFile) {
@@ -294,16 +306,16 @@ void VulkanCore::drawFrame() {
 
   device->getDevice()->waitForFences(tmpfence.get(), VK_TRUE, UINT64_MAX);
 
-  plf::nanotimer nanotimer;
-  nanotimer.start();
-  semaphoreAfterSort[currentFrame] = vulkanGridSPH->run(semaphoreImageAvailable[currentFrame]);
+  if (simulate || step) {
+    semaphoreAfterSort[currentFrame] = vulkanGridSPH->run(semaphoreImageAvailable[currentFrame]);
 
-  semaphoreAfterSimulation[currentFrame] = vulkanSPH->run(semaphoreAfterSort[currentFrame]);
-  time += nanotimer.get_elapsed_ms();
-  ++steps;
+    semaphoreAfterSimulation[currentFrame] = vulkanSPH->run(semaphoreAfterSort[currentFrame]);
+  }
 
   vk::SubmitInfo submitInfoRender{.waitSemaphoreCount = 1,
-                                  .pWaitSemaphores = &semaphoreAfterSimulation[currentFrame].get(),
+                                  .pWaitSemaphores = (simulate || step)
+                                      ? &semaphoreAfterSimulation[currentFrame].get()
+                                      : &semaphoreImageAvailable[currentFrame].get(),
                                   .pWaitDstStageMask = waitStagesRender.data(),
                                   .commandBufferCount = 1,
                                   .pCommandBuffers = &commandBuffersGraphic[imageindex].get(),
@@ -335,6 +347,7 @@ void VulkanCore::drawFrame() {
   } catch (const vk::OutOfDateKHRError &e) { recreateSwapchain(); }
 
   currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+  step = false;
 }
 void VulkanCore::recreateSwapchain() {
   window.checkMinimized();
@@ -398,7 +411,6 @@ void VulkanCore::createIndexBuffer(const std::vector<Model> &models) {
     offset += model.indices.size() * sizeof(uint16_t);
     indicesSize.emplace_back(model.indices.size());
   });
-  [[maybe_unused]] auto a = bufferIndex->read<uint16_t>();
   size = 0;
 }
 
@@ -522,4 +534,39 @@ void VulkanCore::setViewMatrixGetter(std::function<glm::mat4()> getter) {
 VulkanCore::~VulkanCore() {
   videoDiskSaver.endStream();
   spdlog::info("Avg time to SPH: {}ms.", time / static_cast<double>(steps));
+}
+void VulkanCore::initGui() {
+  using namespace pf::ui;
+  imgui = std::make_unique<ig::ImGuiGlfwVulkan>(device, instance, pipelineGraphics->getRenderPass(),
+                                                surface, swapchain, window.getWindow().get(),
+                                                ImGuiConfigFlags{}, toml::table{});
+
+  auto &infoWindow = imgui->createChild<ig::Window>("info_window", "Info");
+  auto &labelFPS = infoWindow.createChild<ig::Text>("text_FPS", "");
+  auto &labelFrameTime = infoWindow.createChild<ig::Text>("text_FrameTime", "");
+
+  fpsCounter.setOnNewFrameCallback([this, &labelFrameTime, &labelFPS]() {
+    labelFPS.setText(fmt::format("FPS: {:.1f} AVG: {:.1f}", fpsCounter.getCurrentFPS(),
+                                 fpsCounter.getAverageFPS()));
+    labelFrameTime.setText(fmt::format("Frame time: {:.1f}ms, AVG: {:.1f}ms",
+                                       fpsCounter.getCurrentFrameTime(),
+                                       fpsCounter.getAverageFrameTime()));
+  });
+  auto &controlWindow = imgui->createChild<ig::Window>("control_window", "Control");
+  auto &a = controlWindow.createChild<ig::Group>("aaa", "aaaaa");
+
+  auto &controlButton = a.createChild<ig::Button>("button_control", "Start simulation");
+  auto &stepButton = a.createChild<ig::Button>("button_step", "Step simulation");
+  stepButton.setEnabled(pf::Enabled::No);
+  controlButton.addClickListener([this, &controlButton, &stepButton]() {
+    simulate = not simulate;
+    if (simulate) {
+      controlButton.setLabel("Pause simulation");
+      stepButton.setEnabled(pf::Enabled::No);
+    } else {
+      controlButton.setLabel("Start simulation");
+      stepButton.setEnabled(pf::Enabled::Yes);
+    }
+  });
+  stepButton.addClickListener([this](){step = true;});
 }
