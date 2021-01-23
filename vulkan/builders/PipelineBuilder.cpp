@@ -12,13 +12,13 @@
 #include <utility>
 std::shared_ptr<Pipeline> PipelineBuilder::build() {
   if (pipelineType == PipelineType::Graphics) {
-    auto renderpass = createRenderPass();
+    //auto renderpass = createRenderPass();
     spdlog::debug("Created renderpass.");
     auto descriptorSetLayout = createDescriptorSetLayout();
-    auto [pipelineLayout, pipeline] = createGraphicsPipeline(descriptorSetLayout, renderpass->getRenderPass());
+    auto [pipelineLayout, pipeline] = createGraphicsPipeline(descriptorSetLayout, renderPasses.begin()->second->getRenderPass());
     spdlog::debug("Created graphics pipeline.");
 
-    return std::make_shared<Pipeline>(renderpass, std::move(pipelineLayout),
+    return std::make_shared<Pipeline>(renderPasses, std::move(pipelineLayout),
                                       std::move(pipeline), std::move(descriptorSetLayout));
   } else {
     auto descriptorSetLayout = createDescriptorSetLayout();
@@ -167,54 +167,6 @@ std::shared_ptr<RenderPass> PipelineBuilder::createRenderPass() {
                      .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
                      .setDepthAttachmentFormat(depthFormat);
   return builder.build();
-
-  /*  vk::AttachmentDescription colorAttachment{.format = swapchain->getSwapchainImageFormat(),
-                                            .samples = vk::SampleCountFlagBits::e1,
-                                            .loadOp = vk::AttachmentLoadOp::eClear,
-                                            .storeOp = vk::AttachmentStoreOp::eStore,
-                                            .stencilLoadOp = vk::AttachmentLoadOp::eDontCare,
-                                            .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
-                                            .initialLayout = vk::ImageLayout::eUndefined,
-                                            .finalLayout = vk::ImageLayout::ePresentSrcKHR};
-
-  vk::AttachmentReference colorAttachmentReference{.attachment = 0,
-                                                   .layout =
-                                                       vk::ImageLayout::eColorAttachmentOptimal};
-
-  vk::AttachmentDescription depthAttachment{.format = depthFormat,
-                                            .samples = vk::SampleCountFlagBits::e1,
-                                            .loadOp = vk::AttachmentLoadOp::eClear,
-                                            .storeOp = vk::AttachmentStoreOp::eDontCare,
-                                            .stencilLoadOp = vk::AttachmentLoadOp::eDontCare,
-                                            .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
-                                            .initialLayout = vk::ImageLayout::eUndefined,
-                                            .finalLayout =
-                                                vk::ImageLayout::eDepthStencilAttachmentOptimal};
-
-  vk::AttachmentReference depthReference{.attachment = 1,
-                                         .layout = vk::ImageLayout::eDepthStencilAttachmentOptimal};
-
-  vk::SubpassDescription subpassDescription{.pipelineBindPoint = vk::PipelineBindPoint::eGraphics,
-                                            .colorAttachmentCount = 1,
-                                            .pColorAttachments = &colorAttachmentReference,
-                                            .pDepthStencilAttachment = &depthReference};
-
-  vk::SubpassDependency dependency{
-      .srcSubpass = VK_SUBPASS_EXTERNAL,
-      .dstSubpass = 0,
-      .srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
-      .dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
-      .dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite};
-
-  std::array<vk::AttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
-  vk::RenderPassCreateInfo renderPassCreateInfo{.attachmentCount = attachments.size(),
-                                                .pAttachments = attachments.data(),
-                                                .subpassCount = 1,
-                                                .pSubpasses = &subpassDescription,
-                                                .dependencyCount = 1,
-                                                .pDependencies = &dependency};
-
-  return device->getDevice()->createRenderPassUnique(renderPassCreateInfo);*/
 }
 
 vk::UniqueDescriptorSetLayout PipelineBuilder::createDescriptorSetLayout() {
@@ -306,5 +258,10 @@ PipelineBuilder &PipelineBuilder::setAssemblyInfo(vk::PrimitiveTopology topology
                                                   bool usePrimitiveRestartIndex) {
   inputAssemblyStateCreateInfo.topology = topology;
   inputAssemblyStateCreateInfo.primitiveRestartEnable = usePrimitiveRestartIndex;
+  return *this;
+}
+
+PipelineBuilder &PipelineBuilder::addRenderPass(const std::string& name, std::shared_ptr<RenderPass> renderPass) {
+  renderPasses[name] = std::move(renderPass);
   return *this;
 }

@@ -14,6 +14,7 @@
 #include "VulkanCore.h"
 #include "builders/ImageBuilder.h"
 #include "builders/PipelineBuilder.h"
+#include "builders/RenderPassBuilder.h"
 #include <glm/gtx/component_wise.hpp>
 #include <pf_imgui/elements.h>
 #include <plf_nanotimer.h>
@@ -32,20 +33,26 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
   queuePresent = device->getPresentQueue();
   spdlog::debug("Queues created.");
   swapchain = std::make_shared<Swapchain>(device, surface, window);
-  auto pipelineBuilder = PipelineBuilder{config, device, swapchain}
-                             .setDepthFormat(findDepthFormat())
-                             .setLayoutBindingInfo(bindingInfosRender)
-                             .setPipelineType(PipelineType::Graphics)
-                             .setVertexShaderPath(config.getVulkan().shaderFolder / "shader.vert")
-                             .setFragmentShaderPath(config.getVulkan().shaderFolder / "shader.frag")
-                             .addPushConstant(vk::ShaderStageFlagBits::eVertex, sizeof(int));
+  auto pipelineBuilder =
+      PipelineBuilder{config, device, swapchain}
+          .setDepthFormat(findDepthFormat())
+          .setLayoutBindingInfo(bindingInfosRender)
+          .setPipelineType(PipelineType::Graphics)
+          .setVertexShaderPath(config.getVulkan().shaderFolder / "shader.vert")
+          .setFragmentShaderPath(config.getVulkan().shaderFolder / "shader.frag")
+          .addPushConstant(vk::ShaderStageFlagBits::eVertex, sizeof(int))
+          .addRenderPass("toFramebuffer",
+                         RenderPassBuilder{device}
+                             .setDepthAttachmentFormat(findDepthFormat())
+                             .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
+                             .build());
   pipelineGraphics = pipelineBuilder.build();
   pipelineGraphicsGrid =
       pipelineBuilder.setAssemblyInfo(vk::PrimitiveTopology::eLineStrip, true).build();
   createCommandPool();
   createDepthResources();
   framebuffers = std::make_shared<Framebuffers>(
-      device, swapchain, pipelineGraphics->getRenderPass(), imageDepth->getImageView());
+      device, swapchain, pipelineGraphics->getRenderPass(""), imageDepth->getImageView());
   createVertexBuffer(modelParticle);
   createIndexBuffer(modelParticle);
   createUniformBuffers();
@@ -170,7 +177,7 @@ void VulkanCore::recordCommandBuffers() {
     clearValues[1].setDepthStencil({1.0f, 0});
 
     vk::RenderPassBeginInfo renderPassBeginInfo{
-        .renderPass = pipelineGraphics->getRenderPass(),
+        .renderPass = pipelineGraphics->getRenderPass(""),
         .framebuffer = swapchainFramebuffers[i].get(),
         .renderArea = {.offset = {0, 0}, .extent = swapchain->getSwapchainExtent()},
         .clearValueCount = static_cast<uint32_t>(clearValues.size()),
@@ -355,13 +362,19 @@ void VulkanCore::recreateSwapchain() {
 
   swapchain->createSwapchain();
   swapchain->createImageViews();
-  pipelineGraphics = PipelineBuilder{config, device, swapchain}
-                         .setDepthFormat(findDepthFormat())
-                         .setLayoutBindingInfo(bindingInfosRender)
-                         .setPipelineType(PipelineType::Graphics)
-                         .setVertexShaderPath(config.getVulkan().shaderFolder / "shader.vert")
-                         .setFragmentShaderPath(config.getVulkan().shaderFolder / "shader.frag")
-                         .build();
+  pipelineGraphics =
+      PipelineBuilder{config, device, swapchain}
+          .setDepthFormat(findDepthFormat())
+          .setLayoutBindingInfo(bindingInfosRender)
+          .setPipelineType(PipelineType::Graphics)
+          .setVertexShaderPath(config.getVulkan().shaderFolder / "shader.vert")
+          .setFragmentShaderPath(config.getVulkan().shaderFolder / "shader.frag")
+          .addRenderPass("toFramebuffer",
+                         RenderPassBuilder{device}
+                             .setDepthAttachmentFormat(findDepthFormat())
+                             .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
+                             .build())
+          .build();
   framebuffers->createFramebuffers();
   createUniformBuffers();
   createDescriptorPool();
@@ -537,9 +550,9 @@ VulkanCore::~VulkanCore() {
 }
 void VulkanCore::initGui() {
   using namespace pf::ui;
-  imgui = std::make_unique<ig::ImGuiGlfwVulkan>(device, instance, pipelineGraphics->getRenderPass(),
-                                                surface, swapchain, window.getWindow().get(),
-                                                ImGuiConfigFlags{}, toml::table{});
+  imgui = std::make_unique<ig::ImGuiGlfwVulkan>(
+      device, instance, pipelineGraphics->getRenderPass(""), surface, swapchain,
+      window.getWindow().get(), ImGuiConfigFlags{}, toml::table{});
 
   auto &infoWindow = imgui->createChild<ig::Window>("info_window", "Info");
   auto &labelFPS = infoWindow.createChild<ig::Text>("text_FPS", "");

@@ -8,7 +8,12 @@
 #include "Types.h"
 #include <spdlog/spdlog.h>
 
-const vk::RenderPass &Pipeline::getRenderPass() const { return renderPass->getRenderPass().get(); }
+#include <utility>
+
+const vk::RenderPass &Pipeline::getRenderPass(const std::string &name) {
+  if (name.empty()) return renderPasses.begin()->second->getRenderPass().get();
+  return renderPasses[name]->getRenderPass().get();
+}
 
 const vk::UniquePipeline &Pipeline::getPipeline() const { return pipeline; }
 
@@ -18,9 +23,10 @@ const vk::UniqueDescriptorSetLayout &Pipeline::getDescriptorSetLayout() const {
 
 const vk::UniquePipelineLayout &Pipeline::getPipelineLayout() const { return pipelineLayout; }
 
-Pipeline::Pipeline(std::shared_ptr<RenderPass> renderPass, vk::UniquePipelineLayout pipelineLayout,
-                   vk::UniquePipeline pipeline, vk::UniqueDescriptorSetLayout descriptorSetLayout)
-    : renderPass(std::move(renderPass)), pipelineLayout(std::move(pipelineLayout)),
+Pipeline::Pipeline(std::map<std::string, std::shared_ptr<RenderPass>> renderPasses,
+                   vk::UniquePipelineLayout pipelineLayout, vk::UniquePipeline pipeline,
+                   vk::UniqueDescriptorSetLayout descriptorSetLayout)
+    : renderPasses(std::move(renderPasses)), pipelineLayout(std::move(pipelineLayout)),
       pipeline(std::move(pipeline)), descriptorSetLayout(std::move(descriptorSetLayout)) {
   type = PipelineType::Graphics;
 }

@@ -32,6 +32,7 @@ class PipelineBuilder {
   PipelineBuilder &addShaderMacro(const std::string &name, const std::string &code = "");
   PipelineBuilder &addPushConstant(vk::ShaderStageFlagBits stage, size_t pushConstantSize);
   PipelineBuilder &setAssemblyInfo(vk::PrimitiveTopology topology, bool usePrimitiveRestartIndex);
+  PipelineBuilder &addRenderPass(const std::string& name, std::shared_ptr<RenderPass> renderPass);
 
  private:
   Config config;
@@ -48,6 +49,7 @@ class PipelineBuilder {
   createComputePipeline(const vk::UniqueDescriptorSetLayout &descriptorSetLayout);
   vk::UniqueShaderModule createShaderModule(const std::vector<uint32_t> &code);
 
+  std::map<std::string, std::shared_ptr<RenderPass>> renderPasses;
   vk::Format depthFormat;
   std::span<PipelineLayoutBindingInfo> layoutBindingInfos;
   std::vector<vk::PushConstantRange> pushConstantRanges;

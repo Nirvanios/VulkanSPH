@@ -15,18 +15,18 @@ enum class PipelineType { Graphics, Compute };
 
 class Pipeline {
  public:
-  Pipeline(std::shared_ptr<RenderPass> renderPass, vk::UniquePipelineLayout pipelineLayout,
+  Pipeline(std::map<std::string, std::shared_ptr<RenderPass>>  renderPasses, vk::UniquePipelineLayout pipelineLayout,
            vk::UniquePipeline pipeline, vk::UniqueDescriptorSetLayout descriptorSetLayout);
   Pipeline(vk::UniquePipelineLayout pipelineLayout, vk::UniquePipeline pipeline,
            vk::UniqueDescriptorSetLayout descriptorSetLayout);
-  [[nodiscard]] const vk::RenderPass &getRenderPass() const;
+  [[nodiscard]] const vk::RenderPass &getRenderPass(const std::string& name = "");
   [[nodiscard]] const vk::UniquePipeline &getPipeline() const;
   [[nodiscard]] const vk::UniqueDescriptorSetLayout &getDescriptorSetLayout() const;
   [[nodiscard]] const vk::UniquePipelineLayout &getPipelineLayout() const;
 
  private:
   PipelineType type;
-  std::shared_ptr<RenderPass> renderPass;
+  std::map<std::string, std::shared_ptr<RenderPass>> renderPasses;
   vk::UniquePipelineLayout pipelineLayout;
   vk::UniquePipeline pipeline;
   vk::UniqueDescriptorSetLayout descriptorSetLayout;
