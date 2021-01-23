@@ -7,6 +7,7 @@
 
 #include "../Utils/VulkanUtils.h"
 #include "../types/Pipeline.h"
+#include "../types/RenderPass.h"
 #include <span>
 #include <vulkan/vulkan.hpp>
 
@@ -38,7 +39,7 @@ class PipelineBuilder {
   std::shared_ptr<Device> device;
   std::shared_ptr<Swapchain> swapchain;
 
-  vk::UniqueRenderPass createRenderPass();
+  std::shared_ptr<RenderPass> createRenderPass();
   vk::UniqueDescriptorSetLayout createDescriptorSetLayout();
   std::pair<vk::UniquePipelineLayout, vk::UniquePipeline>
   createGraphicsPipeline(const vk::UniqueDescriptorSetLayout &descriptorSetLayout,

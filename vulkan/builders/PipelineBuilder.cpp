@@ -5,6 +5,7 @@
 #include "PipelineBuilder.h"
 #include "../Utils/VulkanUtils.h"
 #include "../types/Types.h"
+#include "RenderPassBuilder.h"
 #include <shaderc/shaderc.h>
 #include <spdlog/spdlog.h>
 
@@ -14,10 +15,10 @@ std::shared_ptr<Pipeline> PipelineBuilder::build() {
     auto renderpass = createRenderPass();
     spdlog::debug("Created renderpass.");
     auto descriptorSetLayout = createDescriptorSetLayout();
-    auto [pipelineLayout, pipeline] = createGraphicsPipeline(descriptorSetLayout, renderpass);
+    auto [pipelineLayout, pipeline] = createGraphicsPipeline(descriptorSetLayout, renderpass->getRenderPass());
     spdlog::debug("Created graphics pipeline.");
 
-    return std::make_shared<Pipeline>(std::move(renderpass), std::move(pipelineLayout),
+    return std::make_shared<Pipeline>(renderpass, std::move(pipelineLayout),
                                       std::move(pipeline), std::move(descriptorSetLayout));
   } else {
     auto descriptorSetLayout = createDescriptorSetLayout();
@@ -32,10 +33,12 @@ std::shared_ptr<Pipeline> PipelineBuilder::build() {
 std::pair<vk::UniquePipelineLayout, vk::UniquePipeline>
 PipelineBuilder::createGraphicsPipeline(const vk::UniqueDescriptorSetLayout &descriptorSetLayout,
                                         const vk::UniqueRenderPass &renderPass) {
-  auto vertShaderModule = createShaderModule(VulkanUtils::compileShader(
-      vertexFile, shaderc_shader_kind::shaderc_vertex_shader, Utilities::readFile(vertexFile), macros));
-  auto fragShaderModule = createShaderModule(VulkanUtils::compileShader(
-      vertexFile, shaderc_shader_kind::shaderc_fragment_shader, Utilities::readFile(fragmentFile), macros));
+  auto vertShaderModule = createShaderModule(
+      VulkanUtils::compileShader(vertexFile, shaderc_shader_kind::shaderc_vertex_shader,
+                                 Utilities::readFile(vertexFile), macros));
+  auto fragShaderModule = createShaderModule(
+      VulkanUtils::compileShader(vertexFile, shaderc_shader_kind::shaderc_fragment_shader,
+                                 Utilities::readFile(fragmentFile), macros));
   auto bindingDescription = Vertex::getBindingDescription();
   auto attributeDescriptions = Vertex::getAttributeDescriptions();
 
@@ -159,8 +162,13 @@ vk::UniqueShaderModule PipelineBuilder::createShaderModule(const std::vector<uin
 
   return device->getDevice()->createShaderModuleUnique(createInfo);
 }
-vk::UniqueRenderPass PipelineBuilder::createRenderPass() {
-  vk::AttachmentDescription colorAttachment{.format = swapchain->getSwapchainImageFormat(),
+std::shared_ptr<RenderPass> PipelineBuilder::createRenderPass() {
+  auto builder = RenderPassBuilder{device}
+                     .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
+                     .setDepthAttachmentFormat(depthFormat);
+  return builder.build();
+
+  /*  vk::AttachmentDescription colorAttachment{.format = swapchain->getSwapchainImageFormat(),
                                             .samples = vk::SampleCountFlagBits::e1,
                                             .loadOp = vk::AttachmentLoadOp::eClear,
                                             .storeOp = vk::AttachmentStoreOp::eStore,
@@ -206,7 +214,7 @@ vk::UniqueRenderPass PipelineBuilder::createRenderPass() {
                                                 .dependencyCount = 1,
                                                 .pDependencies = &dependency};
 
-  return device->getDevice()->createRenderPassUnique(renderPassCreateInfo);
+  return device->getDevice()->createRenderPassUnique(renderPassCreateInfo);*/
 }
 
 vk::UniqueDescriptorSetLayout PipelineBuilder::createDescriptorSetLayout() {
@@ -227,7 +235,8 @@ vk::UniqueDescriptorSetLayout PipelineBuilder::createDescriptorSetLayout() {
 
   return device->getDevice()->createDescriptorSetLayoutUnique(layoutCreateInfo);
 }
-PipelineBuilder::PipelineBuilder(Config config, std::shared_ptr<Device> device, std::shared_ptr<Swapchain> swapchain)
+PipelineBuilder::PipelineBuilder(Config config, std::shared_ptr<Device> device,
+                                 std::shared_ptr<Swapchain> swapchain)
     : config(std::move(config)), device(std::move(device)), swapchain(std::move(swapchain)) {}
 
 PipelineBuilder &PipelineBuilder::setDepthFormat(vk::Format format) {
@@ -242,8 +251,9 @@ PipelineBuilder::setLayoutBindingInfo(const std::span<PipelineLayoutBindingInfo>
 std::pair<vk::UniquePipelineLayout, vk::UniquePipeline>
 PipelineBuilder::createComputePipeline(const vk::UniqueDescriptorSetLayout &descriptorSetLayout) {
 
-  auto computeModule = createShaderModule(VulkanUtils::compileShader(
-      computeFile, shaderc_shader_kind::shaderc_compute_shader, Utilities::readFile(computeFile), macros));
+  auto computeModule = createShaderModule(
+      VulkanUtils::compileShader(computeFile, shaderc_shader_kind::shaderc_compute_shader,
+                                 Utilities::readFile(computeFile), macros));
 
   vk::PipelineShaderStageCreateInfo pipelineShaderStageCreateInfo{
       .stage = vk::ShaderStageFlagBits::eCompute,

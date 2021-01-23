@@ -7,6 +7,7 @@
 
 #include "../../utils/Config.h"
 #include "Device.h"
+#include "RenderPass.h"
 #include "Swapchain.h"
 #include <vulkan//vulkan.hpp>
 
@@ -14,7 +15,7 @@ enum class PipelineType { Graphics, Compute };
 
 class Pipeline {
  public:
-  Pipeline(vk::UniqueRenderPass renderPass, vk::UniquePipelineLayout pipelineLayout,
+  Pipeline(std::shared_ptr<RenderPass> renderPass, vk::UniquePipelineLayout pipelineLayout,
            vk::UniquePipeline pipeline, vk::UniqueDescriptorSetLayout descriptorSetLayout);
   Pipeline(vk::UniquePipelineLayout pipelineLayout, vk::UniquePipeline pipeline,
            vk::UniqueDescriptorSetLayout descriptorSetLayout);
@@ -25,7 +26,7 @@ class Pipeline {
 
  private:
   PipelineType type;
-  vk::UniqueRenderPass renderPass;
+  std::shared_ptr<RenderPass> renderPass;
   vk::UniquePipelineLayout pipelineLayout;
   vk::UniquePipeline pipeline;
   vk::UniqueDescriptorSetLayout descriptorSetLayout;

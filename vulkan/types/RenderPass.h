@@ -11,6 +11,8 @@ class RenderPass {
  public:
   RenderPass(vk::UniqueRenderPass renderPass);
 
+  const vk::UniqueRenderPass &getRenderPass() const;
+
  private:
   vk::UniqueRenderPass renderPass;
 

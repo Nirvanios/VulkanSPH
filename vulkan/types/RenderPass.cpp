@@ -4,3 +4,4 @@
 
 #include "RenderPass.h"
 RenderPass::RenderPass(vk::UniqueRenderPass renderPass) : renderPass(std::move(renderPass)) {}
+const vk::UniqueRenderPass &RenderPass::getRenderPass() const { return renderPass; }
