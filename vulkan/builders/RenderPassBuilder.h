@@ -13,8 +13,8 @@ class RenderPassBuilder {
   RenderPassBuilder(std::shared_ptr<Device> devicePtr);
   std::shared_ptr<RenderPass> build();
 
-  void setColorAttachmentFormat(vk::Format format);
-  void setDepthAttachmentFormat(vk::Format format);
+  RenderPassBuilder &setColorAttachmentFormat(vk::Format format);
+  RenderPassBuilder &setDepthAttachmentFormat(vk::Format format);
 
  private:
   std::shared_ptr<Device> device;

@@ -58,10 +58,12 @@ RenderPassBuilder::RenderPassBuilder(std::shared_ptr<Device> devicePtr) : device
                                 .finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal};
 }
 
-void RenderPassBuilder::setColorAttachmentFormat(vk::Format format) {
+RenderPassBuilder &RenderPassBuilder::setColorAttachmentFormat(vk::Format format) {
   colorAttachmentDescription.format = format;
+  return *this;
 }
 
-void RenderPassBuilder::setDepthAttachmentFormat(vk::Format format) {
+RenderPassBuilder &RenderPassBuilder::setDepthAttachmentFormat(vk::Format format) {
   depthAttachmentDescription.format = format;
+  return *this;
 }
