@@ -162,12 +162,6 @@ vk::UniqueShaderModule PipelineBuilder::createShaderModule(const std::vector<uin
 
   return device->getDevice()->createShaderModuleUnique(createInfo);
 }
-std::shared_ptr<RenderPass> PipelineBuilder::createRenderPass() {
-  auto builder = RenderPassBuilder{device}
-                     .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
-                     .setDepthAttachmentFormat(depthFormat);
-  return builder.build();
-}
 
 vk::UniqueDescriptorSetLayout PipelineBuilder::createDescriptorSetLayout() {
 
@@ -191,10 +185,6 @@ PipelineBuilder::PipelineBuilder(Config config, std::shared_ptr<Device> device,
                                  std::shared_ptr<Swapchain> swapchain)
     : config(std::move(config)), device(std::move(device)), swapchain(std::move(swapchain)) {}
 
-PipelineBuilder &PipelineBuilder::setDepthFormat(vk::Format format) {
-  depthFormat = format;
-  return *this;
-}
 PipelineBuilder &
 PipelineBuilder::setLayoutBindingInfo(const std::span<PipelineLayoutBindingInfo> &info) {
   layoutBindingInfos = info;

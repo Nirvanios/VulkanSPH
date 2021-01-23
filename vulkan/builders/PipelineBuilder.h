@@ -24,7 +24,6 @@ class PipelineBuilder {
                   std::shared_ptr<Swapchain> swapchain);
   std::shared_ptr<Pipeline> build();
   PipelineBuilder &setLayoutBindingInfo(const std::span<PipelineLayoutBindingInfo> &info);
-  PipelineBuilder &setDepthFormat(vk::Format format);
   PipelineBuilder &setPipelineType(PipelineType type);
   PipelineBuilder &setVertexShaderPath(const std::string &path);
   PipelineBuilder &setFragmentShaderPath(const std::string &path);
@@ -40,7 +39,6 @@ class PipelineBuilder {
   std::shared_ptr<Device> device;
   std::shared_ptr<Swapchain> swapchain;
 
-  std::shared_ptr<RenderPass> createRenderPass();
   vk::UniqueDescriptorSetLayout createDescriptorSetLayout();
   std::pair<vk::UniquePipelineLayout, vk::UniquePipeline>
   createGraphicsPipeline(const vk::UniqueDescriptorSetLayout &descriptorSetLayout,
@@ -50,7 +48,6 @@ class PipelineBuilder {
   vk::UniqueShaderModule createShaderModule(const std::vector<uint32_t> &code);
 
   std::map<std::string, std::shared_ptr<RenderPass>> renderPasses;
-  vk::Format depthFormat;
   std::span<PipelineLayoutBindingInfo> layoutBindingInfos;
   std::vector<vk::PushConstantRange> pushConstantRanges;
   PipelineType pipelineType;

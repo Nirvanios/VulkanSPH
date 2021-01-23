@@ -35,7 +35,6 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
   swapchain = std::make_shared<Swapchain>(device, surface, window);
   auto pipelineBuilder =
       PipelineBuilder{config, device, swapchain}
-          .setDepthFormat(findDepthFormat())
           .setLayoutBindingInfo(bindingInfosRender)
           .setPipelineType(PipelineType::Graphics)
           .setVertexShaderPath(config.getVulkan().shaderFolder / "shader.vert")
@@ -364,7 +363,6 @@ void VulkanCore::recreateSwapchain() {
   swapchain->createImageViews();
   pipelineGraphics =
       PipelineBuilder{config, device, swapchain}
-          .setDepthFormat(findDepthFormat())
           .setLayoutBindingInfo(bindingInfosRender)
           .setPipelineType(PipelineType::Graphics)
           .setVertexShaderPath(config.getVulkan().shaderFolder / "shader.vert")
