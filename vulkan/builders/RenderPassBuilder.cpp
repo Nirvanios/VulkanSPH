@@ -10,7 +10,7 @@ std::shared_ptr<RenderPass> RenderPassBuilder::build() {
   vk::AttachmentReference colorAttachmentReference{.attachment = 0,
                                                    .layout =
                                                        vk::ImageLayout::eColorAttachmentOptimal};
-  vk::AttachmentReference depthReference{.attachment = 1,
+  vk::AttachmentReference depthReference{.attachment = (useDepth) ? 1 : VK_ATTACHMENT_UNUSED,
                                          .layout = vk::ImageLayout::eDepthStencilAttachmentOptimal};
 
   vk::SubpassDescription subpassDescription{.pipelineBindPoint = vk::PipelineBindPoint::eGraphics,
@@ -65,5 +65,6 @@ RenderPassBuilder &RenderPassBuilder::setColorAttachmentFormat(vk::Format format
 
 RenderPassBuilder &RenderPassBuilder::setDepthAttachmentFormat(vk::Format format) {
   depthAttachmentDescription.format = format;
+  useDepth = true;
   return *this;
 }
