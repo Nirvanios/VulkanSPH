@@ -40,7 +40,7 @@ void main() {
     case DRAW_PARTICLE:
       gl_Position = ubo.proj * ubo.view * ubo.model
           * (vec4(inPosition * 0.022 * 0.5, 1.0) + particleRecords[gl_InstanceIndex].position);
-      fragColor = vec4(inColor, 0.1f);
+      fragColor = vec4(inColor, 1.0f);
       break;
     case DRAW_OTHER:
       gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);

@@ -5,6 +5,8 @@
 #include "Swapchain.h"
 #include <spdlog/spdlog.h>
 
+#include <utility>
+
 SwapChainSupportDetails Swapchain::querySwapChainSupport(vk::PhysicalDevice physicalDevice,
                                                          const vk::UniqueSurfaceKHR &surface) {
   SwapChainSupportDetails details;
@@ -101,16 +103,16 @@ void Swapchain::createSwapchain() {
   auto images = device->getDevice()->getSwapchainImagesKHR(swapchain.get());
   swapchainImages.clear();
   for (const auto &image : images) {
-    swapchainImages.emplace_back(image, swapchainImageFormat, width, height,
-                                 vk::ImageAspectFlagBits::eColor);
+    swapchainImages.emplace_back(std::make_shared<Image>(image, swapchainImageFormat, width, height,
+                                 vk::ImageAspectFlagBits::eColor, vk::ImageLayout::ePresentSrcKHR));
   }
 }
 
 Swapchain::Swapchain(std::shared_ptr<Device> device, const vk::UniqueSurfaceKHR &surface,
                      const GlfwWindow &window)
-    : device(device), window(window), surface(surface) {
+    : device(std::move(device)), window(window), surface(surface) {
   createSwapchain();
-  spdlog::debug("Created swapchain.");
+  spdlog::debug("Created image.");
   createImageViews();
   spdlog::debug("Created imageviews.");
 }
@@ -121,7 +123,7 @@ void Swapchain::createImageViews() {
   swapChainImageViews.clear();
   for (const auto &swapchainImage : swapchainImages) {
     vk::ImageViewCreateInfo createInfo{
-        .image = swapchainImage.getRawImage(),
+        .image = swapchainImage->getRawImage(),
         .viewType = vk::ImageViewType::e2D,
         .format = swapchainImageFormat,
         .components = {.r = vk::ComponentSwizzle::eIdentity,
@@ -134,6 +136,7 @@ void Swapchain::createImageViews() {
                              .baseArrayLayer = 0,
                              .layerCount = 1}};
     swapChainImageViews.emplace_back(device->getDevice()->createImageViewUnique(createInfo));
+    swapchainImage->createImageView(device, createInfo);
   }
 }
 
@@ -151,4 +154,4 @@ int Swapchain::getExtentWidth() const { return swapchainExtent.width; }
 
 int Swapchain::getExtentHeight() const { return swapchainExtent.height; }
 
-const std::vector<Image> &Swapchain::getSwapchainImages() const { return swapchainImages; }
+const std::vector<std::shared_ptr<Image>> &Swapchain::getSwapchainImages() const { return swapchainImages; }

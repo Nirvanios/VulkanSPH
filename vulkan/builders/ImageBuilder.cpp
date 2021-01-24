@@ -15,7 +15,7 @@ std::shared_ptr<Image> ImageBuilder::build(const std::shared_ptr<Device> &device
       .tiling = imageTiling,
       .usage = imageUsage,
       .sharingMode = vk::SharingMode::eExclusive,
-      .initialLayout = vk::ImageLayout::eUndefined};
+      .initialLayout = initialLayout};
   auto image = device->getDevice()->createImageUnique(imageCreateInfo);
 
   auto memRequirements = device->getDevice()->getImageMemoryRequirements(image.get());
@@ -26,7 +26,7 @@ std::shared_ptr<Image> ImageBuilder::build(const std::shared_ptr<Device> &device
   auto imageMemory = device->getDevice()->allocateMemoryUnique(allocateInfo);
   device->getDevice()->bindImageMemory(image.get(), imageMemory.get(), 0);
   auto builtImage = std::make_shared<Image>(std::move(image), std::move(imageMemory), imageFormat,
-                                            imageWidth, imageHeight, imageAspect);
+                                            imageWidth, imageHeight, imageAspect, initialLayout);
 
   if (createImageView) builtImage->createImageView(device, imageAspect);
 

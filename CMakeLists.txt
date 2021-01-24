@@ -138,7 +138,7 @@ add_executable(VulkanApp main.cpp
         utils/saver/SaverTypes.h vulkan/VulkanSort.cpp vulkan/VulkanSort.h vulkan/VulkanSPH.cpp vulkan/VulkanSPH.h
         vulkan/VulkanGridSPH.cpp vulkan/VulkanGridSPH.h ui/ImGuiGlfwVulkan.cpp ui/ImGuiGlfwVulkan.h
         Third\ Party/imgui/imgui_impl_glfw.cpp Third\ Party/imgui/imgui_impl_vulkan.cpp utils/FPSCounter.cpp utils/FPSCounter.h
-        vulkan/types/RenderPass.cpp vulkan/types/RenderPass.h vulkan/builders/RenderPassBuilder.cpp vulkan/builders/RenderPassBuilder.h)
+        vulkan/types/RenderPass.cpp vulkan/types/RenderPass.h vulkan/builders/RenderPassBuilder.cpp vulkan/builders/RenderPassBuilder.h vulkan/types/TextureSampler.cpp vulkan/types/TextureSampler.h)
 
 
 target_link_libraries(VulkanApp PUBLIC

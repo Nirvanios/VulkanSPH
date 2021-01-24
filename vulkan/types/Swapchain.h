@@ -26,7 +26,7 @@ class Swapchain {
   [[nodiscard]] size_t getSwapchainImageCount() const;
   [[nodiscard]] int getExtentWidth() const;
   [[nodiscard]] int getExtentHeight() const;
-  [[nodiscard]] const std::vector<Image> &getSwapchainImages() const;
+  [[nodiscard]] const std::vector<std::shared_ptr<Image>> &getSwapchainImages() const;
 
   void createSwapchain();
   void createImageViews();
@@ -46,7 +46,7 @@ class Swapchain {
   vk::Format swapchainImageFormat;
   vk::Extent2D swapchainExtent;
   vk::UniqueSwapchainKHR swapchain;
-  std::vector<Image> swapchainImages;
+  std::vector<std::shared_ptr<Image>> swapchainImages;
   std::vector<vk::UniqueImageView> swapChainImageViews;
 
   std::shared_ptr<Device> device;

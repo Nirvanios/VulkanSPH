@@ -6,15 +6,19 @@
 #include "../Utils/VulkanUtils.h"
 
 Image::Image(vk::UniqueImage image, vk::UniqueDeviceMemory imageMemory, vk::Format format,
-             int width, int height, const vk::ImageAspectFlags &aspect)
-    : imageRaw(image.get()), image(std::move(image)), imageMemory(std::move(imageMemory)), imageAspect(aspect),
-      imageFormat(format), width(width), height(height) {
-}
+             int width, int height, const vk::ImageAspectFlags &aspect, vk::ImageLayout imageLayout)
+    : imageRaw(image.get()), image(std::move(image)), imageMemory(std::move(imageMemory)),
+      imageAspect(aspect), imageFormat(format), layout(imageLayout), width(width), height(height) {}
 
 Image::Image(vk::UniqueImage image, vk::Format imageFormat, int width, int height,
-             const vk::ImageAspectFlags &aspect)
-    : imageRaw(image.get()), image(std::move(image)), imageAspect(aspect), imageFormat(imageFormat), width(width),
-      height(height) {}
+             const vk::ImageAspectFlags &aspect, vk::ImageLayout imageLayout)
+    : imageRaw(image.get()), image(std::move(image)), imageAspect(aspect), imageFormat(imageFormat),
+      layout(imageLayout), width(width), height(height) {}
+
+Image::Image(const vk::Image &image, vk::Format imageFormat, int width, int height,
+             const vk::ImageAspectFlags &aspect, vk::ImageLayout imageLayout)
+    : imageRaw(image), imageAspect(aspect), imageFormat(imageFormat), layout(imageLayout),
+      width(width), height(height) {}
 
 void Image::transitionImageLayoutNow(const std::shared_ptr<Device> &device,
                                      const vk::UniqueCommandPool &commandPool,
@@ -77,12 +81,13 @@ void Image::transitionImageLayoutNow(const std::shared_ptr<Device> &device,
                                  &barrier);
 
   VulkanUtils::endOnetimeCommand(std::move(commandBuffer), queue);
+  layout = newLayout;
 }
 
 void Image::transitionImageLayout(const vk::UniqueCommandBuffer &commandBuffer,
                                   vk::ImageLayout oldLayout, vk::ImageLayout newLayout,
                                   const vk::AccessFlags &srcAccessFlags,
-                                  const vk::AccessFlags &dstAccessFlags) const {
+                                  const vk::AccessFlags &dstAccessFlags) {
   vk::ImageMemoryBarrier imageMemoryBarrier{.srcAccessMask = srcAccessFlags,
                                             .dstAccessMask = dstAccessFlags,
                                             .oldLayout = oldLayout,
@@ -99,6 +104,7 @@ void Image::transitionImageLayout(const vk::UniqueCommandBuffer &commandBuffer,
   commandBuffer->pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
                                  vk::PipelineStageFlagBits::eTransfer, {}, 0, nullptr, 0, nullptr,
                                  1, &imageMemoryBarrier);
+  layout = newLayout;
 }
 
 void Image::createImageView(const std::shared_ptr<Device> &device,
@@ -114,17 +120,22 @@ void Image::createImageView(const std::shared_ptr<Device> &device,
   imageView = device->getDevice()->createImageViewUnique(viewCreateInfo);
 }
 
+void Image::createImageView(const std::shared_ptr<Device> &device,
+                            const vk::ImageViewCreateInfo &createInfo) {
+  imageView = device->getDevice()->createImageViewUnique(createInfo);
+}
+
 const vk::UniqueImageView &Image::getImageView() const { return imageView; }
 
 const vk::UniqueHandle<vk::Image, vk::DispatchLoaderStatic> &Image::getImage() const {
   return image;
 }
 
-const vk::Image &Image::getRawImage() const {
-  return imageRaw;
-}
+const vk::Image &Image::getRawImage() const { return imageRaw; }
 
-Image::Image(const vk::Image &image, vk::Format imageFormat, int width, int height,
-             const vk::ImageAspectFlags &aspect)
-    : imageRaw(image), imageAspect(aspect), imageFormat(imageFormat), width(width),
-      height(height) {}
+vk::Extent3D Image::getExtent() const {
+  return vk::Extent3D{.width = static_cast<uint32_t>(width),
+                      .height = static_cast<uint32_t>(height),
+                      .depth = static_cast<uint32_t>(depth)};
+}
+vk::ImageLayout Image::getLayout() const { return layout; }

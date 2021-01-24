@@ -29,6 +29,7 @@
 #include "types/Instance.h"
 #include "types/Pipeline.h"
 #include "types/Swapchain.h"
+#include "types/TextureSampler.h"
 #include "types/Types.h"
 
 class VulkanCore {
@@ -86,7 +87,8 @@ class VulkanCore {
   std::shared_ptr<Pipeline> pipelineGraphics;
   std::shared_ptr<Pipeline> pipelineGraphicsGrid;
 
-  std::shared_ptr<Framebuffers> framebuffers;
+  std::shared_ptr<Framebuffers> framebuffersSwapchain;
+  std::shared_ptr<Framebuffers> framebuffersTexture;
   vk::UniqueCommandPool commandPoolGraphics;
   std::vector<vk::UniqueCommandBuffer> commandBuffersGraphic;
 
@@ -107,9 +109,14 @@ class VulkanCore {
   vk::UniqueDescriptorPool descriptorPool;
   std::shared_ptr<DescriptorSet> descriptorSetGraphics;
 
-  std::shared_ptr<Image> imageDepth;
+  std::shared_ptr<Image> imageDepthSwapchain;
+  std::vector<std::shared_ptr<Image>> imageColorTexture;
+  std::shared_ptr<Image> imageDepthTexture;
   std::shared_ptr<Image> imageOutput;
   std::shared_ptr<Image> stagingImage;
+
+  std::shared_ptr<TextureSampler> textureSampler;
+
   const Config &config;
   GlfwWindow &window;
 
@@ -147,6 +154,7 @@ class VulkanCore {
 
   void recreateSwapchain();
 
+  void createTextureImages();
 };
 
 #endif//VULKANAPP_VULKANCORE_H

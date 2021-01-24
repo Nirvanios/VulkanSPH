@@ -17,6 +17,7 @@
 #include "builders/RenderPassBuilder.h"
 #include <glm/gtx/component_wise.hpp>
 #include <pf_imgui/elements.h>
+#include "../Third Party/imgui/imgui_impl_vulkan.h"
 #include <plf_nanotimer.h>
 
 void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
@@ -40,7 +41,12 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
           .setVertexShaderPath(config.getVulkan().shaderFolder / "shader.vert")
           .setFragmentShaderPath(config.getVulkan().shaderFolder / "shader.frag")
           .addPushConstant(vk::ShaderStageFlagBits::eVertex, sizeof(int))
-          .addRenderPass("toFramebuffer",
+          .addRenderPass("toSwapchain",
+                         RenderPassBuilder{device}
+                             .setDepthAttachmentFormat(findDepthFormat())
+                             .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
+                             .build())
+          .addRenderPass("toTexture",
                          RenderPassBuilder{device}
                              .setDepthAttachmentFormat(findDepthFormat())
                              .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
@@ -50,8 +56,13 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
       pipelineBuilder.setAssemblyInfo(vk::PrimitiveTopology::eLineStrip, true).build();
   createCommandPool();
   createDepthResources();
-  framebuffers = std::make_shared<Framebuffers>(
-      device, swapchain, pipelineGraphics->getRenderPass(""), imageDepth->getImageView());
+  createTextureImages();
+  framebuffersSwapchain = std::make_shared<Framebuffers>(
+      device, swapchain->getSwapchainImages(), pipelineGraphics->getRenderPass("toSwapchain"),
+      imageDepthSwapchain->getImageView());
+  framebuffersTexture = std::make_shared<Framebuffers>(device, imageColorTexture,
+                                                       pipelineGraphics->getRenderPass("toTexture"),
+                                                       imageDepthSwapchain->getImageView());
   createVertexBuffer(modelParticle);
   createIndexBuffer(modelParticle);
   createUniformBuffers();
@@ -94,6 +105,7 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
   descriptorSetGraphics->updateDescriptorSet(descriptorBufferInfosGraphic, bindingInfosRender);
   createOutputImage();
   spdlog::debug("Created command pool");
+  textureSampler = std::make_shared<TextureSampler>(device);
   initGui();
   window.setIgnorePredicate(
       [this]() { return imgui->isWindowHovered() || imgui->isKeyboardCaptured(); });
@@ -150,7 +162,7 @@ void VulkanCore::createCommandPool() {
 }
 void VulkanCore::createCommandBuffers() {
   commandBuffersGraphic.clear();
-  commandBuffersGraphic.resize(framebuffers->getFramebufferImageCount());
+  commandBuffersGraphic.resize(framebuffersSwapchain->getFramebufferImageCount());
 
   commandBuffersGraphic =
       device->allocateCommandBuffer(commandPoolGraphics, commandBuffersGraphic.size());
@@ -164,7 +176,8 @@ void VulkanCore::recordCommandBuffers() {
   int drawType2 = 1;
   std::array<vk::Buffer, 1> vertexBuffers{bufferVertex->getBuffer().get()};
   std::array<vk::DeviceSize, 1> offsets{0};
-  auto &swapchainFramebuffers = framebuffers->getSwapchainFramebuffers();
+  auto &swapchainFramebuffers = framebuffersSwapchain->getFramebuffers();
+  auto &textureFramebuffers = framebuffersTexture->getFramebuffers();
   for (auto &commandBufferGraphics : commandBuffersGraphic) {
     vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse,
                                          .pInheritanceInfo = nullptr};
@@ -211,8 +224,29 @@ void VulkanCore::recordCommandBuffers() {
     imgui->addToCommandBuffer(commandBufferGraphics);
     commandBufferGraphics->endRenderPass();
 
+    renderPassBeginInfo.renderPass = pipelineGraphics->getRenderPass("toTexture");
+    renderPassBeginInfo.framebuffer = textureFramebuffers[i].get();
+
+    commandBufferGraphics->beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
+    commandBufferGraphics->bindPipeline(vk::PipelineBindPoint::eGraphics,
+                                        pipelineGraphics->getPipeline().get());
+    commandBufferGraphics->bindVertexBuffers(0, 1, vertexBuffers.data(), offsets.data());
+    commandBufferGraphics->bindIndexBuffer(bufferIndex->getBuffer().get(), 0,
+                                           vk::IndexType::eUint16);
+    commandBufferGraphics->bindDescriptorSets(
+        vk::PipelineBindPoint::eGraphics, pipelineGraphics->getPipelineLayout().get(), 0, 1,
+        &descriptorSetGraphics->getDescriptorSets()[i].get(), 0, nullptr);
+    drawType = 0;
+    commandBufferGraphics->pushConstants(pipelineGraphics->getPipelineLayout().get(),
+                                         vk::ShaderStageFlagBits::eVertex, 0, sizeof(int),
+                                         &drawType);
+
+    commandBufferGraphics->drawIndexed(indicesSize[0], config.getApp().simulation.particleCount, 0,
+                                       0, 0);
+    commandBufferGraphics->endRenderPass();
+
     if (config.getApp().outputToFile) {
-      swapchain->getSwapchainImages()[i].transitionImageLayout(
+      swapchain->getSwapchainImages()[i]->transitionImageLayout(
           commandBufferGraphics, vk::ImageLayout::ePresentSrcKHR,
           vk::ImageLayout::eTransferSrcOptimal, vk::AccessFlagBits::eMemoryRead,
           vk::AccessFlagBits::eTransferRead);
@@ -232,11 +266,11 @@ void VulkanCore::recordCommandBuffers() {
           .dstOffsets = offset};
 
       commandBufferGraphics->blitImage(
-          swapchain->getSwapchainImages()[i].getRawImage(), vk::ImageLayout::eTransferSrcOptimal,
+          swapchain->getSwapchainImages()[i]->getRawImage(), vk::ImageLayout::eTransferSrcOptimal,
           stagingImage->getImage().get(), vk::ImageLayout::eTransferDstOptimal, 1, &imageBlitRegion,
           vk::Filter::eLinear);
 
-      swapchain->getSwapchainImages()[i].transitionImageLayout(
+      swapchain->getSwapchainImages()[i]->transitionImageLayout(
           commandBufferGraphics, vk::ImageLayout::eTransferSrcOptimal,
           vk::ImageLayout::ePresentSrcKHR, vk::AccessFlagBits::eTransferRead,
           vk::AccessFlagBits::eMemoryRead);
@@ -367,13 +401,18 @@ void VulkanCore::recreateSwapchain() {
           .setPipelineType(PipelineType::Graphics)
           .setVertexShaderPath(config.getVulkan().shaderFolder / "shader.vert")
           .setFragmentShaderPath(config.getVulkan().shaderFolder / "shader.frag")
-          .addRenderPass("toFramebuffer",
+          .addRenderPass("toSwapchain",
+                         RenderPassBuilder{device}
+                             .setDepthAttachmentFormat(findDepthFormat())
+                             .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
+                             .build())
+          .addRenderPass("toTexture",
                          RenderPassBuilder{device}
                              .setDepthAttachmentFormat(findDepthFormat())
                              .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
                              .build())
           .build();
-  framebuffers->createFramebuffers();
+  framebuffersSwapchain->createFramebuffers();
   createUniformBuffers();
   createDescriptorPool();
   //    createDescriptorSet();
@@ -502,20 +541,25 @@ void VulkanCore::createDescriptorPool() {
 }
 
 void VulkanCore::createDepthResources() {
-  imageDepth = ImageBuilder()
-                   .createView(true)
-                   .setImageViewAspect(vk::ImageAspectFlagBits::eDepth)
-                   .setFormat(findDepthFormat())
-                   .setHeight(swapchain->getExtentHeight())
-                   .setWidth(swapchain->getExtentWidth())
-                   .setProperties(vk::MemoryPropertyFlagBits::eDeviceLocal)
-                   .setTiling(vk::ImageTiling::eOptimal)
-                   .setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment)
-                   .build(device);
+  auto builder = ImageBuilder()
+                     .createView(true)
+                     .setImageViewAspect(vk::ImageAspectFlagBits::eDepth)
+                     .setFormat(findDepthFormat())
+                     .setHeight(swapchain->getExtentHeight())
+                     .setWidth(swapchain->getExtentWidth())
+                     .setProperties(vk::MemoryPropertyFlagBits::eDeviceLocal)
+                     .setTiling(vk::ImageTiling::eOptimal)
+                     .setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment);
 
-  imageDepth->transitionImageLayoutNow(device, commandPoolGraphics, queueGraphics,
-                                       vk::ImageLayout::eUndefined,
-                                       vk::ImageLayout::eDepthStencilAttachmentOptimal);
+  imageDepthSwapchain = builder.build(device);
+  imageDepthTexture = builder.build(device);
+
+  imageDepthSwapchain->transitionImageLayoutNow(device, commandPoolGraphics, queueGraphics,
+                                                vk::ImageLayout::eUndefined,
+                                                vk::ImageLayout::eDepthStencilAttachmentOptimal);
+  imageDepthTexture->transitionImageLayoutNow(device, commandPoolGraphics, queueGraphics,
+                                              vk::ImageLayout::eUndefined,
+                                              vk::ImageLayout::eDepthStencilAttachmentOptimal);
 }
 
 vk::Format VulkanCore::findDepthFormat() {
@@ -580,4 +624,32 @@ void VulkanCore::initGui() {
     }
   });
   stepButton.addClickListener([this]() { step = true; });
+  controlWindow.createChild<ig::Image>(
+      "image_debug",
+      [&] {
+        return (ImTextureID) ImGui_ImplVulkan_AddTexture(
+            textureSampler->getSampler().get(),
+            imageColorTexture[currentFrame]->getImageView().get(),
+            static_cast<VkImageLayout>(imageColorTexture[currentFrame]->getLayout()));
+      }(),
+      ImVec2{200, 200}, ig::IsButton::No,
+      [] {
+        return std::pair(ImVec2{0, 0}, ImVec2{1, 1});
+      });
+}
+
+void VulkanCore::createTextureImages() {
+  imageColorTexture.clear();
+  auto builder = ImageBuilder()
+                     .createView(true)
+                     .setFormat(swapchain->getSwapchainImageFormat())
+                     .setHeight(swapchain->getExtentHeight())
+                     .setWidth(swapchain->getExtentWidth())
+                     .setProperties(vk::MemoryPropertyFlagBits::eDeviceLocal)
+                     .setTiling(vk::ImageTiling::eOptimal)
+                     .setUsage(vk::ImageUsageFlagBits::eSampled
+                               | vk::ImageUsageFlagBits::eColorAttachment);
+  for (auto _ : swapchain->getSwapchainImages()) {
+    imageColorTexture.emplace_back(builder.build(device));
+  }
 }

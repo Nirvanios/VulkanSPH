@@ -34,7 +34,7 @@ void Device::pickPhysicalDevice() {
         }
         return properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu
             && features.geometryShader && findQueueFamilies(phyDevice, surface).isComplete()
-            && extensionsSupported && swapchainAdequate;
+            && extensionsSupported && swapchainAdequate && features.samplerAnisotropy;
       });
 
   if (it == devices.end()) { throw std::runtime_error("Failed to find suitable GPU!"); }
@@ -78,7 +78,7 @@ void Device::createLogicalDevice() {
                                               .pQueuePriorities = &priority};
     queueCreateInfos.emplace_back(queueCreateInfo);
   }
-  vk::PhysicalDeviceFeatures deviceFeatures{};
+  vk::PhysicalDeviceFeatures deviceFeatures{.samplerAnisotropy = VK_TRUE};
   vk::DeviceCreateInfo createInfo{
       .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
       .pQueueCreateInfos = queueCreateInfos.data(),
