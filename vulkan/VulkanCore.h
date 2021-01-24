@@ -64,8 +64,9 @@ class VulkanCore {
   static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
   int currentFrame = 0;
   bool framebufferResized = false;
-  std::vector<int> indicesSize;
-  std::vector<int> verticesSize;
+  std::vector<int> indicesByteOffsets;
+  std::vector<int> indicesSizes;
+  std::vector<int> verticesCountOffset;
 
 
   double time = 0;
