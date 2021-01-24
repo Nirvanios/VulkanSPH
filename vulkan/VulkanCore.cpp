@@ -140,7 +140,7 @@ void VulkanCore::mainLoop() {
 void VulkanCore::cleanup() {}
 
 VulkanCore::VulkanCore(const Config &config, GlfwWindow &window, const glm::vec3 &cameraPos)
-    : indicesSize(0), cameraPos(cameraPos), config(config), window(window) {}
+    : indicesByteOffsets(0), cameraPos(cameraPos), config(config), window(window) {}
 
 void VulkanCore::createSurface() {
   VkSurfaceKHR tmpSurface;
@@ -209,18 +209,18 @@ void VulkanCore::recordCommandBuffers() {
                                          vk::ShaderStageFlagBits::eVertex, 0, sizeof(int),
                                          &drawType);
 
-    commandBufferGraphics->drawIndexed(indicesSize[0], config.getApp().simulation.particleCount, 0,
+    commandBufferGraphics->drawIndexed(indicesSizes[0], config.getApp().simulation.particleCount, 0,
                                        0, 0);
 
     commandBufferGraphics->bindPipeline(vk::PipelineBindPoint::eGraphics,
                                         pipelineGraphicsGrid->getPipeline().get());
     drawType = 1;
-    commandBufferGraphics->bindIndexBuffer(bufferIndex->getBuffer().get(), 2880 * sizeof(uint16_t),
+    commandBufferGraphics->bindIndexBuffer(bufferIndex->getBuffer().get(), indicesByteOffsets[1],
                                            vk::IndexType::eUint16);
     commandBufferGraphics->pushConstants(pipelineGraphicsGrid->getPipelineLayout().get(),
                                          vk::ShaderStageFlagBits::eVertex, 0, sizeof(int),
                                          &drawType2);
-    commandBufferGraphics->drawIndexed(24, 1, 0, 2880, 0);
+    commandBufferGraphics->drawIndexed(indicesSizes[0], 1, 0, verticesCountOffset[1], 0);
     imgui->addToCommandBuffer(commandBufferGraphics);
     commandBufferGraphics->endRenderPass();
 
@@ -426,6 +426,7 @@ void VulkanCore::setFramebufferResized(bool resized) { VulkanCore::framebufferRe
 void VulkanCore::createVertexBuffer(const std::vector<Model> &models) {
   auto size = 0;
   auto offset = 0;
+  auto offsetCount = 0;
   std::for_each(models.begin(), models.end(),
                 [&](const auto &model) { size += model.vertices.size(); });
 
@@ -438,9 +439,10 @@ void VulkanCore::createVertexBuffer(const std::vector<Model> &models) {
       device, commandPoolGraphics, queueGraphics);
 
   std::for_each(models.begin(), models.end(), [&](const auto &model) {
+    verticesCountOffset.emplace_back(offsetCount);
     bufferVertex->fill(model.vertices, true, offset);
     offset += model.vertices.size() * sizeof(Vertex);
-    verticesSize.emplace_back(offset);
+    offsetCount += model.vertices.size();
   });
 }
 
@@ -457,9 +459,10 @@ void VulkanCore::createIndexBuffer(const std::vector<Model> &models) {
           .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
       device, commandPoolGraphics, queueGraphics);
   std::for_each(models.begin(), models.end(), [&](const auto &model) {
+    indicesByteOffsets.emplace_back(offset);
+    indicesSizes.emplace_back(model.indices.size());
     bufferIndex->fill(model.indices, true, offset);
     offset += model.indices.size() * sizeof(uint16_t);
-    indicesSize.emplace_back(model.indices.size());
   });
   size = 0;
 }
