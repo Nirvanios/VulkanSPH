@@ -201,7 +201,7 @@ void VulkanCore::recordCommandBuffers() {
     commandBufferGraphics->pushConstants(pipelineGraphicsGrid->getPipelineLayout().get(),
                                          vk::ShaderStageFlagBits::eVertex, 0, sizeof(int),
                                          &drawType2);
-    commandBufferGraphics->drawIndexed(indicesSizes[0], 1, 0, verticesCountOffset[1], 0);
+    commandBufferGraphics->drawIndexed(indicesSizes[1], 1, 0, verticesCountOffset[1], 0);
     imgui->addToCommandBuffer(commandBufferGraphics);
     commandBufferGraphics->endRenderPass();
 
