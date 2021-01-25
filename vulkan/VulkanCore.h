@@ -21,6 +21,7 @@
 #include "VulkanSPH.h"
 #include "VulkanSort.h"
 #include "builders/PipelineBuilder.h"
+#include "enums.h"
 #include "types/Buffer.h"
 #include "types/DescriptorSet.h"
 #include "types/Device.h"
@@ -74,6 +75,7 @@ class VulkanCore {
   uint steps = 0;
   bool simulate = false;
   bool step = false;
+  Visualization textureVisualization;
 
   std::function<glm::mat4()> viewMatrixGetter = []() { return glm::mat4(1.0f); };
   const glm::vec3 &cameraPos;

@@ -38,7 +38,7 @@ struct ParticleRecord {
   float massDensity;
   float pressure;
   int gridID;
-  int dummy;
+  float pressureForceLength;
 };
 
 #define WALL_DAMPING 0.3f
@@ -130,12 +130,9 @@ void main() {
 #endif
 
     particleRecords[myId].massDensity = massDensity;
-    //debugPrintfEXT("ID %d particle counted: %d", myId, count);
-    /*if (massDensity != massDensity2 && myId == 2)
-      debugPrintfEXT("ID: %d | massD1: %f massD2 %f", myId, massDensity, massDensity2); */
-    particleRecords[myId].dummy = count;
 
     particleRecords[myId].pressure =
         simulationInfo.gasStiffnessConstant * (massDensity - simulationInfo.restDensity);
+    //debugPrintfEXT("ID %d particle pressure: %f massDensity: %f", myId, particleRecords[myId].pressure, massDensity);
   }
 }

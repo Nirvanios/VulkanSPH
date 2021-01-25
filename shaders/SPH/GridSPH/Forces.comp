@@ -51,7 +51,7 @@ struct ParticleRecord {
   float massDensity;
   float pressure;
   int gridID;
-  float dummy;
+  float pressureForceLength;
 };
 
 #define WALL_DAMPING 0.3f
@@ -154,6 +154,8 @@ void main() {
 
     viscosityForce *= simulationInfo.viscosityCoefficient;
     vec4 internalForces = pressureForce + viscosityForce;
+    particleRecords[myId].pressureForceLength = length(pressureForce);
+    
 
     /**
         * EXTERNAL FORCES

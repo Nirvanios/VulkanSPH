@@ -15,10 +15,13 @@
 #include "builders/ImageBuilder.h"
 #include "builders/PipelineBuilder.h"
 #include "builders/RenderPassBuilder.h"
+#include "enums.h"
 #include <glm/gtx/component_wise.hpp>
+#include <magic_enum.hpp>
 #include <pf_imgui/elements.h>
-#include "../Third Party/imgui/imgui_impl_vulkan.h"
 #include <plf_nanotimer.h>
+
+#include "../Third Party/imgui/imgui_impl_vulkan.h"
 
 void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
                             const std::vector<ParticleRecord> particles,
@@ -40,7 +43,7 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
           .setPipelineType(PipelineType::Graphics)
           .setVertexShaderPath(config.getVulkan().shaderFolder / "shader.vert")
           .setFragmentShaderPath(config.getVulkan().shaderFolder / "shader.frag")
-          .addPushConstant(vk::ShaderStageFlagBits::eVertex, sizeof(int))
+          .addPushConstant(vk::ShaderStageFlagBits::eVertex, sizeof(DrawInfo))
           .addRenderPass("toSwapchain",
                          RenderPassBuilder{device}
                              .setDepthAttachmentFormat(findDepthFormat())
@@ -172,13 +175,13 @@ void VulkanCore::createCommandBuffers() {
 
 void VulkanCore::recordCommandBuffers() {
   int i = 0;
-  int drawType = 0;
-  int drawType2 = 1;
   std::array<vk::Buffer, 1> vertexBuffers{bufferVertex->getBuffer().get()};
   std::array<vk::DeviceSize, 1> offsets{0};
   auto &swapchainFramebuffers = framebuffersSwapchain->getFramebuffers();
   auto &textureFramebuffers = framebuffersTexture->getFramebuffers();
   for (auto &commandBufferGraphics : commandBuffersGraphic) {
+    DrawInfo drawInfo{.drawType = magic_enum::enum_integer(DrawType::Particles),
+                      .visualization = magic_enum::enum_integer(Visualization::None)};
     vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse,
                                          .pInheritanceInfo = nullptr};
 
@@ -204,28 +207,29 @@ void VulkanCore::recordCommandBuffers() {
     commandBufferGraphics->bindDescriptorSets(
         vk::PipelineBindPoint::eGraphics, pipelineGraphics->getPipelineLayout().get(), 0, 1,
         &descriptorSetGraphics->getDescriptorSets()[i].get(), 0, nullptr);
-    drawType = 0;
+    drawInfo.drawType = magic_enum::enum_integer(DrawType::Particles);
     commandBufferGraphics->pushConstants(pipelineGraphics->getPipelineLayout().get(),
-                                         vk::ShaderStageFlagBits::eVertex, 0, sizeof(int),
-                                         &drawType);
+                                         vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawInfo),
+                                         &drawInfo);
 
     commandBufferGraphics->drawIndexed(indicesSizes[0], config.getApp().simulation.particleCount, 0,
                                        0, 0);
 
     commandBufferGraphics->bindPipeline(vk::PipelineBindPoint::eGraphics,
                                         pipelineGraphicsGrid->getPipeline().get());
-    drawType = 1;
+    drawInfo.drawType = magic_enum::enum_integer(DrawType::Grid);
     commandBufferGraphics->bindIndexBuffer(bufferIndex->getBuffer().get(), indicesByteOffsets[1],
                                            vk::IndexType::eUint16);
     commandBufferGraphics->pushConstants(pipelineGraphicsGrid->getPipelineLayout().get(),
-                                         vk::ShaderStageFlagBits::eVertex, 0, sizeof(int),
-                                         &drawType2);
+                                         vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawInfo),
+                                         &drawInfo);
     commandBufferGraphics->drawIndexed(indicesSizes[1], 1, 0, verticesCountOffset[1], 0);
     imgui->addToCommandBuffer(commandBufferGraphics);
     commandBufferGraphics->endRenderPass();
 
     renderPassBeginInfo.renderPass = pipelineGraphics->getRenderPass("toTexture");
     renderPassBeginInfo.framebuffer = textureFramebuffers[i].get();
+    drawInfo.visualization = magic_enum::enum_integer(textureVisualization);
 
     commandBufferGraphics->beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
     commandBufferGraphics->bindPipeline(vk::PipelineBindPoint::eGraphics,
@@ -236,10 +240,11 @@ void VulkanCore::recordCommandBuffers() {
     commandBufferGraphics->bindDescriptorSets(
         vk::PipelineBindPoint::eGraphics, pipelineGraphics->getPipelineLayout().get(), 0, 1,
         &descriptorSetGraphics->getDescriptorSets()[i].get(), 0, nullptr);
-    drawType = 0;
+
+    drawInfo.drawType = magic_enum::enum_integer(DrawType::Particles);
     commandBufferGraphics->pushConstants(pipelineGraphics->getPipelineLayout().get(),
-                                         vk::ShaderStageFlagBits::eVertex, 0, sizeof(int),
-                                         &drawType);
+                                         vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawInfo),
+                                         &drawInfo);
 
     commandBufferGraphics->drawIndexed(indicesSizes[0], config.getApp().simulation.particleCount, 0,
                                        0, 0);
@@ -627,7 +632,21 @@ void VulkanCore::initGui() {
     }
   });
   stepButton.addClickListener([this]() { step = true; });
-  controlWindow.createChild<ig::Image>(
+
+  auto &debugVisualizationWindow =
+      imgui->createChild<ig::Window>("window_visualization", "Visualization");
+  debugVisualizationWindow
+      .createChild<ig::ComboBox>("combobox_visualization", "Show", "None",
+                                 [] {
+                                   auto names = magic_enum::enum_names<Visualization>();
+                                   return std::vector<std::string>{names.begin(), names.end()};
+                                 }())
+      .addValueListener([this](auto value) {
+        auto selected = magic_enum::enum_cast<Visualization>(value);
+        textureVisualization = selected.has_value() ? selected.value() : Visualization::None;
+      });
+  textureVisualization = Visualization::None;
+  debugVisualizationWindow.createChild<ig::Image>(
       "image_debug",
       [&] {
         return (ImTextureID) ImGui_ImplVulkan_AddTexture(
@@ -643,15 +662,15 @@ void VulkanCore::initGui() {
 
 void VulkanCore::createTextureImages() {
   imageColorTexture.clear();
-  auto builder = ImageBuilder()
-                     .createView(true)
-                     .setFormat(swapchain->getSwapchainImageFormat())
-                     .setHeight(swapchain->getExtentHeight())
-                     .setWidth(swapchain->getExtentWidth())
-                     .setProperties(vk::MemoryPropertyFlagBits::eDeviceLocal)
-                     .setTiling(vk::ImageTiling::eOptimal)
-                     .setUsage(vk::ImageUsageFlagBits::eSampled
-                               | vk::ImageUsageFlagBits::eColorAttachment);
+  auto builder =
+      ImageBuilder()
+          .createView(true)
+          .setFormat(swapchain->getSwapchainImageFormat())
+          .setHeight(swapchain->getExtentHeight())
+          .setWidth(swapchain->getExtentWidth())
+          .setProperties(vk::MemoryPropertyFlagBits::eDeviceLocal)
+          .setTiling(vk::ImageTiling::eOptimal)
+          .setUsage(vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eColorAttachment);
   for (auto _ : swapchain->getSwapchainImages()) {
     imageColorTexture.emplace_back(builder.build(device));
   }

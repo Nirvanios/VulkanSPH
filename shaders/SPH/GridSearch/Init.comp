@@ -23,7 +23,7 @@ struct ParticleRecord {
   float massDensity;
   float pressure;
   int gridID;
-  float dummy;
+  float pressureForceLength;
 };
 
 layout(std430, binding = 1) buffer positionBuffer { ParticleRecord particleRecords[]; };

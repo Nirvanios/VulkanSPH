@@ -120,4 +120,9 @@ struct GridInfo{
   unsigned int particleCount;
 };
 
+struct DrawInfo{
+  int drawType;
+  int visualization;
+};
+
 #endif//VULKANAPP_TYPES_H

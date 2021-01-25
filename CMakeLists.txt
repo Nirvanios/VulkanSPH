@@ -104,6 +104,11 @@ CPMAddPackage(
         GITHUB_REPOSITORY PetrFlajsingr/pf_imgui
         GIT_TAG 0.1
 )
+CPMAddPackage(
+        NAME m  agic_enum
+        GITHUB_REPOSITORY Neargye/magic_enum
+        GIT_TAG v0.7.2
+)
 
 include_directories("Third Party/")
 
@@ -138,13 +143,13 @@ add_executable(VulkanApp main.cpp
         utils/saver/SaverTypes.h vulkan/VulkanSort.cpp vulkan/VulkanSort.h vulkan/VulkanSPH.cpp vulkan/VulkanSPH.h
         vulkan/VulkanGridSPH.cpp vulkan/VulkanGridSPH.h ui/ImGuiGlfwVulkan.cpp ui/ImGuiGlfwVulkan.h
         Third\ Party/imgui/imgui_impl_glfw.cpp Third\ Party/imgui/imgui_impl_vulkan.cpp utils/FPSCounter.cpp utils/FPSCounter.h
-        vulkan/types/RenderPass.cpp vulkan/types/RenderPass.h vulkan/builders/RenderPassBuilder.cpp vulkan/builders/RenderPassBuilder.h vulkan/types/TextureSampler.cpp vulkan/types/TextureSampler.h)
+        vulkan/types/RenderPass.cpp vulkan/types/RenderPass.h vulkan/builders/RenderPassBuilder.cpp vulkan/builders/RenderPassBuilder.h vulkan/types/TextureSampler.cpp vulkan/types/TextureSampler.h vulkan/enums.h)
 
 
 target_link_libraries(VulkanApp PUBLIC
         -lbfd -ldl
         ${Vulkan_LIBRARIES} glfw spdlog::spdlog fmt::fmt stb::stb
         shaderc_combined glslang toml11 range-v3 tinyobjloader ${AVCODEC_LIBRARY} avutil avformat swscale
-        pf_imgui::pf_imgui pf_common::pf_common)
+        pf_imgui::pf_imgui pf_common::pf_common magic_enum)
 add_backward(VulkanApp)
 target_compile_options(VulkanApp PRIVATE ${flags})
