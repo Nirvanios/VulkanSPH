@@ -241,7 +241,7 @@ void VulkanCore::recordCommandBuffers() {
                                          vk::ShaderStageFlagBits::eVertex, 0, sizeof(int),
                                          &drawType);
 
-    commandBufferGraphics->drawIndexed(indicesSize[0], config.getApp().simulation.particleCount, 0,
+    commandBufferGraphics->drawIndexed(indicesSizes[0], config.getApp().simulation.particleCount, 0,
                                        0, 0);
     commandBufferGraphics->endRenderPass();
 
