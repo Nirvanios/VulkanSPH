@@ -560,15 +560,15 @@ void VulkanCore::initGui() {
 
   auto &controlButton = a.createChild<ig::Button>("button_control", "Start simulation");
   auto &stepButton = a.createChild<ig::Button>("button_step", "Step simulation");
-  stepButton.setEnabled(pf::Enabled::No);
+  stepButton.setEnabled(pf::Enabled::Yes);
   controlButton.addClickListener([this, &controlButton, &stepButton]() {
     simulate = not simulate;
     if (simulate) {
       controlButton.setLabel("Pause simulation");
-      stepButton.setEnabled(pf::Enabled::No);
+      stepButton.setEnabled(pf::Enabled::Yes);
     } else {
       controlButton.setLabel("Start simulation");
-      stepButton.setEnabled(pf::Enabled::Yes);
+      stepButton.setEnabled(pf::Enabled::No);
     }
   });
   stepButton.addClickListener([this]() { step = true; });
