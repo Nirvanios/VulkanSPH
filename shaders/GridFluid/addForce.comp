@@ -1,0 +1,18 @@
+#version 450
+
+layout(push_constant) uniform GridSimulationInfoUniform {
+  float timeStep;
+  int cellCount;
+}
+simulationInfo;
+
+layout(std430, binding = 0) buffer velocityBuffer { vec4 velocityField[]; };
+
+layout(std430, binding = 0) buffer forceBuffer { vec4 forceField[]; };
+
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+
+void main() {
+  const uint myId = gl_GlobalInvocationID.x;
+  if (myId < simulationInfo.cellCount) { velocityField[myId] += forceField[myId]; }
+}

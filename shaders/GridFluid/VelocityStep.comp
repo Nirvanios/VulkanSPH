@@ -1,0 +1,61 @@
+#version 450
+
+#extension GL_EXT_debug_printf : enable
+
+#define toIndex(a, b, c) (a + simulationInfo.gridSize.x * (b + simulationInfo.gridSize.y * c))
+
+layout(push_constant) uniform GridSimulationInfoUniform {
+  float timeStep;
+  int cellCount;
+  ivec4 gridSize;
+}
+simulationInfo;
+
+layout(std430, binding = 0) buffer velocityBufferNew { vec4 velocityFieldNew[]; };
+
+layout(std430, binding = 1) buffer velocityBufferOld { vec4 velocityFieldOld[]; };
+
+float linearInterpolation(float value1, float value2, float bias) {
+  if (bias > 1.0 || bias < 0.0) debugPrintfEXT("Bad bias, expect unexpected!!!");
+  return value1 * (1.0f - bias) + value2 * bias;
+}
+
+vec3 trilinearInterpolation(vec3 pairsXYZ[2][2][2], vec3 bias) {
+  if (any(lessThan(bias, vec3(0.0))) || any(greaterThan(bias, vec3(1.0))))//Assert
+    debugPrintfEXT("Bad bias, expect unexpected!!!");
+
+  vec3 pairsXY[2][2] = {{mix(pairsXYZ[0][0][0], pairsXYZ[0][0][1], bias.z),
+                         mix(pairsXYZ[0][1][0], pairsXYZ[0][1][1], bias.z)},
+                        {mix(pairsXYZ[1][0][0], pairsXYZ[1][0][1], bias.z),
+                         mix(pairsXYZ[1][1][0], pairsXYZ[1][1][1], bias.z)}};
+  vec3 pairX[2] = {mix(pairsXY[0][0], pairsXY[0][1], bias.y),
+                   mix(pairsXY[1][0], pairsXY[1][1], bias.y)};
+  return mix(pairX[0], pairX[1], bias.x);
+}
+
+void advectVelocity(ivec3 myCellPos, int myId) {
+  vec3 backwardVelocity = myCellPos
+      - simulationInfo.timeStep * simulationInfo.gridSize.xyz * velocityFieldOld[myId].xyz;
+
+  max(simulationInfo.gridSize.xyz + 0.5, min(backwardVelocity, 0.5));
+  ivec2 i = ivec2(backwardVelocity.x, backwardVelocity.x + 1);
+  ivec2 j = ivec2(backwardVelocity.y, backwardVelocity.y + 1);
+  ivec2 k = ivec2(backwardVelocity.z, backwardVelocity.z + 1);
+
+  vec3 pairsXYZ[2][2][2] = {
+      {{velocityFieldOld[toIndex(i.x, j.x, k.x)].xyz, velocityFieldOld[toIndex(i.x, j.x, k.y)].xyz},
+       {velocityFieldOld[toIndex(i.x, j.y, k.x)].xyz,
+        velocityFieldOld[toIndex(i.x, j.y, k.y)].xyz}},
+      {{velocityFieldOld[toIndex(i.y, j.x, k.x)].xyz, velocityFieldOld[toIndex(i.y, j.x, k.y)].xyz},
+       {velocityFieldOld[toIndex(i.y, j.y, k.x)].xyz,
+        velocityFieldOld[toIndex(i.y, j.y, k.y)].xyz}}};
+
+  velocityFieldNew[myId].xyz =
+      trilinearInterpolation(pairsXYZ, backwardVelocity - ivec3(i.x, j.x, k.x));
+}
+
+void main() {
+  //TODO transport
+  //TODO diffuse
+  //TODO project
+}
