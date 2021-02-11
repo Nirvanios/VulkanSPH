@@ -8,7 +8,7 @@ layout(push_constant) uniform GridSimulationInfoUniform {
   float timeStep;
   int cellCount;
   ivec4 gridSize;
-  float diffusionCoefficient
+  float diffusionCoefficient;
 }
 simulationInfo;
 
@@ -25,14 +25,14 @@ void main() {
     const float a = simulationInfo.timeStep * simulationInfo.diffusionCoefficient
         * (simulationInfo.gridSize.x * simulationInfo.gridSize.y * simulationInfo.gridSize.z);
 
-    velocityBufferNew[myGridIdFlatten] =
-        (velocityBufferOld[myGridIdFlatten]
+    velocityFieldNew[myGridIdFlatten] =
+        (velocityFieldOld[myGridIdFlatten]
          + a
-             * (velocityBufferNew[VEC_TO_INDEX(myGridId - vec3(1, 0, 0))]
-                + velocityBufferNew[VEC_TO_INDEX(myGridId + vec3(1, 0, 0))]
-                + velocityBufferNew[VEC_TO_INDEX(myGridId - vec3(0, 1, 0))]
-                + velocityBufferNew[VEC_TO_INDEX(myGridId + vec3(0, 1, 0))]
-                + velocityBufferNew[VEC_TO_INDEX(myGridId - vec3(0, 0, 1))]
-                + velocityBufferNew[VEC_TO_INDEX(myGridId + vec3(0, 0, 1))])) / (1+a);
+             * (velocityFieldNew[VEC_TO_INDEX(myGridId - vec3(1, 0, 0))]
+                + velocityFieldNew[VEC_TO_INDEX(myGridId + vec3(1, 0, 0))]
+                + velocityFieldNew[VEC_TO_INDEX(myGridId - vec3(0, 1, 0))]
+                + velocityFieldNew[VEC_TO_INDEX(myGridId + vec3(0, 1, 0))]
+                + velocityFieldNew[VEC_TO_INDEX(myGridId - vec3(0, 0, 1))]
+                + velocityFieldNew[VEC_TO_INDEX(myGridId + vec3(0, 0, 1))])) / (1+a);
   }
 }
