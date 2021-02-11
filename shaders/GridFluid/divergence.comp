@@ -1,0 +1,41 @@
+#version 450
+
+#define TO_INDEX(a, b, c) (int(a + simulationInfo.gridSize.x * (b + simulationInfo.gridSize.y * c)))
+
+#define VEC_TO_INDEX(a) (TO_INDEX(a.x, a.y, a.z))
+
+layout(push_constant) uniform GridSimulationInfoUniform {
+  float timeStep;
+  int cellCount;
+  ivec4 gridSize;
+  float diffusionCoefficient;
+}
+simulationInfo;
+
+layout(std430, binding = 0) buffer velocityBuffer { vec4 velocityField[]; };
+
+layout(std430, binding = 1) buffer divergenceBuffer { float divergenceField[]; };
+
+layout(std430, binding = 2) buffer pressureBuffer { float pressureField[]; };
+
+layout(local_size_x = 4, local_size_y = 4, local_size_z = 4) in;
+
+void main() {
+  const vec3 myGridId = vec3(1) + gl_GlobalInvocationID * 2;
+  if (all(lessThan(myGridId, simulationInfo.gridSize.xyz))) {
+    const int myGridIdFlatten = (VEC_TO_INDEX(myGridId));
+    const vec3 h = 1.0 / vec3(simulationInfo.gridSize.xyz);
+
+    divergenceField[myGridIdFlatten] = -0.5 * h.x
+            * (velocityField[VEC_TO_INDEX(myGridId + vec3(1, 0, 0))].x
+               - velocityField[VEC_TO_INDEX(myGridId - vec3(1, 0, 0))].x)
+        + h.y
+            * (velocityField[VEC_TO_INDEX(myGridId + vec3(0, 1, 0))].y
+               - velocityField[VEC_TO_INDEX(myGridId - vec3(0, 1, 0))].y)
+        + h.z
+            * (velocityField[VEC_TO_INDEX(myGridId + vec3(0, 0, 1))].z
+               - velocityField[VEC_TO_INDEX(myGridId - vec3(0, 0, 1))].z);
+               
+    pressureField[myGridIdFlatten] = 0.0f;
+  }
+}
