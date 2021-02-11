@@ -4,6 +4,8 @@
 
 #define VEC_TO_INDEX(a) (TO_INDEX(a.x, a.y, a.z))
 
+#define TYPENAME_T vec4
+
 layout(push_constant) uniform GridSimulationInfoUniform {
   float timeStep;
   int cellCount;
@@ -12,9 +14,9 @@ layout(push_constant) uniform GridSimulationInfoUniform {
 }
 simulationInfo;
 
-layout(std430, binding = 0) buffer velocityBufferNew { vec4 velocityFieldNew[]; };
+layout(std430, binding = 0) buffer BufferNew { TYPENAME_T fieldNew[]; };
 
-layout(std430, binding = 1) buffer velocityBufferOld { vec4 velocityFieldOld[]; };
+layout(std430, binding = 1) buffer BufferOld { TYPENAME_T fieldOld[]; };
 
 layout(local_size_x = 4, local_size_y = 4, local_size_z = 4) in;
 
@@ -25,14 +27,14 @@ void main() {
     const float a = simulationInfo.timeStep * simulationInfo.diffusionCoefficient
         * (simulationInfo.gridSize.x * simulationInfo.gridSize.y * simulationInfo.gridSize.z);
 
-    velocityFieldNew[myGridIdFlatten] =
-        (velocityFieldOld[myGridIdFlatten]
+    fieldNew[myGridIdFlatten] =
+        (fieldOld[myGridIdFlatten]
          + a
-             * (velocityFieldNew[VEC_TO_INDEX(myGridId - vec3(1, 0, 0))]
-                + velocityFieldNew[VEC_TO_INDEX(myGridId + vec3(1, 0, 0))]
-                + velocityFieldNew[VEC_TO_INDEX(myGridId - vec3(0, 1, 0))]
-                + velocityFieldNew[VEC_TO_INDEX(myGridId + vec3(0, 1, 0))]
-                + velocityFieldNew[VEC_TO_INDEX(myGridId - vec3(0, 0, 1))]
-                + velocityFieldNew[VEC_TO_INDEX(myGridId + vec3(0, 0, 1))])) / (1+a);
+             * (fieldNew[VEC_TO_INDEX(myGridId - vec3(1, 0, 0))]
+                + fieldNew[VEC_TO_INDEX(myGridId + vec3(1, 0, 0))]
+                + fieldNew[VEC_TO_INDEX(myGridId - vec3(0, 1, 0))]
+                + fieldNew[VEC_TO_INDEX(myGridId + vec3(0, 1, 0))]
+                + fieldNew[VEC_TO_INDEX(myGridId - vec3(0, 0, 1))]
+                + fieldNew[VEC_TO_INDEX(myGridId + vec3(0, 0, 1))])) / (1+a);
   }
 }
