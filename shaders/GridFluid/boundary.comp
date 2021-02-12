@@ -1,0 +1,31 @@
+#version 450
+
+#define TO_INDEX(a, b, c) (int(a + simulationInfo.gridSize.x * (b + simulationInfo.gridSize.y * c)))
+
+#define VEC_TO_INDEX(a) (TO_INDEX(a.x, a.y, a.z))
+
+#define TYPENAME_T vec4
+
+layout(push_constant) uniform GridSimulationInfoUniform {
+  float timeStep;
+  int cellCount;
+  ivec4 gridSize;
+  float diffusionCoefficient;
+  int boundaryScale;
+}
+simulationInfo;
+
+layout(std430, binding = 0) buffer Buffer { TYPENAME_T field[]; };
+
+layout(local_size_x = 4, local_size_y = 4, local_size_z = 4) in;
+
+void main() {
+  const vec3 myGridId = vec3(1) + gl_GlobalInvocationID * 2;
+  if (all(lessThan(myGridId, simulationInfo.gridSize.xyz))) {
+    const int myGridIdFlatten = (VEC_TO_INDEX(myGridId));
+    ivec3 offset = ivec3(equal(myGridId, vec3(0)))
+                  & ivec3(equal(myGridId, simulationInfo.gridSize.xyz));
+    
+    field[myGridIdFlatten] = simulationInfo.boundaryScale * field[VEC_TO_INDEX(myGridId + offset)];
+  }
+}
