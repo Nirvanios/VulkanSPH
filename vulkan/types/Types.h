@@ -97,7 +97,7 @@ struct alignas(16) ParticleRecord {
   }
 };
 
-struct SimulationInfo {
+struct SimulationInfoSPH {
   glm::ivec4 gridSize;
   glm::vec4 gridOrigin;
   glm::vec4 gravityForce;
@@ -111,6 +111,14 @@ struct SimulationInfo {
   float tensionCoefficient;
   unsigned int particleCount;
   //unsigned int cellCount;
+};
+
+struct SimulationInfoGrid{
+  float timeStep;
+  int cellCount;
+  glm::ivec4 gridSize;
+  float diffusionCoefficient;
+  int boundaryScale;
 };
 
 struct GridInfo{

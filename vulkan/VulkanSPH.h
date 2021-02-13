@@ -12,7 +12,7 @@
 class VulkanSPH {
  public:
   VulkanSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device> device, Config config,
-            std::shared_ptr<Swapchain> swapchain, const SimulationInfo &simulationInfo,
+            std::shared_ptr<Swapchain> swapchain, const SimulationInfoSPH &simulationInfo,
             const std::vector<ParticleRecord> &particles, std::shared_ptr<Buffer> bufferIndexes,
             std::shared_ptr<Buffer> bufferSortedPairs);
   vk::UniqueSemaphore run(const vk::UniqueSemaphore &semaphoreWait);
@@ -35,7 +35,7 @@ class VulkanSPH {
                                 .stageFlags = vk::ShaderStageFlagBits::eCompute}};
 
   Config config;
-  SimulationInfo simulationInfo;
+  SimulationInfoSPH simulationInfo;
 
   std::shared_ptr<Device> device;
 

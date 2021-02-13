@@ -7,7 +7,8 @@
 #include <iostream>
 
 VulkanGridSPH::VulkanGridSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device> device,
-                             Config config, std::shared_ptr<Swapchain> swapchain, SimulationInfo simulationInfo,
+                             Config config, std::shared_ptr<Swapchain> swapchain,
+                             SimulationInfoSPH simulationInfo,
                              std::shared_ptr<Buffer> bufferParticles,
                              std::shared_ptr<Buffer> bufferCellParticlesPair,
                              std::shared_ptr<Buffer> bufferIndexes)
@@ -19,7 +20,7 @@ VulkanGridSPH::VulkanGridSPH(const vk::UniqueSurfaceKHR &surface, std::shared_pt
   pipeline = PipelineBuilder{this->config, this->device, swapchain}
                  .setLayoutBindingInfo(bindingInfosCompute)
                  .setPipelineType(PipelineType::Compute)
-                 .addPushConstant(vk::ShaderStageFlagBits::eCompute, sizeof(SimulationInfo))
+                 .addPushConstant(vk::ShaderStageFlagBits::eCompute, sizeof(SimulationInfoSPH))
                  .setComputeShaderPath( this->config.getVulkan().shaderFolder / "SPH/GridSearch/Init.comp")
                  .build();
 

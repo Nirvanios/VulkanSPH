@@ -25,7 +25,7 @@
 
 void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
                             const std::vector<ParticleRecord> particles,
-                            const SimulationInfo &simulationInfo) {
+                            const SimulationInfoSPH &simulationInfo) {
 
   this->simulationInfo = simulationInfo;
   spdlog::debug("Vulkan initialization...");

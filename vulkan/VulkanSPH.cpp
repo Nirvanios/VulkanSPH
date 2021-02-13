@@ -9,7 +9,7 @@
 
 VulkanSPH::VulkanSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device> device,
                      Config config, std::shared_ptr<Swapchain> swapchain,
-                     const SimulationInfo &simulationInfo,
+                     const SimulationInfoSPH &simulationInfo,
                      const std::vector<ParticleRecord> &particles,
                      std::shared_ptr<Buffer> bufferIndexes,
                      std::shared_ptr<Buffer> bufferSortedPairs)
@@ -20,7 +20,7 @@ VulkanSPH::VulkanSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device
                                     .setLayoutBindingInfo(bindingInfosCompute)
                                     .setPipelineType(PipelineType::Compute)
                                     .addPushConstant(vk::ShaderStageFlagBits::eCompute,
-                                                     sizeof(SimulationInfo));
+                                                     sizeof(SimulationInfoSPH));
   if(config.getApp().simulation.useNNS)
     computePipelineBuilder.addShaderMacro("GRID");
   pipelineComputeMassDensity =
@@ -50,8 +50,6 @@ VulkanSPH::VulkanSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device
           .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
       this->device, commandPool, queue);
   bufferParticles->fill(particles);
-
-  [[maybe_unused]] auto a = bufferParticles->read<ParticleRecord>();
 
   std::array<vk::DescriptorPoolSize, 1> poolSize{
       vk::DescriptorPoolSize{.type = vk::DescriptorType::eStorageBuffer, .descriptorCount = 3}};
@@ -128,7 +126,7 @@ void VulkanSPH::recordCommandBuffer(const std::shared_ptr<Pipeline> &pipeline) {
       &descriptorSetCompute->getDescriptorSets()[0].get(), 0, nullptr);
 
   commandBufferCompute->pushConstants(pipeline->getPipelineLayout().get(),
-                                      vk::ShaderStageFlagBits::eCompute, 0, sizeof(SimulationInfo),
+                                      vk::ShaderStageFlagBits::eCompute, 0, sizeof(SimulationInfoSPH),
                                       &simulationInfo);
   commandBufferCompute->dispatch(
       static_cast<int>(std::ceil(config.getApp().simulation.particleCount / 32.0)), 1, 1);

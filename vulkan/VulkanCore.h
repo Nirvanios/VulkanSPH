@@ -41,7 +41,7 @@ class VulkanCore {
   void setViewMatrixGetter(std::function<glm::mat4()> getter);
   [[nodiscard]] bool isFramebufferResized() const;
   void setFramebufferResized(bool resized);
-  void initVulkan(const std::vector<Model> &modelParticle, const std::vector<ParticleRecord> particles, const SimulationInfo &simulationInfo);
+  void initVulkan(const std::vector<Model> &modelParticle, const std::vector<ParticleRecord> particles, const SimulationInfoSPH &simulationInfo);
   void run();
 
  private:
@@ -79,7 +79,7 @@ class VulkanCore {
 
   std::function<glm::mat4()> viewMatrixGetter = []() { return glm::mat4(1.0f); };
   const glm::vec3 &cameraPos;
-  SimulationInfo simulationInfo;
+  SimulationInfoSPH simulationInfo;
   VideoDiskSaver videoDiskSaver;
 
   std::shared_ptr<Instance> instance;

@@ -96,14 +96,14 @@ TestRenderer::~TestRenderer() {
   mouseMovementSubscriber.unsubscribe();
   keyMovementSubscriber.unsubscribe();
 }
-SimulationInfo TestRenderer::getSimulationInfo() {
+SimulationInfoSPH TestRenderer::getSimulationInfo() {
   const auto &simConfig = config.getApp().simulation;
   const auto mass = simConfig.fluidDensity
       * (simConfig.fluidVolume / static_cast<float>(simConfig.particleCount));
   const auto x = 20;
   const auto supportRadius =
       std::cbrt((3 * simConfig.fluidVolume * x) / (4 * std::numbers::pi * simConfig.particleCount));
-  return SimulationInfo{
+  return SimulationInfoSPH{
       .gridSize = glm::ivec4(config.getApp().simulation.gridSize,static_cast<unsigned int>(glm::compMul(config.getApp().simulation.gridSize))),
       .gridOrigin = glm::vec4(config.getApp().simulation.gridOrigin, 0),
       .gravityForce = glm::vec4{0.0f, -9.8, 0.0, 0.0},
@@ -118,7 +118,7 @@ SimulationInfo TestRenderer::getSimulationInfo() {
       .particleCount = static_cast<unsigned int>(simConfig.particleCount)
       /*.cellCount = static_cast<unsigned int>(glm::compMul(config.getApp().simulation.gridSize))*/};
 }
-Model TestRenderer::createGrid(const SimulationInfo &simulationInfo) {
+Model TestRenderer::createGrid(const SimulationInfoSPH &simulationInfo) {
   auto gridSize = glm::vec3(simulationInfo.gridSize.xyz()) * simulationInfo.supportRadius;
   auto &gridOrigin = config.getApp().simulation.gridOrigin;
   std::vector<glm::vec3> positions{gridOrigin,
