@@ -25,9 +25,10 @@
 
 void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
                             const std::vector<ParticleRecord> particles,
-                            const SimulationInfoSPH &simulationInfo) {
+                            const SimulationInfoSPH &simulationInfoSPH,
+                            const SimulationInfoGridFluid &simulationInfoGridFluid) {
 
-  this->simulationInfo = simulationInfo;
+  this->simulationInfo = simulationInfoSPH;
   spdlog::debug("Vulkan initialization...");
   instance = std::make_shared<Instance>(window.getWindowName(), config.getApp().DEBUG);
   createSurface();
@@ -41,8 +42,8 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
       PipelineBuilder{config, device, swapchain}
           .setLayoutBindingInfo(bindingInfosRender)
           .setPipelineType(PipelineType::Graphics)
-          .setVertexShaderPath(config.getVulkan().shaderFolder / "shader.vert")
-          .setFragmentShaderPath(config.getVulkan().shaderFolder / "shader.frag")
+          .setVertexShaderPath(config.getVulkan().shaderFolder / "SPH/shader.vert")
+          .setFragmentShaderPath(config.getVulkan().shaderFolder / "SPH/shader.frag")
           .addPushConstant(vk::ShaderStageFlagBits::eVertex, sizeof(DrawInfo))
           .addRenderPass("toSwapchain",
                          RenderPassBuilder{device}
@@ -73,7 +74,7 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
 
   bufferCellParticlePair = std::make_shared<Buffer>(
       BufferBuilder()
-          .setSize(sizeof(KeyValue) * config.getApp().simulation.particleCount)
+          .setSize(sizeof(KeyValue) * config.getApp().simulationSPH.particleCount)
           .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
                          | vk::BufferUsageFlagBits::eTransferSrc
                          | vk::BufferUsageFlagBits::eStorageBuffer)
@@ -83,18 +84,26 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
       BufferBuilder()
           .setSize(
               sizeof(int)
-              * Utilities::getNextPow2Number(glm::compMul(config.getApp().simulation.gridSize)))
+              * Utilities::getNextPow2Number(glm::compMul(config.getApp().simulationSPH.gridSize)))
           //.setSize(64*sizeof(int))
           .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
                          | vk::BufferUsageFlagBits::eStorageBuffer)
           .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
       device, commandPoolGraphics, queueGraphics);
 
-  vulkanSPH = std::make_unique<VulkanSPH>(surface, device, config, swapchain, simulationInfo,
+  vulkanSPH = std::make_unique<VulkanSPH>(surface, device, config, swapchain, simulationInfoSPH,
                                           particles, bufferIndexes, bufferCellParticlePair);
-  vulkanGridSPH = std::make_unique<VulkanGridSPH>(surface, device, config, swapchain,
-                                                  simulationInfo, vulkanSPH->getBufferParticles(),
-                                                  bufferCellParticlePair, bufferIndexes);
+  vulkanGridSPH = std::make_unique<VulkanGridSPH>(
+      surface, device, config, swapchain, simulationInfoSPH, vulkanSPH->getBufferParticles(),
+
+      bufferCellParticlePair, bufferIndexes);
+  vulkanGridFluid = std::make_unique<VulkanGridFluid>(config, simulationInfoGridFluid, device,
+                                                      surface, swapchain);
+  vulkanGridFluidRender = std::make_unique<VulkanGridFluidRender>(
+      config, device, surface, swapchain,
+      Utilities::loadModelFromObj(config.getApp().simulationGridFluid.cellModel),
+      simulationInfoGridFluid, vulkanGridFluid->getBufferDensity(), buffersUniformMVP,
+      buffersUniformCameraPos);
 
   auto tmpBuffer = std::vector{vulkanSPH->getBufferParticles()};
   std::array<DescriptorBufferInfo, 3> descriptorBufferInfosGraphic{
@@ -110,6 +119,7 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
   spdlog::debug("Created command pool");
   textureSampler = std::make_shared<TextureSampler>(device);
   initGui();
+  vulkanGridFluidRender->setImgui(imgui);
   window.setIgnorePredicate(
       [this]() { return imgui->isWindowHovered() || imgui->isKeyboardCaptured(); });
   createCommandBuffers();
@@ -119,7 +129,7 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
   spdlog::debug("Vulkan OK.");
   videoDiskSaver.initStream(
       "./stream.mp4",
-      static_cast<unsigned int>(1.0 / static_cast<float>(config.getApp().simulation.timeStep)),
+      static_cast<unsigned int>(1.0 / static_cast<float>(config.getApp().simulationSPH.timeStep)),
       swapchain->getExtentWidth(), swapchain->getExtentHeight());
 }
 
@@ -212,8 +222,8 @@ void VulkanCore::recordCommandBuffers() {
                                          vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawInfo),
                                          &drawInfo);
 
-    commandBufferGraphics->drawIndexed(indicesSizes[0], config.getApp().simulation.particleCount, 0,
-                                       0, 0);
+    commandBufferGraphics->drawIndexed(indicesSizes[0], config.getApp().simulationSPH.particleCount,
+                                       0, 0, 0);
 
     commandBufferGraphics->bindPipeline(vk::PipelineBindPoint::eGraphics,
                                         pipelineGraphicsGrid->getPipeline().get());
@@ -246,8 +256,8 @@ void VulkanCore::recordCommandBuffers() {
                                          vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawInfo),
                                          &drawInfo);
 
-    commandBufferGraphics->drawIndexed(indicesSizes[0], config.getApp().simulation.particleCount, 0,
-                                       0, 0);
+    commandBufferGraphics->drawIndexed(indicesSizes[0], config.getApp().simulationSPH.particleCount,
+                                       0, 0, 0);
     commandBufferGraphics->endRenderPass();
 
     if (config.getApp().outputToFile) {
@@ -324,9 +334,9 @@ void VulkanCore::drawFrame() {
   auto tmpfence = device->getDevice()->createFenceUnique({});
   std::array<vk::Semaphore, 1> semaphoresAfterNextImage{
       semaphoreImageAvailable[currentFrame].get()};
-  std::array<vk::Semaphore, 1> semaphoresAfterRender{semaphoreRenderFinished[currentFrame].get()};
-  std::array<vk::PipelineStageFlags, 1> waitStagesRender{
-      vk::PipelineStageFlagBits::eColorAttachmentOutput};
+  //  std::array<vk::Semaphore, 1> semaphoresAfterRender{semaphoreRenderFinished[currentFrame].get()};
+  /*  std::array<vk::PipelineStageFlags, 1> waitStagesRender{
+      vk::PipelineStageFlagBits::eColorAttachmentOutput};*/
 
   std::array<vk::SwapchainKHR, 1> swapchains{swapchain->getSwapchain().get()};
   uint32_t imageindex;
@@ -352,12 +362,14 @@ void VulkanCore::drawFrame() {
   device->getDevice()->waitForFences(tmpfence.get(), VK_TRUE, UINT64_MAX);
 
   if (simulate || step) {
-    semaphoreAfterSort[currentFrame] = vulkanGridSPH->run(semaphoreImageAvailable[currentFrame]);
+    //semaphoreAfterSort[currentFrame] = vulkanGridSPH->run(semaphoreImageAvailable[currentFrame]);
 
-    semaphoreAfterSimulation[currentFrame] = vulkanSPH->run(semaphoreAfterSort[currentFrame]);
+    //semaphoreAfterSimulation[currentFrame] = vulkanSPH->run(semaphoreAfterSort[currentFrame]);
+    semaphoreAfterSimulation[currentFrame] =
+        vulkanGridFluid->run(semaphoreImageAvailable[currentFrame]);
   }
 
-  vk::SubmitInfo submitInfoRender{.waitSemaphoreCount = 1,
+  /*  vk::SubmitInfo submitInfoRender{.waitSemaphoreCount = 1,
                                   .pWaitSemaphores = (simulate || step)
                                       ? &semaphoreAfterSimulation[currentFrame].get()
                                       : &semaphoreImageAvailable[currentFrame].get(),
@@ -365,15 +377,19 @@ void VulkanCore::drawFrame() {
                                   .commandBufferCount = 1,
                                   .pCommandBuffers = &commandBuffersGraphic[imageindex].get(),
                                   .signalSemaphoreCount = 1,
-                                  .pSignalSemaphores = semaphoresAfterRender.data()};
+                                  .pSignalSemaphores = semaphoresAfterRender.data()};*/
   vk::PresentInfoKHR presentInfo{.waitSemaphoreCount = 1,
-                                 .pWaitSemaphores = semaphoresAfterRender.data(),
+                                 .pWaitSemaphores = &semaphoreRenderFinished[currentFrame].get(),
                                  .swapchainCount = 1,
                                  .pSwapchains = swapchains.data(),
                                  .pImageIndices = &imageindex,
                                  .pResults = nullptr};
 
-  queueGraphics.submit(submitInfoRender, fencesInFlight[currentFrame].get());
+  //queueGraphics.submit(submitInfoRender, fencesInFlight[currentFrame].get());
+  semaphoreRenderFinished[currentFrame] =
+      vulkanGridFluidRender->draw((simulate || step) ? semaphoreAfterSimulation[currentFrame]
+                                                     : semaphoreImageAvailable[currentFrame],
+                                  imageindex, fencesInFlight[currentFrame]);
 
   if (config.getApp().outputToFile) {
     device->getDevice()->waitForFences(fencesInFlight[currentFrame].get(), VK_TRUE, UINT64_MAX);
@@ -404,8 +420,8 @@ void VulkanCore::recreateSwapchain() {
       PipelineBuilder{config, device, swapchain}
           .setLayoutBindingInfo(bindingInfosRender)
           .setPipelineType(PipelineType::Graphics)
-          .setVertexShaderPath(config.getVulkan().shaderFolder / "shader.vert")
-          .setFragmentShaderPath(config.getVulkan().shaderFolder / "shader.frag")
+          .setVertexShaderPath(config.getVulkan().shaderFolder / "SPH/shader.vert")
+          .setFragmentShaderPath(config.getVulkan().shaderFolder / "SPH/shader.frag")
           .addRenderPass("toSwapchain",
                          RenderPassBuilder{device}
                              .setDepthAttachmentFormat(findDepthFormat())
@@ -600,7 +616,7 @@ VulkanCore::~VulkanCore() {
 }
 void VulkanCore::initGui() {
   using namespace pf::ui;
-  imgui = std::make_unique<ig::ImGuiGlfwVulkan>(
+  imgui = std::make_shared<ig::ImGuiGlfwVulkan>(
       device, instance, pipelineGraphics->getRenderPass(""), surface, swapchain,
       window.getWindow().get(), ImGuiConfigFlags{}, toml::table{});
 
@@ -618,16 +634,16 @@ void VulkanCore::initGui() {
   auto &controlWindow = imgui->createChild<ig::Window>("control_window", "Control");
   auto &a = controlWindow.createChild<ig::Group>("aaa", "aaaaa");
 
-  auto &controlButton = a.createChild<ig::Button>("button_control", "Start simulation");
-  auto &stepButton = a.createChild<ig::Button>("button_step", "Step simulation");
+  auto &controlButton = a.createChild<ig::Button>("button_control", "Start simulationSPH");
+  auto &stepButton = a.createChild<ig::Button>("button_step", "Step simulationSPH");
   stepButton.setEnabled(pf::Enabled::Yes);
   controlButton.addClickListener([this, &controlButton, &stepButton]() {
     simulate = not simulate;
     if (simulate) {
-      controlButton.setLabel("Pause simulation");
+      controlButton.setLabel("Pause simulationSPH");
       stepButton.setEnabled(pf::Enabled::Yes);
     } else {
-      controlButton.setLabel("Start simulation");
+      controlButton.setLabel("Start simulationSPH");
       stepButton.setEnabled(pf::Enabled::No);
     }
   });
@@ -673,5 +689,8 @@ void VulkanCore::createTextureImages() {
           .setUsage(vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eColorAttachment);
   for (auto _ : swapchain->getSwapchainImages()) {
     imageColorTexture.emplace_back(builder.build(device));
+    imageColorTexture.back()->transitionImageLayoutNow(device, commandPoolGraphics, queueGraphics,
+                                                       vk::ImageLayout::eUndefined,
+                                                       vk::ImageLayout::eGeneral);
   }
 }

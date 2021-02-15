@@ -21,13 +21,14 @@ TestRenderer::TestRenderer(const Config &config)
           [this](MouseButtonMessage message) { cameraMouseButton(message); })) {
   vulkanCore.setViewMatrixGetter([this]() { return camera.GetViewMatrix(); });
 
-  auto simulationInfo = getSimulationInfo();
+  auto simulationInfoSPH = getSimulationInfoSPH();
   auto particles = createParticles();
-  auto gridModel = createGrid(simulationInfo);
-  vulkanCore.initVulkan({Utilities::loadModelFromObj(config.getApp().simulation.particleModel,
-                                                    glm::vec3{0.5, 0.8, 1.0}), gridModel},
-                        particles, simulationInfo);
-  //vulkanCore.setSimulationInfo(getSimulationInfo());
+  auto gridModel = createGrid(simulationInfoSPH);
+  vulkanCore.initVulkan({Utilities::loadModelFromObj(config.getApp().simulationSPH.particleModel,
+                                                     glm::vec3{0.5, 0.8, 1.0}),
+                         gridModel},
+                        particles, simulationInfoSPH, getSimulationInfoGridFluid());
+  //vulkanCore.setSimulationInfo(getSimulationInfoSPH());
 }
 
 void TestRenderer::run() { vulkanCore.run(); }
@@ -64,18 +65,19 @@ void TestRenderer::cameraMouseButton(MouseButtonMessage message) {
 }
 
 std::vector<ParticleRecord> TestRenderer::createParticles() {
-  const auto &simConfig = config.getApp().simulation;
+  const auto &simConfig = config.getApp().simulationSPH;
   auto particleSize =
       glm::vec3(std::cbrt(simConfig.fluidVolume / static_cast<float>(simConfig.particleCount)));
   particleSize = glm::vec3(1.1
                            * std::cbrt((3 * simConfig.fluidVolume * 20)
                                        / (4 * std::numbers::pi * simConfig.particleCount)))
       / 2.0f;
-  std::vector<ParticleRecord> data{static_cast<size_t>(config.getApp().simulation.particleCount)};
+  std::vector<ParticleRecord> data{
+      static_cast<size_t>(config.getApp().simulationSPH.particleCount)};
 
-  int sizeZ = config.getApp().simulation.particleSize.z;
-  int sizeY = config.getApp().simulation.particleSize.y;
-  int sizeX = config.getApp().simulation.particleSize.x;
+  int sizeZ = config.getApp().simulationSPH.particleSize.z;
+  int sizeY = config.getApp().simulationSPH.particleSize.y;
+  int sizeX = config.getApp().simulationSPH.particleSize.x;
   for (int z = 0; z < sizeZ; ++z) {
     for (int y = 0; y < sizeY; ++y) {
       for (int x = 0; x < sizeX; ++x) {
@@ -96,16 +98,18 @@ TestRenderer::~TestRenderer() {
   mouseMovementSubscriber.unsubscribe();
   keyMovementSubscriber.unsubscribe();
 }
-SimulationInfoSPH TestRenderer::getSimulationInfo() {
-  const auto &simConfig = config.getApp().simulation;
+SimulationInfoSPH TestRenderer::getSimulationInfoSPH() {
+  const auto &simConfig = config.getApp().simulationSPH;
   const auto mass = simConfig.fluidDensity
       * (simConfig.fluidVolume / static_cast<float>(simConfig.particleCount));
   const auto x = 20;
   const auto supportRadius =
       std::cbrt((3 * simConfig.fluidVolume * x) / (4 * std::numbers::pi * simConfig.particleCount));
   return SimulationInfoSPH{
-      .gridSize = glm::ivec4(config.getApp().simulation.gridSize,static_cast<unsigned int>(glm::compMul(config.getApp().simulation.gridSize))),
-      .gridOrigin = glm::vec4(config.getApp().simulation.gridOrigin, 0),
+      .gridSize = glm::ivec4(
+          config.getApp().simulationSPH.gridSize,
+          static_cast<unsigned int>(glm::compMul(config.getApp().simulationSPH.gridSize))),
+      .gridOrigin = glm::vec4(config.getApp().simulationSPH.gridOrigin, 0),
       .gravityForce = glm::vec4{0.0f, -9.8, 0.0, 0.0},
       .particleMass = mass,
       .restDensity = simConfig.fluidDensity,
@@ -116,26 +120,40 @@ SimulationInfoSPH TestRenderer::getSimulationInfo() {
       .tensionThreshold = 7.065,
       .tensionCoefficient = 0.0728,
       .particleCount = static_cast<unsigned int>(simConfig.particleCount)
-      /*.cellCount = static_cast<unsigned int>(glm::compMul(config.getApp().simulation.gridSize))*/};
+      /*.cellCount = static_cast<unsigned int>(glm::compMul(config.getApp().simulationSPH.gridSize))*/};
 }
 Model TestRenderer::createGrid(const SimulationInfoSPH &simulationInfo) {
   auto gridSize = glm::vec3(simulationInfo.gridSize.xyz()) * simulationInfo.supportRadius;
-  auto &gridOrigin = config.getApp().simulation.gridOrigin;
+  auto &gridOrigin = config.getApp().simulationSPH.gridOrigin;
   std::vector<glm::vec3> positions{gridOrigin,
-                                      gridOrigin + glm::vec3(gridSize.x, 0, 0),
-                                      gridOrigin + glm::vec3(gridSize.xy(), 0),
-                                      gridOrigin + glm::vec3(0, gridSize.y, 0),
-                                      gridOrigin + glm::vec3(0, 0, gridSize.z),
-                                      gridOrigin + glm::vec3(gridSize.x, 0, gridSize.z),
-                                      gridOrigin + gridSize.xyz(),
-                                      gridOrigin + glm::vec3(0, gridSize.yz())};
+                                   gridOrigin + glm::vec3(gridSize.x, 0, 0),
+                                   gridOrigin + glm::vec3(gridSize.xy(), 0),
+                                   gridOrigin + glm::vec3(0, gridSize.y, 0),
+                                   gridOrigin + glm::vec3(0, 0, gridSize.z),
+                                   gridOrigin + glm::vec3(gridSize.x, 0, gridSize.z),
+                                   gridOrigin + gridSize.xyz(),
+                                   gridOrigin + glm::vec3(0, gridSize.yz())};
 
   std::vector<Vertex> gridVertices(8);
   {
     auto i = 0;
-    std::for_each(gridVertices.begin(), gridVertices.end(), [&](auto &vertex) {vertex.pos = positions[i++];});
+    std::for_each(gridVertices.begin(), gridVertices.end(),
+                  [&](auto &vertex) { vertex.pos = positions[i++]; });
   }
-  std::vector<uint16_t> gridIndices{0, 1, 2, 3, 0, static_cast<unsigned short>(-1), 4, 5, 6, 7, 4, static_cast<unsigned short>(-1), 0, 3, 7, 4, 0, static_cast<unsigned short>(-1), 1, 2, 6, 5, 1, static_cast<unsigned short>(-1)};
+  std::vector<uint16_t> gridIndices{0, 1, 2, 3, 0, static_cast<unsigned short>(-1),
+                                    4, 5, 6, 7, 4, static_cast<unsigned short>(-1),
+                                    0, 3, 7, 4, 0, static_cast<unsigned short>(-1),
+                                    1, 2, 6, 5, 1, static_cast<unsigned short>(-1)};
 
-  return{.vertices = gridVertices, .indices = gridIndices};
+  return {.vertices = gridVertices, .indices = gridIndices};
+}
+SimulationInfoGridFluid TestRenderer::getSimulationInfoGridFluid() {
+  return SimulationInfoGridFluid{.gridSize = glm::ivec4(config.getApp().simulationSPH.gridSize, 0),
+                                 .gridOrigin =
+                                     glm::vec4(config.getApp().simulationSPH.gridOrigin, 0),
+                                 .timeStep = config.getApp().simulationSPH.timeStep,
+                                 .cellCount = glm::compMul(config.getApp().simulationSPH.gridSize),
+                                 .cellSize = 0.02,
+                                 .diffusionCoefficient = 0.5,
+                                 .boundaryScale = 0};
 }

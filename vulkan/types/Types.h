@@ -113,10 +113,12 @@ struct SimulationInfoSPH {
   //unsigned int cellCount;
 };
 
-struct SimulationInfoGrid{
+struct SimulationInfoGridFluid {
+  glm::ivec4 gridSize;
+  glm::vec4 gridOrigin;
   float timeStep;
   int cellCount;
-  glm::ivec4 gridSize;
+  float cellSize;
   float diffusionCoefficient;
   int boundaryScale;
 };

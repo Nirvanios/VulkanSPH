@@ -9,10 +9,11 @@
 #include "types/Pipeline.h"
 class VulkanGridFluid {
  public:
-  VulkanGridFluid(const Config &config, const SimulationInfoGrid &simulationInfo,
-                  std::shared_ptr<Device> device, const vk::UniqueSurfaceKHR &surface,
+  VulkanGridFluid(const Config &config, const SimulationInfoGridFluid &simulationInfo,
+                  std::shared_ptr<Device> inDevice, const vk::UniqueSurfaceKHR &surface,
                   std::shared_ptr<Swapchain> swapchain);
   vk::UniqueSemaphore run(const vk::UniqueSemaphore &semaphoreWait);
+  [[nodiscard]] const std::shared_ptr<Buffer> &getBufferDensity() const;
 
  private:
   enum class Stages {
@@ -31,7 +32,7 @@ class VulkanGridFluid {
   void recordCommandBuffer(Stages pipelineStage);
 
   const Config &config;
-  const SimulationInfoGrid simulationInfo;
+  const SimulationInfoGridFluid simulationInfo;
 
   std::shared_ptr<Device> device;
 

@@ -10,11 +10,11 @@
 
 vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &semaphoreWait) {
 
-  auto outSemaphore = device->getDevice()->createSemaphoreUnique({});
+  auto outSemaphore = device->getDevice()->createSemaphore({});
 
-  submit(Stages::addSourceScalar, semaphoreWait.get(), outSemaphore.get());
+  submit(Stages::addSourceScalar, semaphoreWait.get(), outSemaphore);
 
-  return std::move(outSemaphore);
+  return vk::UniqueSemaphore(outSemaphore, device->getDevice().get());
   /*
   //TODO SWAP
   submitInfoCompute.pWaitSemaphores = &semaphore1.get();
@@ -106,9 +106,9 @@ void VulkanGridFluid::recordCommandBuffer(Stages pipelineStage) {
 
   commandBufferCompute->pushConstants(pipeline->getPipelineLayout().get(),
                                       vk::ShaderStageFlagBits::eCompute, 0,
-                                      sizeof(SimulationInfoSPH), &simulationInfo);
+                                      sizeof(SimulationInfoGridFluid), &simulationInfo);
   commandBufferCompute->dispatch(
-      static_cast<int>(std::ceil(config.getApp().simulation.particleCount / 32.0)), 1, 1);
+      static_cast<int>(std::ceil(config.getApp().simulationSPH.particleCount / 32.0)), 1, 1);
   commandBufferCompute->end();
 }
 void VulkanGridFluid::submit(Stages pipelineStage,
@@ -130,11 +130,11 @@ void VulkanGridFluid::submit(Stages pipelineStage,
 
   currentSemaphore++;
 }
-VulkanGridFluid::VulkanGridFluid(const Config &config, const SimulationInfoGrid &simulationInfo,
-                                 std::shared_ptr<Device> device,
+VulkanGridFluid::VulkanGridFluid(const Config &config, const SimulationInfoGridFluid &simulationInfo,
+                                 std::shared_ptr<Device> inDevice,
                                  const vk::UniqueSurfaceKHR &surface,
                                  std::shared_ptr<Swapchain> swapchain)
-    : config(config), simulationInfo(simulationInfo), device(std::move(device)) {
+    : config(config), simulationInfo(simulationInfo), device(std::move(inDevice)) {
 
   std::map<Stages, std::vector<PipelineLayoutBindingInfo>> bindingInfosCompute{};
   bindingInfosCompute[Stages::addSourceScalar].emplace_back(
@@ -148,12 +148,14 @@ VulkanGridFluid::VulkanGridFluid(const Config &config, const SimulationInfoGrid 
                                 .descriptorCount = 1,
                                 .stageFlags = vk::ShaderStageFlagBits::eCompute});
 
-  std::map<Stages, std::vector<DescriptorBufferInfo>> descriptorBufferInfosCompute{
-      {Stages::addSourceScalar,
-       {DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensity, 1},
-                             .bufferSize = bufferDensity->getSize()},
-        DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensitySources, 1},
-                             .bufferSize = bufferDensitySources->getSize()}}}};
+  auto queueFamilyIndices = Device::findQueueFamilies(this->device->getPhysicalDevice(), surface);
+  vk::CommandPoolCreateInfo commandPoolCreateInfoCompute{
+      .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+      .queueFamilyIndex = queueFamilyIndices.computeFamily.value()};
+
+  commandPool = this->device->getDevice()->createCommandPoolUnique(commandPoolCreateInfoCompute);
+  commandBufferCompute = std::move(this->device->allocateCommandBuffer(commandPool, 1)[0]);
+  queue = this->device->getComputeQueue();
 
   bufferDensity = std::make_shared<Buffer>(
       BufferBuilder()
@@ -173,10 +175,33 @@ VulkanGridFluid::VulkanGridFluid(const Config &config, const SimulationInfoGrid 
       this->device, commandPool, queue);
   bufferDensitySources->fill(std::vector<float>(simulationInfo.cellCount, 0.01));
 
+  std::map<Stages, std::vector<DescriptorBufferInfo>> descriptorBufferInfosCompute{
+      {Stages::addSourceScalar,
+          {DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensity, 1},
+              .bufferSize = bufferDensity->getSize()},
+              DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensitySources, 1},
+                  .bufferSize = bufferDensitySources->getSize()}}}};
+
   auto computePipelineBuilder =
       PipelineBuilder{this->config, this->device, swapchain}
           .setPipelineType(PipelineType::Compute)
-          .addPushConstant(vk::ShaderStageFlagBits::eCompute, sizeof(SimulationInfoGrid));
+          .addPushConstant(vk::ShaderStageFlagBits::eCompute, sizeof(SimulationInfoGridFluid));
+
+  std::array<vk::DescriptorPoolSize, 1> poolSize{
+      vk::DescriptorPoolSize{.type = vk::DescriptorType::eStorageBuffer, .descriptorCount = 4}};
+  vk::DescriptorPoolCreateInfo poolCreateInfo{
+      .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+      .maxSets =
+      [poolSize] {
+        uint32_t i = 0;
+        std::for_each(poolSize.begin(), poolSize.end(),
+                      [&i](const auto &in) { i += in.descriptorCount; });
+        return i;
+      }(),
+      .poolSizeCount = poolSize.size(),
+      .pPoolSizes = poolSize.data(),
+  };
+  descriptorPool = this->device->getDevice()->createDescriptorPoolUnique(poolCreateInfo);
 
   std::map<Stages, std::string> fileNames{{Stages::addSourceScalar, "addForce.comp"}};
   auto shaderPathTemplate = config.getVulkan().shaderFolder / "GridFluid/{}";
@@ -195,31 +220,8 @@ VulkanGridFluid::VulkanGridFluid(const Config &config, const SimulationInfoGrid 
     }
   }
 
-  auto queueFamilyIndices = Device::findQueueFamilies(this->device->getPhysicalDevice(), surface);
-  vk::CommandPoolCreateInfo commandPoolCreateInfoCompute{
-      .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-      .queueFamilyIndex = queueFamilyIndices.computeFamily.value()};
-
-  commandPool = this->device->getDevice()->createCommandPoolUnique(commandPoolCreateInfoCompute);
-  commandBufferCompute = std::move(this->device->allocateCommandBuffer(commandPool, 1)[0]);
-  queue = this->device->getComputeQueue();
-
-  std::array<vk::DescriptorPoolSize, 1> poolSize{
-      vk::DescriptorPoolSize{.type = vk::DescriptorType::eStorageBuffer, .descriptorCount = 4}};
-  vk::DescriptorPoolCreateInfo poolCreateInfo{
-      .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-      .maxSets =
-          [poolSize] {
-            uint32_t i = 0;
-            std::for_each(poolSize.begin(), poolSize.end(),
-                          [&i](const auto &in) { i += in.descriptorCount; });
-            return i;
-          }(),
-      .poolSizeCount = poolSize.size(),
-      .pPoolSizes = poolSize.data(),
-  };
-  descriptorPool = this->device->getDevice()->createDescriptorPoolUnique(poolCreateInfo);
-
+  semaphores.resize(2);
   std::generate_n(semaphores.begin(), 2,
-                  [&] { return device->getDevice()->createSemaphoreUnique({}); })
+                  [&] { return device->getDevice()->createSemaphoreUnique({}); });
 }
+const std::shared_ptr<Buffer> &VulkanGridFluid::getBufferDensity() const { return bufferDensity; }

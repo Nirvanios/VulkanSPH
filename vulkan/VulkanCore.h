@@ -17,6 +17,8 @@
 
 #include "../ui/ImGuiGlfwVulkan.h"
 #include "../utils/FPSCounter.h"
+#include "VulkanGridFluid.h"
+#include "VulkanGridFluidRender.h"
 #include "VulkanGridSPH.h"
 #include "VulkanSPH.h"
 #include "VulkanSort.h"
@@ -41,7 +43,10 @@ class VulkanCore {
   void setViewMatrixGetter(std::function<glm::mat4()> getter);
   [[nodiscard]] bool isFramebufferResized() const;
   void setFramebufferResized(bool resized);
-  void initVulkan(const std::vector<Model> &modelParticle, const std::vector<ParticleRecord> particles, const SimulationInfoSPH &simulationInfo);
+  void initVulkan(const std::vector<Model> &modelParticle,
+                  const std::vector<ParticleRecord> particles,
+                  const SimulationInfoSPH &simulationInfoSPH,
+                  const SimulationInfoGridFluid &simulationInfoGridFluid);
   void run();
 
  private:
@@ -70,7 +75,6 @@ class VulkanCore {
   std::vector<int> indicesSizes;
   std::vector<int> verticesCountOffset;
 
-
   double time = 0;
   uint steps = 0;
   bool simulate = false;
@@ -95,7 +99,8 @@ class VulkanCore {
   vk::UniqueCommandPool commandPoolGraphics;
   std::vector<vk::UniqueCommandBuffer> commandBuffersGraphic;
 
-  std::vector<vk::UniqueSemaphore> semaphoreImageAvailable, semaphoreRenderFinished, semaphoreAfterSimulation, semaphoreAfterSort;
+  std::vector<vk::UniqueSemaphore> semaphoreImageAvailable, semaphoreRenderFinished,
+      semaphoreAfterSimulation, semaphoreAfterSort;
   std::vector<vk::UniqueFence> fencesInFlight;
   std::vector<std::optional<vk::Fence>> fencesImagesInFlight;
 
@@ -124,10 +129,12 @@ class VulkanCore {
   GlfwWindow &window;
 
   FPSCounter fpsCounter;
-  std::unique_ptr<pf::ui::ig::ImGuiGlfwVulkan> imgui;
+  std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> imgui;
 
   std::unique_ptr<VulkanSPH> vulkanSPH;
   std::unique_ptr<VulkanGridSPH> vulkanGridSPH;
+  std::unique_ptr<VulkanGridFluid> vulkanGridFluid;
+  std::unique_ptr<VulkanGridFluidRender> vulkanGridFluidRender;
 
   void mainLoop();
   void cleanup();

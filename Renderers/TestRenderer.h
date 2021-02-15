@@ -33,8 +33,9 @@ class TestRenderer {
   void cameraMouseButton(MouseButtonMessage message);
 
   std::vector<ParticleRecord> createParticles();
-  Model createGrid(const SimulationInfoSPH &simulationInfo);
-  SimulationInfoSPH getSimulationInfo();
+  [[nodiscard]] Model createGrid(const SimulationInfoSPH &simulationInfo);
+  [[nodiscard]] SimulationInfoSPH getSimulationInfoSPH();
+  [[nodiscard]] SimulationInfoGridFluid getSimulationInfoGridFluid();
 };
 
 #endif//VULKANAPP_TESTRENDERER_H

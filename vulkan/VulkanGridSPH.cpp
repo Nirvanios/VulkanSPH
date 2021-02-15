@@ -88,11 +88,11 @@ vk::UniqueSemaphore VulkanGridSPH::run(const vk::UniqueSemaphore &waitSemaphore)
 }
 
 void VulkanGridSPH::recordCommandBuffer(const std::shared_ptr<Pipeline> &pipeline) {
-  GridInfo gridInfo{.gridSize = glm::ivec4(config.getApp().simulation.gridSize, 0),
-                    .gridOrigin = glm::vec4(config.getApp().simulation.gridOrigin, 0),
+  GridInfo gridInfo{.gridSize = glm::ivec4(config.getApp().simulationSPH.gridSize, 0),
+                    .gridOrigin = glm::vec4(config.getApp().simulationSPH.gridOrigin, 0),
                     .cellSize = simulationInfo.supportRadius,
                     .particleCount =
-                        static_cast<unsigned int>(config.getApp().simulation.particleCount)};
+                        static_cast<unsigned int>(config.getApp().simulationSPH.particleCount)};
 
   vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse,
                                        .pInheritanceInfo = nullptr};
@@ -107,6 +107,6 @@ void VulkanGridSPH::recordCommandBuffer(const std::shared_ptr<Pipeline> &pipelin
                                       vk::ShaderStageFlagBits::eCompute, 0, sizeof(GridInfo),
                                       &gridInfo);
   commandBufferCompute->dispatch(
-      static_cast<int>(std::ceil(config.getApp().simulation.particleCount / 32.0)), 1, 1);
+      static_cast<int>(std::ceil(config.getApp().simulationSPH.particleCount / 32.0)), 1, 1);
   commandBufferCompute->end();
 }

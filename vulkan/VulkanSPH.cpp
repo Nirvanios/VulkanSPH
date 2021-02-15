@@ -21,7 +21,7 @@ VulkanSPH::VulkanSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device
                                     .setPipelineType(PipelineType::Compute)
                                     .addPushConstant(vk::ShaderStageFlagBits::eCompute,
                                                      sizeof(SimulationInfoSPH));
-  if(config.getApp().simulation.useNNS)
+  if(config.getApp().simulationSPH.useNNS)
     computePipelineBuilder.addShaderMacro("GRID");
   pipelineComputeMassDensity =
       computePipelineBuilder
@@ -129,7 +129,7 @@ void VulkanSPH::recordCommandBuffer(const std::shared_ptr<Pipeline> &pipeline) {
                                       vk::ShaderStageFlagBits::eCompute, 0, sizeof(SimulationInfoSPH),
                                       &simulationInfo);
   commandBufferCompute->dispatch(
-      static_cast<int>(std::ceil(config.getApp().simulation.particleCount / 32.0)), 1, 1);
+      static_cast<int>(std::ceil(config.getApp().simulationSPH.particleCount / 32.0)), 1, 1);
   commandBufferCompute->end();
 }
 const std::shared_ptr<Buffer> &VulkanSPH::getBufferParticles() const { return bufferParticles; }

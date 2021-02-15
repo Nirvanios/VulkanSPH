@@ -21,7 +21,7 @@ struct VulkanConfig {
   std::filesystem::path shaderFolder;
 };
 
-struct SimulationConfig {
+struct SimulationSPHConfig {
   float timeStep;
   float viscosityCoefficient;
   float gasStiffness;
@@ -35,10 +35,15 @@ struct SimulationConfig {
   bool useNNS;
 };
 
+struct SimulationGridFluidConfig {
+  std::filesystem::path cellModel;
+};
+
 struct AppConfig {
   bool DEBUG;
   bool outputToFile;
-  SimulationConfig simulation;
+  SimulationSPHConfig simulationSPH;
+  SimulationGridFluidConfig simulationGridFluid;
 };
 
 #endif//VULKANAPP_CONFIGSTRUCTS_H

@@ -88,6 +88,28 @@ inline void endOnetimeCommand(vk::UniqueCommandBuffer commandBuffer, const vk::Q
   queue.waitIdle();
 }
 
+inline vk::Format findSupportedFormat(std::shared_ptr<Device> device, const std::vector<vk::Format> &candidates,
+                               vk::ImageTiling tiling,
+                               const vk::FormatFeatureFlags &features) {
+  for (const auto &format : candidates) {
+    auto properties = device->getPhysicalDevice().getFormatProperties(format);
+    if ((tiling == vk::ImageTiling::eLinear
+         && (properties.linearTilingFeatures & features) == features)
+        || (tiling == vk::ImageTiling::eOptimal
+            && (properties.optimalTilingFeatures & features) == features))
+      return format;
+  }
+  throw std::runtime_error("Failed to find supported format!");
+}
+
+
+inline vk::Format findDepthFormat(std::shared_ptr<Device> device) {
+  return findSupportedFormat(std::move(device),
+      {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
+      vk::ImageTiling::eOptimal, vk::FormatFeatureFlagBits::eDepthStencilAttachment);
+}
+
+
 }// namespace VulkanUtils
 
 #endif//VULKANAPP_VULKANUTILS_H

@@ -14,6 +14,7 @@ class RenderPassBuilder {
   std::shared_ptr<RenderPass> build();
 
   RenderPassBuilder &setColorAttachmentFormat(vk::Format format);
+  RenderPassBuilder &setColorAttachmentLoadOp(vk::AttachmentLoadOp op);
   RenderPassBuilder &setDepthAttachmentFormat(vk::Format format);
 
  private:
@@ -22,6 +23,8 @@ class RenderPassBuilder {
   bool useDepth = false;
   vk::AttachmentDescription colorAttachmentDescription;
   vk::AttachmentDescription depthAttachmentDescription;
+
+  vk::AttachmentLoadOp colorLoadOp = vk::AttachmentLoadOp::eClear;
 
 };
 

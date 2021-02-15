@@ -1,8 +1,13 @@
 #version 450
 
 layout(push_constant) uniform GridSimulationInfoUniform {
+  ivec4 gridSize;
+  vec4 gridOrigin;
   float timeStep;
   int cellCount;
+  float cellSize;
+  float diffusionCoefficient;
+  int boundaryScale;
 }
 simulationInfo;
 

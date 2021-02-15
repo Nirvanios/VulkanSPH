@@ -73,7 +73,14 @@ void Image::transitionImageLayoutNow(const std::shared_ptr<Device> &device,
         vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
     sourceStage = vk::PipelineStageFlagBits::eTopOfPipe;
     destinationStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-  } else {
+  } else if (oldLayout == vk::ImageLayout::eUndefined
+            && newLayout == vk::ImageLayout::eGeneral) {
+    barrier.dstAccessMask =
+        vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+    sourceStage = vk::PipelineStageFlagBits::eTopOfPipe;
+    destinationStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+  }
+  else {
     throw std::invalid_argument("unsupported layout transition!");
   }
 

@@ -95,7 +95,7 @@ VulkanSort::VulkanSort(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Devi
                      .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal);
 
   const auto bufferCounterSize =
-      Utilities::getNextPow2Number(glm::compMul(config.getApp().simulation.gridSize));
+      Utilities::getNextPow2Number(glm::compMul(config.getApp().simulationSPH.gridSize));
   bufferBinsSorted = std::make_shared<Buffer>(builder, this->device, commandPool, queue);
   bufferCounter = std::make_shared<Buffer>(builder.setSize(sizeof(int) * bufferCounterSize),
                                            this->device, commandPool, queue);
@@ -144,9 +144,9 @@ VulkanSort::VulkanSort(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Devi
 
 vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
   const auto dispachCountParticles =
-      static_cast<int>(std::ceil(config.getApp().simulation.particleCount / 32.0));
+      static_cast<int>(std::ceil(config.getApp().simulationSPH.particleCount / 32.0));
   const auto counterSize =
-     Utilities::getNextPow2Number(glm::compMul(config.getApp().simulation.gridSize));
+     Utilities::getNextPow2Number(glm::compMul(config.getApp().simulationSPH.gridSize));
   const auto dispachCountCells = counterSize / 32;
   const auto iterationCount = std::log2(counterSize);
 
@@ -154,7 +154,7 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
   auto semaphoreOut = device->getDevice()->createSemaphore({});
   std::array<vk::PipelineStageFlags, 1> waitStages{vk::PipelineStageFlagBits::eComputeShader};
 
-  buffersUniformSort->fill(std::array<int, 2>{config.getApp().simulation.particleCount, 0}, false);
+  buffersUniformSort->fill(std::array<int, 2>{config.getApp().simulationSPH.particleCount, 0}, false);
 
   [[maybe_unused]] int j = 0;
   /*  auto a = bufferBins->read<KeyValue>();
@@ -230,7 +230,7 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
 
   //Create Indexes
   recordCommandBuffersCompute(pipelinesSort[5], dispachCountCells);
-  buffersUniformSort->fill(std::array<int, 2>{glm::compMul(config.getApp().simulation.gridSize), 0},
+  buffersUniformSort->fill(std::array<int, 2>{glm::compMul(config.getApp().simulationSPH.gridSize), 0},
                            false);
   submitInfoCompute.pCommandBuffers = &commandBuffer.get();
   queue.submit(submitInfoCompute, fence.get());
@@ -242,7 +242,7 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
 
   // Create Soretd
   recordCommandBuffersCompute(pipelinesSort[6], dispachCountParticles);
-  buffersUniformSort->fill(std::array<int, 2>{config.getApp().simulation.particleCount, 0}, false);
+  buffersUniformSort->fill(std::array<int, 2>{config.getApp().simulationSPH.particleCount, 0}, false);
   submitInfoCompute.pCommandBuffers = &commandBuffer.get();
   submitInfoCompute.waitSemaphoreCount = 0;
   submitInfoCompute.signalSemaphoreCount = 1;
@@ -284,7 +284,7 @@ void VulkanSort::recordCommandBuffersCompute(const std::shared_ptr<Pipeline> &pi
                                              int dispatchCount) {
   vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse,
                                        .pInheritanceInfo = nullptr};
-  auto cellCount = Utilities::getNextPow2Number(glm::compMul(config.getApp().simulation.gridSize));
+  auto cellCount = Utilities::getNextPow2Number(glm::compMul(config.getApp().simulationSPH.gridSize));
 
   commandBuffer->begin(beginInfo);
   commandBuffer->bindPipeline(vk::PipelineBindPoint::eCompute, pipeline->getPipeline().get());

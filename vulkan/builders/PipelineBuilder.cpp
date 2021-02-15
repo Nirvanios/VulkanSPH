@@ -95,7 +95,7 @@ PipelineBuilder::createGraphicsPipeline(const vk::UniqueDescriptorSetLayout &des
       .alphaToOneEnable = VK_FALSE};
 
   vk::PipelineColorBlendAttachmentState colorBlendAttachmentState{
-      .blendEnable = VK_FALSE,
+      .blendEnable = blendEnabled,
       .srcColorBlendFactor = vk::BlendFactor::eSrcAlpha,
       .dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
       .colorBlendOp = vk::BlendOp::eAdd,
@@ -253,5 +253,9 @@ PipelineBuilder &PipelineBuilder::setAssemblyInfo(vk::PrimitiveTopology topology
 
 PipelineBuilder &PipelineBuilder::addRenderPass(const std::string& name, std::shared_ptr<RenderPass> renderPass) {
   renderPasses[name] = std::move(renderPass);
+  return *this;
+}
+PipelineBuilder &PipelineBuilder::setBlendEnabled(bool enabled) {
+  blendEnabled = enabled;
   return *this;
 }

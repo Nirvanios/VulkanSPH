@@ -40,7 +40,7 @@ RenderPassBuilder::RenderPassBuilder(std::shared_ptr<Device> devicePtr) : device
   colorAttachmentDescription =
       vk::AttachmentDescription{.format = vk::Format::eUndefined,
                                 .samples = vk::SampleCountFlagBits::e1,
-                                .loadOp = vk::AttachmentLoadOp::eClear,
+                                .loadOp = colorLoadOp,
                                 .storeOp = vk::AttachmentStoreOp::eStore,
                                 .stencilLoadOp = vk::AttachmentLoadOp::eDontCare,
                                 .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
@@ -66,5 +66,9 @@ RenderPassBuilder &RenderPassBuilder::setColorAttachmentFormat(vk::Format format
 RenderPassBuilder &RenderPassBuilder::setDepthAttachmentFormat(vk::Format format) {
   depthAttachmentDescription.format = format;
   useDepth = true;
+  return *this;
+}
+RenderPassBuilder &RenderPassBuilder::setColorAttachmentLoadOp(vk::AttachmentLoadOp op) {
+  colorLoadOp = op;
   return *this;
 }

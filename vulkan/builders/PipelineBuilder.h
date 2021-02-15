@@ -32,6 +32,7 @@ class PipelineBuilder {
   PipelineBuilder &addPushConstant(vk::ShaderStageFlagBits stage, size_t pushConstantSize);
   PipelineBuilder &setAssemblyInfo(vk::PrimitiveTopology topology, bool usePrimitiveRestartIndex);
   PipelineBuilder &addRenderPass(const std::string& name, std::shared_ptr<RenderPass> renderPass);
+  PipelineBuilder &setBlendEnabled(bool enabled);
 
  private:
   Config config;
@@ -59,6 +60,8 @@ class PipelineBuilder {
   vk::PipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo{
       .topology = vk::PrimitiveTopology::eTriangleList,
       .primitiveRestartEnable = VK_FALSE};
+
+  bool blendEnabled = false;
 };
 
 #endif//VULKANAPP_PIPELINEBUILDER_H
