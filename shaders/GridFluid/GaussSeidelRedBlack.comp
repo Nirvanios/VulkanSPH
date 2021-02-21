@@ -1,16 +1,27 @@
 #version 450
 
+#extension GL_EXT_debug_printf : enable
+
 #define TO_INDEX(a, b, c) (int(a + simulationInfo.gridSize.x * (b + simulationInfo.gridSize.y * c)))
+#define TO_INDEX_BOUNDARY(a, b, c) (int(a + (simulationInfo.gridSize.x + 2) * (b + (simulationInfo.gridSize.y + 2) * c)))
 
 #define VEC_TO_INDEX(a) (TO_INDEX(a.x, a.y, a.z))
+#define VEC_TO_INDEX_BOUNDARY(a) (TO_INDEX_BOUNDARY(a.x, a.y, a.z))
 
-#define TYPENAME_T vec4
+#define RED 0
+#define BLACK 1
+
+//#define TYPENAME_T float
 
 layout(push_constant) uniform GridSimulationInfoUniform {
+  ivec4 gridSize;
+  vec4 gridOrigin;
   float timeStep;
   int cellCount;
-  ivec4 gridSize;
+  float cellSize;
   float diffusionCoefficient;
+  int boundaryScale;
+  int specificInfo;
 }
 simulationInfo;
 
@@ -18,23 +29,50 @@ layout(std430, binding = 0) buffer BufferNew { TYPENAME_T fieldNew[]; };
 
 layout(std430, binding = 1) buffer BufferOld { TYPENAME_T fieldOld[]; };
 
-layout(local_size_x = 4, local_size_y = 4, local_size_z = 4) in;
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 
 void main() {
-  const vec3 myGridId = vec3(1) + gl_GlobalInvocationID * 2;
-  if (all(lessThan(myGridId, simulationInfo.gridSize.xyz))) {
-    const int myGridIdFlatten = (VEC_TO_INDEX(myGridId));
-    const float a = simulationInfo.timeStep * simulationInfo.diffusionCoefficient
-        * (simulationInfo.gridSize.x * simulationInfo.gridSize.y * simulationInfo.gridSize.z);
+  const ivec3 gridSize = simulationInfo.gridSize.xyz;
+  const ivec3 myGridID3D = ivec3((gl_GlobalInvocationID.x * 2) % gridSize.x,
+                                 int(gl_GlobalInvocationID.x * 2 / gridSize.x),
+                                 int(gl_GlobalInvocationID.x * 2 / (gridSize.x * gridSize.y)));
+  int myGridIdFlatten = int(2 * gl_GlobalInvocationID.x);
+  switch (simulationInfo.specificInfo) {
+    case RED:
+      myGridIdFlatten +=
+          1 - ((myGridID3D.z * ((gridSize.z + 1) & 1) + myGridID3D.y * ((gridSize.y + 1) & 1)) & 1);
+      break;
+    case BLACK:
+      myGridIdFlatten +=
+          ((myGridID3D.z * ((gridSize.z + 1) & 1) + myGridID3D.y * ((gridSize.y + 1) & 1)) & 1);
+      break;
+  }
 
-    fieldNew[myGridIdFlatten] =
-        (fieldOld[myGridIdFlatten]
-         + a
-             * (fieldNew[VEC_TO_INDEX(myGridId - vec3(1, 0, 0))]
-                + fieldNew[VEC_TO_INDEX(myGridId + vec3(1, 0, 0))]
-                + fieldNew[VEC_TO_INDEX(myGridId - vec3(0, 1, 0))]
-                + fieldNew[VEC_TO_INDEX(myGridId + vec3(0, 1, 0))]
-                + fieldNew[VEC_TO_INDEX(myGridId - vec3(0, 0, 1))]
-                + fieldNew[VEC_TO_INDEX(myGridId + vec3(0, 0, 1))])) / (1+a);
+  const ivec3 gridSizeWithBorders = gridSize.xyz + ivec3(2);
+  const ivec3 myId3D =
+      ivec3(myGridIdFlatten % gridSize.x,
+            int(myGridIdFlatten % (simulationInfo.gridSize.x * simulationInfo.gridSize.y)
+                / simulationInfo.gridSize.x),
+            int(myGridIdFlatten / (gridSize.x * gridSize.y)));
+  const uint myId = (myId3D.x + 1) + (myId3D.y + 1) * gridSizeWithBorders.x
+      + (myId3D.z + 1) * gridSizeWithBorders.x * gridSizeWithBorders.y;
+
+  if (all(lessThan(myId3D, gridSize.xyz))) {
+    const float a = simulationInfo.timeStep * simulationInfo.diffusionCoefficient / pow(simulationInfo.cellSize, 3);
+        //simulationInfo.timeStep * simulationInfo.diffusionCoefficient * (gridSize.x * gridSize.x);
+
+    fieldNew[myId] = (fieldOld[myId]
+                      + a
+                          * (fieldNew[myId - VEC_TO_INDEX_BOUNDARY(vec3(1, 0, 0))]
+                             + fieldNew[myId + VEC_TO_INDEX_BOUNDARY(vec3(1, 0, 0))]
+                             + fieldNew[myId - VEC_TO_INDEX_BOUNDARY(vec3(0, 1, 0))]
+                             + fieldNew[myId + VEC_TO_INDEX_BOUNDARY(vec3(0, 1, 0))]
+                             + fieldNew[myId - VEC_TO_INDEX_BOUNDARY(vec3(0, 0, 1))]
+                             + fieldNew[myId + VEC_TO_INDEX_BOUNDARY(vec3(0, 0, 1))]))
+        / (1 + a);
+     if (fieldOld[myId] > 0 || fieldNew[myId] > 0)
+      debugPrintfEXT("myId: %d, Black: %d, a: %3f, ValueOld %3f, ValueNew %3f", myId, simulationInfo.specificInfo, a, fieldOld[myId],
+                     fieldNew[myId]);
+    /*                 debugPrintfEXT("%d",myId - VEC_TO_INDEX_BOUNDARY(vec3(0, 0, 1))); */
   }
 }

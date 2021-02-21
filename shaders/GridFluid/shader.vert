@@ -42,19 +42,24 @@ vec3 hsv2rgb(vec3 c) {
   return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
-vec3 getPosition(int index) {
+ivec3 getPosition(int index) {
   int z = index / (simulationInfo.gridSize.x * simulationInfo.gridSize.y);
   int zOffset = z * simulationInfo.gridSize.x * simulationInfo.gridSize.y;
-  return vec3((index - zOffset) % simulationInfo.gridSize.x,
+  return ivec3((index - zOffset) % simulationInfo.gridSize.x,
               (index - zOffset) / simulationInfo.gridSize.x, z);
 }
 
 const float cellScale = 0.022 * 0.5;
 
 void main() {
+  const ivec3 gridSizeWithBorders = simulationInfo.gridSize.xyz + ivec3(2);
+  const ivec3 myId3D = getPosition(gl_InstanceIndex);
+  const uint myId = (myId3D.x + 1) + (myId3D.y + 1) * gridSizeWithBorders.x
+      + (myId3D.z + 1) * gridSizeWithBorders.x * gridSizeWithBorders.y;
+
   gl_Position = ubo.proj * ubo.view * ubo.model
-      * (vec4(inPosition * 0.5 * simulationInfo.cellSize, 1.0) + vec4(getPosition(gl_InstanceIndex)*simulationInfo.cellSize, 0));
-  fragColor = vec4(inColor, density[gl_InstanceIndex]);
+      * (vec4(inPosition * 0.5 * simulationInfo.cellSize, 1.0) + vec4(myId3D * simulationInfo.cellSize, 0));
+  fragColor = vec4(inColor, density[myId]);
   outPosition = gl_Position.xyz;
   outNormal = inNormal;
 }

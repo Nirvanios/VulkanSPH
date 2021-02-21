@@ -27,32 +27,63 @@ class VulkanGridFluid {
     advectVector
   };
 
-  void submit(Stages pipelineStage, const std::optional<vk::Semaphore> &inSemaphore,
-              const std::optional<vk::Semaphore> &outSemaphore);
+  enum class SpecificInfo{
+    red = 0,
+    black = 1
+  };
+
+  void submit(Stages pipelineStage, const vk::Fence = nullptr, const std::optional<vk::Semaphore> &inSemaphore = std::nullopt,
+              const std::optional<vk::Semaphore> &outSemaphore = std::nullopt);
   void recordCommandBuffer(Stages pipelineStage);
+  void swapBuffers(std::shared_ptr<Buffer> &buffer1, std::shared_ptr<Buffer> &buffer2);
+  void updateDescriptorSets();
+  void fillDescriptorBufferInfo();
 
   const Config &config;
-  const SimulationInfoGridFluid simulationInfo;
+  SimulationInfoGridFluid simulationInfo;
 
   std::shared_ptr<Device> device;
 
   vk::Queue queue;
 
   vk::UniqueDescriptorPool descriptorPool;
-  std::shared_ptr<DescriptorSet> descriptorSetCompute;
+  std::map<Stages, std::shared_ptr<DescriptorSet>> descriptorSets;
 
   vk::UniqueCommandPool commandPool;
-  vk::UniqueCommandBuffer commandBufferCompute;
+  vk::UniqueCommandBuffer commandBuffer;
 
   std::map<Stages, std::shared_ptr<Pipeline>> pipelines;
 
-  std::shared_ptr<Buffer> bufferDensity;
+  std::shared_ptr<Buffer> bufferDensityNew;
+  std::shared_ptr<Buffer> bufferDensityOld;
   std::shared_ptr<Buffer> bufferDensitySources;
 
   std::vector<vk::UniqueSemaphore> semaphores;
   int currentSemaphore;
 
   vk::UniqueFence fence;
+
+  std::map<Stages, std::vector<PipelineLayoutBindingInfo>> bindingInfosCompute{
+      {Stages::addSourceScalar,
+       {PipelineLayoutBindingInfo{.binding = 0,
+                                  .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                  .descriptorCount = 1,
+                                  .stageFlags = vk::ShaderStageFlagBits::eCompute},
+        PipelineLayoutBindingInfo{.binding = 1,
+                                  .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                  .descriptorCount = 1,
+                                  .stageFlags = vk::ShaderStageFlagBits::eCompute}}},
+      {Stages::diffuse,
+       {PipelineLayoutBindingInfo{.binding = 0,
+                                  .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                  .descriptorCount = 1,
+                                  .stageFlags = vk::ShaderStageFlagBits::eCompute},
+        PipelineLayoutBindingInfo{.binding = 1,
+                                  .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                  .descriptorCount = 1,
+                                  .stageFlags = vk::ShaderStageFlagBits::eCompute}}}};
+
+  std::map<Stages, std::vector<DescriptorBufferInfo>> descriptorBufferInfosCompute;
 };
 
 #endif//VULKANAPP_VULKANGRIDFLUID_H

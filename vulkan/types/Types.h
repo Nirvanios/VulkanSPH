@@ -121,6 +121,7 @@ struct SimulationInfoGridFluid {
   float cellSize;
   float diffusionCoefficient;
   int boundaryScale;
+  int specificInfo;
 };
 
 struct GridInfo{

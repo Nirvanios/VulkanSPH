@@ -1,5 +1,7 @@
 #version 450
 
+#extension GL_EXT_debug_printf : enable
+
 layout(push_constant) uniform GridSimulationInfoUniform {
   ivec4 gridSize;
   vec4 gridOrigin;
@@ -8,16 +10,33 @@ layout(push_constant) uniform GridSimulationInfoUniform {
   float cellSize;
   float diffusionCoefficient;
   int boundaryScale;
+  int specificInfo;
 }
 simulationInfo;
 
-layout(std430, binding = 0) buffer velocityBuffer { vec4 velocityField[]; };
+#define TYPENAME_T float
 
-layout(std430, binding = 1) buffer forceBuffer { vec4 forceField[]; };
+layout(std430, binding = 0) buffer velocityBuffer { TYPENAME_T velocityField[]; };
+
+layout(std430, binding = 1) buffer forceBuffer { TYPENAME_T forceField[]; };
 
 layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 
 void main() {
-  const uint myId = gl_GlobalInvocationID.x;
-  if (myId < simulationInfo.cellCount) { velocityField[myId] += forceField[myId]; }
+  const ivec3 gridSizeWithBorders = simulationInfo.gridSize.xyz + ivec3(2);
+  const ivec3 myId3D =
+      ivec3(gl_GlobalInvocationID.x % simulationInfo.gridSize.x,
+            int(gl_GlobalInvocationID.x % (simulationInfo.gridSize.x * simulationInfo.gridSize.y)
+                / simulationInfo.gridSize.x),
+            int(gl_GlobalInvocationID.x / (simulationInfo.gridSize.x * simulationInfo.gridSize.y)));
+  const uint myId = (myId3D.x + 1) + (myId3D.y + 1) * gridSizeWithBorders.x
+      + (myId3D.z + 1) * gridSizeWithBorders.x * gridSizeWithBorders.y;
+
+  if (all(lessThan(myId3D, simulationInfo.gridSize.xyz))) {
+    velocityField[myId] += forceField[gl_GlobalInvocationID.x];
+    if (forceField[gl_GlobalInvocationID.x] > 0)
+      debugPrintfEXT("densityField: %3f, forceField: %3f", velocityField[myId],
+                     forceField[gl_GlobalInvocationID.x]);
+    //velocityField[myId] = (gl_GlobalInvocationID.x + gl_GlobalInvocationID.y + gl_GlobalInvocationID.z) % 2 * 1.0f;
+  }
 }
