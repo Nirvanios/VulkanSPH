@@ -59,7 +59,6 @@ void main() {
 
   if (all(lessThan(myId3D, gridSize.xyz))) {
     const float a = simulationInfo.timeStep * simulationInfo.diffusionCoefficient / pow(simulationInfo.cellSize, 3);
-        //simulationInfo.timeStep * simulationInfo.diffusionCoefficient * (gridSize.x * gridSize.x);
 
     fieldNew[myId] = (fieldOld[myId]
                       + a
@@ -70,9 +69,9 @@ void main() {
                              + fieldNew[myId - VEC_TO_INDEX_BOUNDARY(vec3(0, 0, 1))]
                              + fieldNew[myId + VEC_TO_INDEX_BOUNDARY(vec3(0, 0, 1))]))
         / (1 + a);
-     if (fieldOld[myId] > 0 || fieldNew[myId] > 0)
+/*      if (fieldOld[myId] > 0 || fieldNew[myId] > 0)
       debugPrintfEXT("myId: %d, Black: %d, a: %3f, ValueOld %3f, ValueNew %3f", myId, simulationInfo.specificInfo, a, fieldOld[myId],
-                     fieldNew[myId]);
+                     fieldNew[myId]); */
     /*                 debugPrintfEXT("%d",myId - VEC_TO_INDEX_BOUNDARY(vec3(0, 0, 1))); */
   }
 }

@@ -1,0 +1,81 @@
+#version 450
+
+#extension GL_EXT_debug_printf : enable
+
+#define TO_INDEX(a, b, c) (a + simulationInfo.gridSize.x * (b + simulationInfo.gridSize.y * c))
+
+#define TYPENAME_T float
+
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+
+layout(push_constant) uniform GridSimulationInfoUniform {
+  ivec4 gridSize;
+  vec4 gridOrigin;
+  float timeStep;
+  int cellCount;
+  float cellSize;
+  float diffusionCoefficient;
+  int boundaryScale;
+  int specificInfo;
+}
+simulationInfo;
+layout(std430, binding = 0) buffer advectedBufferNew { TYPENAME_T advectedFieldNew[]; };
+
+layout(std430, binding = 1) buffer advectedBufferOld { TYPENAME_T advectedFieldOld[]; };
+
+layout(std430, binding = 2) buffer velocityBuffer { vec4 velocityFieldOld[]; };
+
+float linearInterpolation(float value1, float value2, float bias) {
+  if (bias > 1.0 || bias < 0.0) debugPrintfEXT("Bad bias, expect unexpected!!!");
+  return value1 * (1.0f - bias) + value2 * bias;
+}
+
+TYPENAME_T trilinearInterpolation(TYPENAME_T pairsXYZ[2][2][2], vec3 bias) {
+  if (any(lessThan(bias, vec3(0.0))) || any(greaterThan(bias, vec3(1.0))))//Assert
+    debugPrintfEXT("Bad bias, expect unexpected!!!");
+
+  TYPENAME_T pairsXY[2][2] = {{mix(pairsXYZ[0][0][0], pairsXYZ[0][0][1], bias.z),
+                         mix(pairsXYZ[0][1][0], pairsXYZ[0][1][1], bias.z)},
+                        {mix(pairsXYZ[1][0][0], pairsXYZ[1][0][1], bias.z),
+                         mix(pairsXYZ[1][1][0], pairsXYZ[1][1][1], bias.z)}};
+  TYPENAME_T pairX[2] = {mix(pairsXY[0][0], pairsXY[0][1], bias.y),
+                   mix(pairsXY[1][0], pairsXY[1][1], bias.y)};
+  return mix(pairX[0], pairX[1], bias.x);
+}
+
+void advect(ivec3 myCellPos, uint myId) {
+  vec3 backwardVelocity = myCellPos
+      - simulationInfo.timeStep * simulationInfo.gridSize.xyz * velocityFieldOld[myId].xyz;
+
+  max(simulationInfo.gridSize.xyz + 0.5, min(backwardVelocity, 0.5));
+  ivec2 i = ivec2(backwardVelocity.x, backwardVelocity.x + 1);
+  ivec2 j = ivec2(backwardVelocity.y, backwardVelocity.y + 1);
+  ivec2 k = ivec2(backwardVelocity.z, backwardVelocity.z + 1);
+
+  TYPENAME_T pairsXYZ[2][2][2] = {{{advectedFieldOld[TO_INDEX(i.x, j.x, k.x)],
+                              advectedFieldOld[TO_INDEX(i.x, j.x, k.y)]},
+                             {advectedFieldOld[TO_INDEX(i.x, j.y, k.x)],
+                              advectedFieldOld[TO_INDEX(i.x, j.y, k.y)]}},
+                            {{advectedFieldOld[TO_INDEX(i.y, j.x, k.x)],
+                              advectedFieldOld[TO_INDEX(i.y, j.x, k.y)]},
+                             {advectedFieldOld[TO_INDEX(i.y, j.y, k.x)],
+                              advectedFieldOld[TO_INDEX(i.y, j.y, k.y)]}}};
+
+  advectedFieldNew[myId] =
+      trilinearInterpolation(pairsXYZ, backwardVelocity - ivec3(i.x, j.x, k.x));
+}
+
+void main() {
+    const ivec3 gridSizeWithBorders = simulationInfo.gridSize.xyz + ivec3(2);
+  const ivec3 myId3D =
+      ivec3(gl_GlobalInvocationID.x % simulationInfo.gridSize.x,
+            int(gl_GlobalInvocationID.x % (simulationInfo.gridSize.x * simulationInfo.gridSize.y)
+                / simulationInfo.gridSize.x),
+            int(gl_GlobalInvocationID.x / (simulationInfo.gridSize.x * simulationInfo.gridSize.y)));
+  const uint myId = (myId3D.x + 1) + (myId3D.y + 1) * gridSizeWithBorders.x
+      + (myId3D.z + 1) * gridSizeWithBorders.x * gridSizeWithBorders.y;
+
+  if (all(lessThan(myId3D, simulationInfo.gridSize.xyz))) {
+    advect(myId3D ,myId);
+  }
+}
