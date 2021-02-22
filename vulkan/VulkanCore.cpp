@@ -367,6 +367,8 @@ void VulkanCore::drawFrame() {
     //semaphoreAfterSimulation[currentFrame] = vulkanSPH->run(semaphoreAfterSort[currentFrame]);
     semaphoreAfterSimulation[currentFrame] =
         vulkanGridFluid->run(semaphoreImageAvailable[currentFrame]);
+    device->getDevice()->waitForFences(vulkanGridFluid->getFenceAfterCompute().get(), VK_TRUE, UINT64_MAX);
+    vulkanGridFluidRender->updateDensityBuffer(vulkanGridFluid->getBufferDensity());
   }
 
   /*  vk::SubmitInfo submitInfoRender{.waitSemaphoreCount = 1,

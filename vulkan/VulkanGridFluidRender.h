@@ -27,6 +27,7 @@ class VulkanGridFluidRender {
   vk::UniqueSemaphore draw(const vk::UniqueSemaphore &inSemaphore, unsigned int imageIndex,
                            const vk::UniqueFence &fenceInFlight);
   void setImgui(std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> &inImgui);
+  void updateDensityBuffer(std::shared_ptr<Buffer> densityBufferNew);
 
  private:
   std::array<PipelineLayoutBindingInfo, 3> bindingInfosRender{
@@ -46,6 +47,8 @@ class VulkanGridFluidRender {
                                 .descriptorType = vk::DescriptorType::eStorageBuffer,
                                 .descriptorCount = 1,
                                 .stageFlags = vk::ShaderStageFlagBits::eVertex}};
+
+  std::vector<DescriptorBufferInfo> descriptorBufferInfos;
 
   int currentFrame;
   static constexpr int MAX_FRAMES_IN_FLIGHT = 2;

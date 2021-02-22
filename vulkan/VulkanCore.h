@@ -49,6 +49,7 @@ class VulkanCore {
                   const SimulationInfoGridFluid &simulationInfoGridFluid);
   void run();
 
+
  private:
   std::array<PipelineLayoutBindingInfo, 3> bindingInfosRender{
       PipelineLayoutBindingInfo{

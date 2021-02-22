@@ -13,13 +13,17 @@ vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &semaphoreWai
 
   currentSemaphore = 0;
 
+  device->getDevice()->resetFences(fence.get());
+
   auto outSemaphore = device->getDevice()->createSemaphore({});
 
   submit(Stages::addSourceScalar, fence.get(), semaphoreWait.get());
 
   swapBuffers(bufferDensityNew, bufferDensityOld);
 
-  for (int i = 0; i < 9; ++i) {
+  submit(Stages::advectScalar, fence.get(), std::nullopt, outSemaphore);
+
+/*  for (int i = 0; i < 9; ++i) {
     simulationInfo.specificInfo = magic_enum::enum_integer(SpecificInfo::black);
     submit(Stages::diffuse, fence.get());
     device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
@@ -37,17 +41,10 @@ vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &semaphoreWai
   device->getDevice()->resetFences(fence.get());
 
   simulationInfo.specificInfo = magic_enum::enum_integer(SpecificInfo::black);
-  submit(Stages::diffuse, nullptr, std::nullopt, outSemaphore);
+  submit(Stages::diffuse, nullptr, std::nullopt, outSemaphore);*/
 
   return vk::UniqueSemaphore(outSemaphore, device->getDevice().get());
   /*
-  //TODO SWAP
-  submitInfoCompute.pWaitSemaphores = &semaphore1.get();
-  submitInfoCompute.pSignalSemaphores = &semaphore2.get();
-  recordCommandBuffer(Stages::diffuse);
-  queue.submit(submitInfoCompute, nullptr);
-  //TODO bound
-
   //TODO SWAP
   submitInfoCompute.pWaitSemaphores = &semaphore2.get();
   submitInfoCompute.pSignalSemaphores = &semaphore1.get();
@@ -171,38 +168,7 @@ VulkanGridFluid::VulkanGridFluid(const Config &config,
   commandBuffer = std::move(this->device->allocateCommandBuffer(commandPool, 1)[0]);
   queue = this->device->getComputeQueue();
 
-  auto cellCountBorder = glm::compMul(simulationInfo.gridSize.xyz() + glm::ivec3(2));
-  bufferDensityNew = std::make_shared<Buffer>(
-      BufferBuilder()
-          .setSize(sizeof(float) * cellCountBorder)
-          .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
-                         | vk::BufferUsageFlagBits::eStorageBuffer)
-          .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
-      this->device, commandPool, queue);
-  bufferDensityNew->fill(std::vector<float>(cellCountBorder));
-  bufferDensityOld = std::make_shared<Buffer>(
-      BufferBuilder()
-          .setSize(sizeof(float) * cellCountBorder)
-          .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
-                         | vk::BufferUsageFlagBits::eStorageBuffer)
-          .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
-      this->device, commandPool, queue);
-  bufferDensityOld->fill(std::vector<float>(cellCountBorder));
-
-  bufferDensitySources = std::make_shared<Buffer>(
-      BufferBuilder()
-          .setSize(sizeof(float) * simulationInfo.cellCount)
-          .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
-                         | vk::BufferUsageFlagBits::eStorageBuffer)
-          .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
-      this->device, commandPool, queue);
-  auto sources = std::vector<float>(simulationInfo.cellCount, 0);
-  auto position = ((simulationInfo.gridSize.z / 2) * simulationInfo.gridSize.x
-                   * simulationInfo.gridSize.y)
-      + (simulationInfo.gridSize.x / 2)
-      + (simulationInfo.gridSize.x * (simulationInfo.gridSize.y - 1));
-  sources[position] = 0.01;
-  bufferDensitySources->fill(sources);
+  createBuffers();
 
   fillDescriptorBufferInfo();
 
@@ -228,10 +194,11 @@ VulkanGridFluid::VulkanGridFluid(const Config &config,
   descriptorPool = this->device->getDevice()->createDescriptorPoolUnique(poolCreateInfo);
 
   std::map<Stages, std::string> fileNames{{Stages::addSourceScalar, "addForce.comp"},
-                                          {Stages::diffuse, "GaussSeidelRedBlack.comp"}};
+                                          {Stages::diffuse, "GaussSeidelRedBlack.comp"},
+                                          {Stages::advectScalar, "advect.comp"}};
   auto shaderPathTemplate = config.getVulkan().shaderFolder / "GridFluid/{}";
   for (const auto &stage : magic_enum::enum_values<Stages>()) {
-    if (Utilities::isIn(stage, {Stages::addSourceScalar, Stages ::diffuse})) {
+    if (Utilities::isIn(stage, {Stages::addSourceScalar, Stages ::diffuse, Stages::advectScalar})) {
       pipelines[stage] =
           computePipelineBuilder.setLayoutBindingInfo(bindingInfosCompute[stage])
               .setComputeShaderPath(fmt::format(shaderPathTemplate.string(), fileNames[stage]))
@@ -250,9 +217,44 @@ VulkanGridFluid::VulkanGridFluid(const Config &config,
   std::generate_n(semaphores.begin(), 23,
                   [&] { return device->getDevice()->createSemaphoreUnique({}); });
 }
+
+void VulkanGridFluid::createBuffers() {
+  auto cellCountBorder = glm::compMul(simulationInfo.gridSize.xyz() + glm::ivec3(2));
+  auto bufferBuilder = BufferBuilder()
+                           .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
+                                          | vk::BufferUsageFlagBits::eStorageBuffer)
+                           .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal);
+  bufferDensityNew = std::make_shared<Buffer>(
+      bufferBuilder.setSize(sizeof(float) * cellCountBorder), this->device, commandPool, queue);
+  bufferDensityNew->fill(std::vector<float>(cellCountBorder));
+
+  bufferDensityOld = std::make_shared<Buffer>(
+      bufferBuilder.setSize(sizeof(float) * cellCountBorder), this->device, commandPool, queue);
+  bufferDensityOld->fill(std::vector<float>(cellCountBorder));
+
+  bufferDensitySources = std::make_shared<Buffer>(
+      bufferBuilder.setSize(sizeof(float) * cellCountBorder), this->device, commandPool, queue);
+  auto sources = std::vector<float>(simulationInfo.cellCount, 0);
+  auto position =
+      ((simulationInfo.gridSize.z / 2) * simulationInfo.gridSize.x * simulationInfo.gridSize.y)
+      + (simulationInfo.gridSize.x / 2)
+      + (simulationInfo.gridSize.x * (simulationInfo.gridSize.y - 1));
+  sources[position] = 0.01;
+  bufferDensitySources->fill(sources);
+
+  bufferVelocitiesNew = std::make_shared<Buffer>(
+      bufferBuilder.setSize(sizeof(glm::vec4) * cellCountBorder), this->device, commandPool, queue);
+  bufferVelocitiesNew->fill(std::vector<glm::vec4>(cellCountBorder, glm::vec4(0, -10, 0, 0)));
+
+  bufferVelocitiesOld = std::make_shared<Buffer>(
+      bufferBuilder.setSize(sizeof(glm::vec4) * cellCountBorder), this->device, commandPool, queue);
+  bufferVelocitiesOld->fill(std::vector<glm::vec4>(cellCountBorder, glm::vec4(0, -10, 0, 0)));
+}
+
 const std::shared_ptr<Buffer> &VulkanGridFluid::getBufferDensity() const {
   return bufferDensityNew;
 }
+
 void VulkanGridFluid::updateDescriptorSets() {
   std::for_each(pipelines.begin(), pipelines.end(), [&](auto &in) {
     const auto &[stage, _] = in;
@@ -260,6 +262,7 @@ void VulkanGridFluid::updateDescriptorSets() {
                                                bindingInfosCompute[stage]);
   });
 }
+
 void VulkanGridFluid::swapBuffers(std::shared_ptr<Buffer> &buffer1,
                                   std::shared_ptr<Buffer> &buffer2) {
   device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
@@ -267,15 +270,21 @@ void VulkanGridFluid::swapBuffers(std::shared_ptr<Buffer> &buffer1,
   buffer1.swap(buffer2);
   updateDescriptorSets();
 }
+
 void VulkanGridFluid::fillDescriptorBufferInfo() {
-  descriptorBufferInfosCompute[Stages::addSourceScalar] = {
-      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensityNew, 1},
-                           .bufferSize = bufferDensityNew->getSize()},
-      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensitySources, 1},
-                           .bufferSize = bufferDensitySources->getSize()}};
-  descriptorBufferInfosCompute[Stages::diffuse] = {
+  descriptorBufferInfosCompute[Stages::addSourceScalar] =
+      descriptorBufferInfosCompute[Stages::diffuse] = {
+          DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensityNew, 1},
+                               .bufferSize = bufferDensityNew->getSize()},
+          DescriptorBufferInfo{.buffer =
+                                   std::span<std::shared_ptr<Buffer>>{&bufferDensitySources, 1},
+                               .bufferSize = bufferDensitySources->getSize()}};
+  descriptorBufferInfosCompute[Stages::advectScalar] = {
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensityNew, 1},
                            .bufferSize = bufferDensityNew->getSize()},
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensityOld, 1},
-                           .bufferSize = bufferDensityOld->getSize()}};
+                           .bufferSize = bufferDensityOld->getSize()},
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferVelocitiesNew, 1},
+                           .bufferSize = bufferVelocitiesNew->getSize()}};
 }
+const vk::UniqueFence &VulkanGridFluid::getFenceAfterCompute() const { return fence; }

@@ -84,7 +84,7 @@ VulkanGridFluidRender::VulkanGridFluidRender(
   createVertexBuffer({model});
   createIndexBuffer({model});
 
-  std::array<DescriptorBufferInfo, 3> descriptorBufferInfos{
+  descriptorBufferInfos = {
       DescriptorBufferInfo{.buffer = buffersUniformMVP, .bufferSize = sizeof(UniformBufferObject)},
       DescriptorBufferInfo{.buffer = buffersUniformCameraPos, .bufferSize = sizeof(glm::vec3)},
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensity, 1},
@@ -224,4 +224,8 @@ void VulkanGridFluidRender::recordCommandBuffers(unsigned int imageIndex) {
 }
 void VulkanGridFluidRender::setImgui(std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> &inImgui) {
   VulkanGridFluidRender::imgui = inImgui;
+}
+void VulkanGridFluidRender::updateDensityBuffer(std::shared_ptr<Buffer> densityBufferNew) {
+  bufferDensity = std::move(densityBufferNew);
+  descriptorSet->updateDescriptorSet(descriptorBufferInfos, bindingInfosRender);
 }
