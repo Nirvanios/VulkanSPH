@@ -220,26 +220,32 @@ VulkanGridFluid::VulkanGridFluid(const Config &config,
 
 void VulkanGridFluid::createBuffers() {
   auto cellCountBorder = glm::compMul(simulationInfo.gridSize.xyz() + glm::ivec3(2));
+  auto initialDensity = std::vector<float>(cellCountBorder, 0);
+  auto sources = std::vector<float>(simulationInfo.cellCount, 0);
+  auto positionSources =
+      ((simulationInfo.gridSize.z / 2) * simulationInfo.gridSize.x * simulationInfo.gridSize.y)
+      + (simulationInfo.gridSize.x / 2)
+      + (simulationInfo.gridSize.x * (simulationInfo.gridSize.y - 1));
+  sources[positionSources] = 0.01;
+  auto positionDensity = (((simulationInfo.gridSize.z + 2) / 2) * (simulationInfo.gridSize.x + 2) * (simulationInfo.gridSize.y + 2))
+                         + ((simulationInfo.gridSize.x + 2) / 2)
+                         + ((simulationInfo.gridSize.x + 2) * simulationInfo.gridSize.y);
+  initialDensity[positionDensity] = 1.0f;
+
   auto bufferBuilder = BufferBuilder()
                            .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
                                           | vk::BufferUsageFlagBits::eStorageBuffer)
                            .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal);
   bufferDensityNew = std::make_shared<Buffer>(
       bufferBuilder.setSize(sizeof(float) * cellCountBorder), this->device, commandPool, queue);
-  bufferDensityNew->fill(std::vector<float>(cellCountBorder));
+  bufferDensityNew->fill(initialDensity);
 
   bufferDensityOld = std::make_shared<Buffer>(
       bufferBuilder.setSize(sizeof(float) * cellCountBorder), this->device, commandPool, queue);
-  bufferDensityOld->fill(std::vector<float>(cellCountBorder));
+  bufferDensityOld->fill(initialDensity);
 
   bufferDensitySources = std::make_shared<Buffer>(
       bufferBuilder.setSize(sizeof(float) * cellCountBorder), this->device, commandPool, queue);
-  auto sources = std::vector<float>(simulationInfo.cellCount, 0);
-  auto position =
-      ((simulationInfo.gridSize.z / 2) * simulationInfo.gridSize.x * simulationInfo.gridSize.y)
-      + (simulationInfo.gridSize.x / 2)
-      + (simulationInfo.gridSize.x * (simulationInfo.gridSize.y - 1));
-  sources[position] = 0.01;
   bufferDensitySources->fill(sources);
 
   bufferVelocitiesNew = std::make_shared<Buffer>(

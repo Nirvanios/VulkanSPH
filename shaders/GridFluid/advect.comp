@@ -84,5 +84,5 @@ void main() {
   const uint myId = (myId3D.x + 1) + (myId3D.y + 1) * gridSizeWithBorders.x
       + (myId3D.z + 1) * gridSizeWithBorders.x * gridSizeWithBorders.y;
 
-  if (all(lessThan(myId3D, simulationInfo.gridSize.xyz))) { advect(myId3D + 1, myId); }
+  if (all(lessThan(myId3D, simulationInfo.gridSize.xyz))) {  advect(myId3D + 1, myId);  }
 }
