@@ -33,10 +33,10 @@ void main() {
       + (myId3D.z + 1) * gridSizeWithBorders.x * gridSizeWithBorders.y;
 
   if (all(lessThan(myId3D, simulationInfo.gridSize.xyz))) {
-    //if(velocityField[myId] < 1.0) velocityField[myId]  = += forceField[gl_GlobalInvocationID.x];
+    if(velocityField[myId] < 1.0) velocityField[myId] += forceField[gl_GlobalInvocationID.x];
     //if(forceField[gl_GlobalInvocationID.x] > 0) velocityField[myId] = 1.0f;
-/*     if (forceField[gl_GlobalInvocationID.x] > 0)
-      debugPrintfEXT("densityField: %3f, forceField: %3f", velocityField[myId],
+    /*  if (velocityField[myId] > 0) //debugPrintfEXT("myId: %d, gl_GlobalInvocationID: %d", myId, gl_GlobalInvocationID.x);
+     debugPrintfEXT("myId: %d, gl_GlobalInvocationID.x: %d, densityField: %3f, forceField: %3f", myId, gl_GlobalInvocationID.x, velocityField[myId],
                      forceField[gl_GlobalInvocationID.x]); */
     //velocityField[myId] = (gl_GlobalInvocationID.x + gl_GlobalInvocationID.y + gl_GlobalInvocationID.z) % 2 * 1.0f
   }

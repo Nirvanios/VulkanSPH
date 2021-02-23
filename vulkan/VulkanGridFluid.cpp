@@ -20,10 +20,7 @@ vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &semaphoreWai
   submit(Stages::addSourceScalar, fence.get(), semaphoreWait.get());
 
   swapBuffers(bufferDensityNew, bufferDensityOld);
-
-  submit(Stages::advectScalar, fence.get(), std::nullopt, outSemaphore);
-
-/*  for (int i = 0; i < 9; ++i) {
+  for (int i = 0; i < 10; ++i) {
     simulationInfo.specificInfo = magic_enum::enum_integer(SpecificInfo::black);
     submit(Stages::diffuse, fence.get());
     device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
@@ -35,13 +32,17 @@ vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &semaphoreWai
     device->getDevice()->resetFences(fence.get());
   }
 
-  simulationInfo.specificInfo = magic_enum::enum_integer(SpecificInfo::red);
+  simulationInfo.specificInfo = magic_enum::enum_integer(SpecificInfo::black);
   submit(Stages::diffuse, fence.get());
   device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
   device->getDevice()->resetFences(fence.get());
 
-  simulationInfo.specificInfo = magic_enum::enum_integer(SpecificInfo::black);
-  submit(Stages::diffuse, nullptr, std::nullopt, outSemaphore);*/
+  simulationInfo.specificInfo = magic_enum::enum_integer(SpecificInfo::red);
+  submit(Stages::diffuse, fence.get());
+
+  swapBuffers(bufferDensityNew, bufferDensityOld);
+
+  submit(Stages::advectScalar, fence.get(), std::nullopt, outSemaphore);
 
   return vk::UniqueSemaphore(outSemaphore, device->getDevice().get());
   /*
@@ -227,10 +228,12 @@ void VulkanGridFluid::createBuffers() {
       + (simulationInfo.gridSize.x / 2)
       + (simulationInfo.gridSize.x * (simulationInfo.gridSize.y - 1));
   sources[positionSources] = 0.01;
-  auto positionDensity = (((simulationInfo.gridSize.z + 2) / 2) * (simulationInfo.gridSize.x + 2) * (simulationInfo.gridSize.y + 2))
-                         + ((simulationInfo.gridSize.x + 2) / 2)
-                         + ((simulationInfo.gridSize.x + 2) * simulationInfo.gridSize.y);
-  initialDensity[positionDensity] = 1.0f;
+  [[maybe_unused]] auto positionDensity =
+      (((simulationInfo.gridSize.z + 2) / 2) * (simulationInfo.gridSize.x + 2)
+       * (simulationInfo.gridSize.y + 2))
+      + ((simulationInfo.gridSize.x + 2) / 2)
+      + ((simulationInfo.gridSize.x + 2) * simulationInfo.gridSize.y);
+  //initialDensity[positionDensity] = 1.0f;
 
   auto bufferBuilder = BufferBuilder()
                            .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
@@ -278,13 +281,16 @@ void VulkanGridFluid::swapBuffers(std::shared_ptr<Buffer> &buffer1,
 }
 
 void VulkanGridFluid::fillDescriptorBufferInfo() {
-  descriptorBufferInfosCompute[Stages::addSourceScalar] =
-      descriptorBufferInfosCompute[Stages::diffuse] = {
-          DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensityNew, 1},
-                               .bufferSize = bufferDensityNew->getSize()},
-          DescriptorBufferInfo{.buffer =
-                                   std::span<std::shared_ptr<Buffer>>{&bufferDensitySources, 1},
-                               .bufferSize = bufferDensitySources->getSize()}};
+  descriptorBufferInfosCompute[Stages::addSourceScalar] = {
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensityNew, 1},
+                           .bufferSize = bufferDensityNew->getSize()},
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensitySources, 1},
+                           .bufferSize = bufferDensitySources->getSize()}};
+  descriptorBufferInfosCompute[Stages::diffuse] = {
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensityNew, 1},
+                           .bufferSize = bufferDensityNew->getSize()},
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensityOld, 1},
+                           .bufferSize = bufferDensityOld->getSize()}};
   descriptorBufferInfosCompute[Stages::advectScalar] = {
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensityNew, 1},
                            .bufferSize = bufferDensityNew->getSize()},

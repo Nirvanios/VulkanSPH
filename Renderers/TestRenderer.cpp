@@ -154,7 +154,7 @@ SimulationInfoGridFluid TestRenderer::getSimulationInfoGridFluid() {
                                  .timeStep = config.getApp().simulationSPH.timeStep,
                                  .cellCount = glm::compMul(config.getApp().simulationSPH.gridSize),
                                  .cellSize = 0.02,
-                                 .diffusionCoefficient = 0.001,
+                                 .diffusionCoefficient = 0.00001,
                                  .boundaryScale = 0,
                                  .specificInfo = 0};
 }
