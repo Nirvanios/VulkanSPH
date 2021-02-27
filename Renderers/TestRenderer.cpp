@@ -155,6 +155,6 @@ SimulationInfoGridFluid TestRenderer::getSimulationInfoGridFluid() {
                                  .cellCount = glm::compMul(config.getApp().simulationSPH.gridSize),
                                  .cellSize = 0.02,
                                  .diffusionCoefficient = 0.00001,
-                                 .boundaryScale = 0,
+                                 .boundaryScale = 1,
                                  .specificInfo = 0};
 }

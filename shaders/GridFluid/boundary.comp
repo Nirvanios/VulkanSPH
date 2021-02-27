@@ -1,31 +1,59 @@
 #version 450
 
+#extension GL_EXT_debug_printf : enable
+
 #define TO_INDEX(a, b, c) (int(a + simulationInfo.gridSize.x * (b + simulationInfo.gridSize.y * c)))
+#define TO_INDEX_BOUNDARY(a, b, c) (int(a + (simulationInfo.gridSize.x + 2) * (b + (simulationInfo.gridSize.y + 2) * c)))
 
 #define VEC_TO_INDEX(a) (TO_INDEX(a.x, a.y, a.z))
+#define VEC_TO_INDEX_BOUNDARY(a) (TO_INDEX_BOUNDARY(a.x, a.y, a.z))
 
-#define TYPENAME_T vec4
+#define TYPENAME_T float
 
 layout(push_constant) uniform GridSimulationInfoUniform {
+  ivec4 gridSize;
+  vec4 gridOrigin;
   float timeStep;
   int cellCount;
-  ivec4 gridSize;
+  float cellSize;
   float diffusionCoefficient;
   int boundaryScale;
+  int specificInfo;
 }
 simulationInfo;
 
 layout(std430, binding = 0) buffer Buffer { TYPENAME_T field[]; };
 
-layout(local_size_x = 4, local_size_y = 4, local_size_z = 4) in;
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 
 void main() {
-  const vec3 myGridId = vec3(1) + gl_GlobalInvocationID * 2;
-  if (all(lessThan(myGridId, simulationInfo.gridSize.xyz))) {
-    const int myGridIdFlatten = (VEC_TO_INDEX(myGridId));
-    ivec3 offset = ivec3(equal(myGridId, vec3(0)))
-                  & ivec3(equal(myGridId, simulationInfo.gridSize.xyz));
-    
-    field[myGridIdFlatten] = simulationInfo.boundaryScale * field[VEC_TO_INDEX(myGridId + offset)];
+  uint myId = gl_GlobalInvocationID.x;
+  const ivec3 gridSizeWithBorders = simulationInfo.gridSize.xyz + ivec3(2);
+  ivec3 myGridID3D = ivec3(-1);
+  const int sizeXY = gridSizeWithBorders.x * gridSizeWithBorders.y;
+  const int sizeXZ = gridSizeWithBorders.x * gridSizeWithBorders.z;
+  const int sizeYZ = gridSizeWithBorders.y * gridSizeWithBorders.z;
+  if (myId < 2*sizeXY)
+    myGridID3D = ivec3(myId % gridSizeWithBorders.x, (myId % sizeXY) / gridSizeWithBorders.x,
+                     (myId / (sizeXY))
+                         * (gridSizeWithBorders.z - 1));
+  else if (myId - 2*sizeXY < 2*sizeXZ){
+    myId -= 2*sizeXY;
+    myGridID3D = ivec3(myId % gridSizeWithBorders.x, (myId / (sizeXZ))
+                         * (gridSizeWithBorders.y - 1), (myId % sizeXZ) / gridSizeWithBorders.x);
+  }
+  else if(myId - 2*sizeXY - 2*sizeXZ < 2*sizeYZ){
+    //if (gl_GlobalInvocationID.x > 140) debugPrintfEXT("invID: %d, myId %d", gl_GlobalInvocationID.x, (myId - 2*sizeXY - 2*sizeXZ ));
+    myId -= 2*sizeXY + 2*sizeXZ;
+    myGridID3D = ivec3((myId / sizeYZ) * (gridSizeWithBorders.x - 1), myId % gridSizeWithBorders.y, (myId % sizeYZ) / gridSizeWithBorders.x);
+  }
+  
+  if (all(greaterThan(myGridID3D, ivec3(-1)))) {
+    const int myGridID = VEC_TO_INDEX_BOUNDARY(myGridID3D);
+    ivec3 offset =
+        ivec3(equal(myGridID3D, vec3(0))) + ivec3(equal(myGridID3D, simulationInfo.gridSize.xyz + ivec3(1))) * -1;
+
+    field[myGridID] = simulationInfo.boundaryScale * field[VEC_TO_INDEX_BOUNDARY(myGridID3D + offset)];
+     //debugPrintfEXT("invID: %d, myGridID: %d, myGridID3D: %v3d, offset: %v3d", gl_GlobalInvocationID.x, myGridID, myGridID3D, myGridID3D + offset);
   }
 }

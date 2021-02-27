@@ -24,7 +24,8 @@ class VulkanGridFluid {
     divergenceVector,
     GaussSeidelVector,
     gradientSubtractionVector,
-    advectVector
+    advectVector,
+    boundaryHandle
   };
 
   enum class SpecificInfo { red = 0, black = 1 };
@@ -40,6 +41,7 @@ class VulkanGridFluid {
 
  public:
   const vk::UniqueFence &getFenceAfterCompute() const;
+
  private:
   const Config &config;
   SimulationInfoGridFluid simulationInfo;
@@ -97,6 +99,11 @@ class VulkanGridFluid {
                                   .descriptorCount = 1,
                                   .stageFlags = vk::ShaderStageFlagBits::eCompute},
         PipelineLayoutBindingInfo{.binding = 2,
+                                  .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                  .descriptorCount = 1,
+                                  .stageFlags = vk::ShaderStageFlagBits::eCompute}}},
+      {Stages::boundaryHandle,
+       {PipelineLayoutBindingInfo{.binding = 0,
                                   .descriptorType = vk::DescriptorType::eStorageBuffer,
                                   .descriptorCount = 1,
                                   .stageFlags = vk::ShaderStageFlagBits::eCompute}}}};
