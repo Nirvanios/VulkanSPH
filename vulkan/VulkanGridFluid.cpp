@@ -246,13 +246,13 @@ void VulkanGridFluid::createBuffers() {
       ((simulationInfo.gridSize.z / 2) * simulationInfo.gridSize.x * simulationInfo.gridSize.y)
       + (simulationInfo.gridSize.x / 2)
       + (simulationInfo.gridSize.x * (simulationInfo.gridSize.y - 1));
-  //sources[positionSources] = 0.01;
+  sources[positionSources] = 0.1;
   [[maybe_unused]] auto positionDensity =
       (((simulationInfo.gridSize.z + 2) / 2) * (simulationInfo.gridSize.x + 2)
        * (simulationInfo.gridSize.y + 2))
       + ((simulationInfo.gridSize.x + 2) / 2)
       + ((simulationInfo.gridSize.x + 2) * simulationInfo.gridSize.y);
-  initialDensity[positionDensity] = 1.0f;
+  //initialDensity[positionDensity] = 1.0f;
 
   auto bufferBuilder = BufferBuilder()
                            .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst

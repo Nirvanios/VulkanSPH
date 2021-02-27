@@ -11,7 +11,9 @@
 #define RED 0
 #define BLACK 1
 
-#define TYPENAME_T float
+#ifndef TYPENAME_T
+  #define TYPENAME_T vec4
+#endif
 
 layout(push_constant) uniform GridSimulationInfoUniform {
   ivec4 gridSize;

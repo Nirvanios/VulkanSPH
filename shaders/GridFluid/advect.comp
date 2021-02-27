@@ -5,7 +5,9 @@
 #define TO_INDEX(a, b, c)                                                                          \
   ((a) + (simulationInfo.gridSize.x + 2) * ((b) + (simulationInfo.gridSize.y + 2) * (c)))
 
-#define TYPENAME_T float
+#ifndef TYPENAME_T
+  #define TYPENAME_T vec4
+#endif
 
 layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 
