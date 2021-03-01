@@ -82,8 +82,8 @@ void main() {
                              + fieldNew[myId - VEC_TO_INDEX_BOUNDARY(vec3(0, 0, 1))]
                              + fieldNew[myId + VEC_TO_INDEX_BOUNDARY(vec3(0, 0, 1))]))
         / (1 + 6*a);
-/*      if (myId == 67 || fieldOld[myId] > 0 || fieldNew[myId] > 0)
-      debugPrintfEXT("myId: %d, myGridIdFlatten: %d, Black: %d, a: %3f, ValueOld %3f, ValueNew %3f", myId, myGridIdFlatten, simulationInfo.specificInfo, a, fieldOld[myId],
+/*       if (myId == 67) //|| fieldOld[myId] > 0 || fieldNew[myId] > 0)
+      debugPrintfEXT("myId: %d, myGridIdFlatten: %d, Black: %d, a: %3f, ValueOld %v4f, ValueNew %v4f", myId, myGridIdFlatten, simulationInfo.specificInfo, a, fieldOld[myId],
                      fieldNew[myId]); */
     /*                 debugPrintfEXT("%d",myId - VEC_TO_INDEX_BOUNDARY(vec3(0, 0, 1))); */
   }

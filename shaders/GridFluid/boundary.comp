@@ -56,6 +56,6 @@ void main() {
         ivec3(equal(myGridID3D, vec3(0))) + ivec3(equal(myGridID3D, simulationInfo.gridSize.xyz + ivec3(1))) * -1;
 
     field[myGridID] = simulationInfo.boundaryScale * field[VEC_TO_INDEX_BOUNDARY(myGridID3D + offset)];
-     debugPrintfEXT("invID: %d, myGridID: %d, myGridID3D: %v3d, offset: %v3d", gl_GlobalInvocationID.x, myGridID, myGridID3D, myGridID3D + offset);
+     //debugPrintfEXT("invID: %d, myGridID: %d, myGridID3D: %v3d, offset: %v3d", gl_GlobalInvocationID.x, myGridID, myGridID3D, myGridID3D + offset);
   }
 }

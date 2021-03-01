@@ -6,7 +6,7 @@
   ((a) + (simulationInfo.gridSize.x + 2) * ((b) + (simulationInfo.gridSize.y + 2) * (c)))
 
 #ifndef TYPENAME_T
-  #define TYPENAME_T vec4
+#define TYPENAME_T vec4
 #endif
 
 layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
@@ -59,7 +59,7 @@ void advect(ivec3 myCellPos, uint myId) {
   ivec2 j = ivec2(interpolationOrigin.y, interpolationOrigin.y + 1);
   ivec2 k = ivec2(interpolationOrigin.z, interpolationOrigin.z + 1);
 
-/*   if (advectedFieldOld[myId] > 0)
+  /*   if (advectedFieldOld[myId] > 0)
     debugPrintfEXT("myId: %d, myGridID3D: %v3d, i: %v2d, j: %v2d, k: %v2d", myId, myCellPos, i, j,
                    k);
   if (advectedFieldOld[myId] > 0)
@@ -86,5 +86,10 @@ void main() {
   const uint myId = (myId3D.x + 1) + (myId3D.y + 1) * gridSizeWithBorders.x
       + (myId3D.z + 1) * gridSizeWithBorders.x * gridSizeWithBorders.y;
 
-  if (all(lessThan(myId3D, simulationInfo.gridSize.xyz))) {  advect(myId3D + 1, myId);  }
+  if (all(lessThan(myId3D, simulationInfo.gridSize.xyz))) {
+/*     if (myId == 67 || myId == 62)
+      debugPrintfEXT("myId: %d advectedFieldOld: %.3f, advectedBufferNew: %.3f", myId,
+                     advectedFieldOld[myId], advectedFieldNew[myId]);
+ */    advect(myId3D + 1, myId);
+  }
 }
