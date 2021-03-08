@@ -14,6 +14,7 @@ class VulkanGridFluid {
                   std::shared_ptr<Swapchain> swapchain);
   vk::UniqueSemaphore run(const vk::UniqueSemaphore &semaphoreWait);
   [[nodiscard]] const std::shared_ptr<Buffer> &getBufferDensity() const;
+  const vk::UniqueFence &getFenceAfterCompute() const;
 
  private:
   enum class Stages {
@@ -23,13 +24,12 @@ class VulkanGridFluid {
     addSourceVector,
     diffuseVector,
     divergenceVector,
-    GaussSeidelVector,
+    GaussSeidelDivergence,
     gradientSubtractionVector,
     advectVector,
-    boundaryHandle
+    boundaryHandleScalar,
+    boundaryHandleVector
   };
-
-  enum class SpecificInfo { red = 0, black = 1 };
 
   void submit(Stages pipelineStage, const vk::Fence = nullptr,
               const std::optional<vk::Semaphore> &inSemaphore = std::nullopt,
@@ -39,11 +39,10 @@ class VulkanGridFluid {
   void updateDescriptorSets();
   void fillDescriptorBufferInfo();
   void createBuffers();
+  void setBoundaryScalarStageBuffer(std::shared_ptr<Buffer> &buffer);
+  void project();
+  void waitFence();
 
- public:
-  const vk::UniqueFence &getFenceAfterCompute() const;
-
- private:
   const Config &config;
   SimulationInfoGridFluid simulationInfo;
 
@@ -107,7 +106,7 @@ class VulkanGridFluid {
                                   .descriptorType = vk::DescriptorType::eStorageBuffer,
                                   .descriptorCount = 1,
                                   .stageFlags = vk::ShaderStageFlagBits::eCompute}}},
-      {Stages::boundaryHandle,
+      {Stages::boundaryHandleScalar,
        {PipelineLayoutBindingInfo{.binding = 0,
                                   .descriptorType = vk::DescriptorType::eStorageBuffer,
                                   .descriptorCount = 1,
@@ -131,6 +130,42 @@ class VulkanGridFluid {
                                   .descriptorCount = 1,
                                   .stageFlags = vk::ShaderStageFlagBits::eCompute}}},
       {Stages::divergenceVector,
+       {PipelineLayoutBindingInfo{.binding = 0,
+                                  .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                  .descriptorCount = 1,
+                                  .stageFlags = vk::ShaderStageFlagBits::eCompute},
+        PipelineLayoutBindingInfo{.binding = 1,
+                                  .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                  .descriptorCount = 1,
+                                  .stageFlags = vk::ShaderStageFlagBits::eCompute},
+        PipelineLayoutBindingInfo{.binding = 2,
+                                  .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                  .descriptorCount = 1,
+                                  .stageFlags = vk::ShaderStageFlagBits::eCompute}}},
+      {Stages::GaussSeidelDivergence,
+       {PipelineLayoutBindingInfo{.binding = 0,
+                                  .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                  .descriptorCount = 1,
+                                  .stageFlags = vk::ShaderStageFlagBits::eCompute},
+        PipelineLayoutBindingInfo{.binding = 1,
+                                  .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                  .descriptorCount = 1,
+                                  .stageFlags = vk::ShaderStageFlagBits::eCompute}}},
+      {Stages::gradientSubtractionVector,
+       {PipelineLayoutBindingInfo{.binding = 0,
+                                  .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                  .descriptorCount = 1,
+                                  .stageFlags = vk::ShaderStageFlagBits::eCompute},
+        PipelineLayoutBindingInfo{.binding = 1,
+                                  .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                  .descriptorCount = 1,
+                                  .stageFlags = vk::ShaderStageFlagBits::eCompute}}},
+      {Stages::boundaryHandleVector,
+       {PipelineLayoutBindingInfo{.binding = 0,
+                                  .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                  .descriptorCount = 1,
+                                  .stageFlags = vk::ShaderStageFlagBits::eCompute}}},
+      {Stages::advectVector,
        {PipelineLayoutBindingInfo{.binding = 0,
                                   .descriptorType = vk::DescriptorType::eStorageBuffer,
                                   .descriptorCount = 1,

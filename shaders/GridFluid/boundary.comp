@@ -3,13 +3,16 @@
 #extension GL_EXT_debug_printf : enable
 
 #define TO_INDEX(a, b, c) (int(a + simulationInfo.gridSize.x * (b + simulationInfo.gridSize.y * c)))
-#define TO_INDEX_BOUNDARY(a, b, c) (int(a + (simulationInfo.gridSize.x + 2) * (b + (simulationInfo.gridSize.y + 2) * c)))
+#define TO_INDEX_BOUNDARY(a, b, c)                                                                 \
+  (int(a + (simulationInfo.gridSize.x + 2) * (b + (simulationInfo.gridSize.y + 2) * c)))
 
 #define VEC_TO_INDEX(a) (TO_INDEX(a.x, a.y, a.z))
 #define VEC_TO_INDEX_BOUNDARY(a) (TO_INDEX_BOUNDARY(a.x, a.y, a.z))
 
+/**Buffer Type*/
 #ifndef TYPENAME_T
-  #define TYPENAME_T vec4
+#define TYPENAME_T vec4
+#define TYPE_VEC4
 #endif
 
 layout(push_constant) uniform GridSimulationInfoUniform {
@@ -20,13 +23,56 @@ layout(push_constant) uniform GridSimulationInfoUniform {
   float cellSize;
   float diffusionCoefficient;
   int boundaryScale;
-  int specificInfo;
+  uint specificInfo;
 }
 simulationInfo;
 
 layout(std430, binding = 0) buffer Buffer { TYPENAME_T field[]; };
 
 layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+
+bvec3 hasZeroesExtreme(const ivec3 myGridID3D) { return equal(myGridID3D, vec3(0)); }
+
+bvec3 hasMaxExtreme(const ivec3 myGridID3D) {
+  return equal(myGridID3D, simulationInfo.gridSize.xyz + ivec3(1));
+}
+
+int compSum(ivec3 vector) { return vector.x + vector.y + vector.z; }
+
+TYPENAME_T getFaceValue(const ivec3 myGridID3D, const bvec3 zeroesExtreme, const bvec3 maxExtreme) {
+const ivec3 offsetID3D = myGridID3D + ivec3(zeroesExtreme) + ivec3(maxExtreme) * -1;
+#if defined(TYPE_FLOAT)
+  return field[VEC_TO_INDEX_BOUNDARY(offsetID3D)];
+#elif defined(TYPE_VEC4)
+  ivec4 faceModifier = -1 * ivec4(ivec3(zeroesExtreme) + ivec3(maxExtreme), 0);
+  faceModifier += ivec4(equal(faceModifier, ivec4(0)));
+  return field[VEC_TO_INDEX_BOUNDARY(offsetID3D)] * faceModifier;
+#endif
+}
+
+TYPENAME_T getEdgeValue(const ivec3 myGridID3D, const bvec3 zeroesExtreme, const bvec3 maxExtreme) {
+  ivec3 edgeAxis = ivec3(zeroesExtreme) + ivec3(maxExtreme);
+  ivec3 edgeModifier = ivec3(zeroesExtreme) + ivec3(maxExtreme) * -1;
+  ivec3 idx = myGridID3D + ivec3(1, 0, 0) * edgeModifier;
+  ivec3 idy = myGridID3D + ivec3(0, 1, 0) * edgeModifier;
+  ivec3 idz = myGridID3D + ivec3(0, 0, 1) * edgeModifier;
+  return 0.5
+      * (getFaceValue(idx, hasZeroesExtreme(idx), hasMaxExtreme(idx)) * edgeAxis.x
+         + getFaceValue(idy, hasZeroesExtreme(idy), hasMaxExtreme(idy)) * edgeAxis.y
+         + getFaceValue(idz, hasZeroesExtreme(idz), hasMaxExtreme(idz)) * edgeAxis.z);
+}
+
+TYPENAME_T getCornerValue(const ivec3 myGridID3D, const bvec3 zeroesExtreme,
+                          const bvec3 maxExtreme) {
+  ivec3 cornerModifier = ivec3(zeroesExtreme) + ivec3(maxExtreme) * -1;
+  ivec3 idx = myGridID3D + ivec3(1, 0, 0) * cornerModifier;
+  ivec3 idy = myGridID3D + ivec3(0, 1, 0) * cornerModifier;
+  ivec3 idz = myGridID3D + ivec3(0, 0, 1) * cornerModifier;
+  return (1 / 3.0f)
+      * (getEdgeValue(idx, hasZeroesExtreme(idx), hasMaxExtreme(idx))
+         + getEdgeValue(idy, hasZeroesExtreme(idy), hasMaxExtreme(idy))
+         + getEdgeValue(idz, hasZeroesExtreme(idz), hasMaxExtreme(idz)));
+}
 
 void main() {
   uint myId = gl_GlobalInvocationID.x;
@@ -35,27 +81,43 @@ void main() {
   const int sizeXY = gridSizeWithBorders.x * gridSizeWithBorders.y;
   const int sizeXZ = gridSizeWithBorders.x * gridSizeWithBorders.z;
   const int sizeYZ = gridSizeWithBorders.y * gridSizeWithBorders.z;
-  if (myId < 2*sizeXY)
+  if (myId < 2 * sizeXY)
     myGridID3D = ivec3(myId % gridSizeWithBorders.x, (myId % sizeXY) / gridSizeWithBorders.x,
-                     (myId / (sizeXY))
-                         * (gridSizeWithBorders.z - 1));
-  else if (myId - 2*sizeXY < 2*sizeXZ){
-    myId -= 2*sizeXY;
-    myGridID3D = ivec3(myId % gridSizeWithBorders.x, (myId / (sizeXZ))
-                         * (gridSizeWithBorders.y - 1), (myId % sizeXZ) / gridSizeWithBorders.x);
+                       (myId / (sizeXY)) * (gridSizeWithBorders.z - 1));
+  else if (myId - 2 * sizeXY < 2 * sizeXZ) {
+    myId -= 2 * sizeXY;
+    myGridID3D =
+        ivec3(myId % gridSizeWithBorders.x, (myId / (sizeXZ)) * (gridSizeWithBorders.y - 1),
+              (myId % sizeXZ) / gridSizeWithBorders.x);
+  } else if (myId - 2 * sizeXY - 2 * sizeXZ < 2 * sizeYZ) {
+    myId -= 2 * sizeXY + 2 * sizeXZ;
+    myGridID3D = ivec3((myId / sizeYZ) * (gridSizeWithBorders.x - 1), myId % gridSizeWithBorders.y,
+                       (myId % sizeYZ) / gridSizeWithBorders.x);
   }
-  else if(myId - 2*sizeXY - 2*sizeXZ < 2*sizeYZ){
-    //if (gl_GlobalInvocationID.x > 140) debugPrintfEXT("invID: %d, myId %d", gl_GlobalInvocationID.x, (myId - 2*sizeXY - 2*sizeXZ ));
-    myId -= 2*sizeXY + 2*sizeXZ;
-    myGridID3D = ivec3((myId / sizeYZ) * (gridSizeWithBorders.x - 1), myId % gridSizeWithBorders.y, (myId % sizeYZ) / gridSizeWithBorders.x);
-  }
-  
+
   if (all(greaterThan(myGridID3D, ivec3(-1)))) {
     const int myGridID = VEC_TO_INDEX_BOUNDARY(myGridID3D);
-    ivec3 offset =
-        ivec3(equal(myGridID3D, vec3(0))) + ivec3(equal(myGridID3D, simulationInfo.gridSize.xyz + ivec3(1))) * -1;
+    bvec3 zeroesExtreme = hasZeroesExtreme(myGridID3D);
+    bvec3 maxExtreme = hasMaxExtreme(myGridID3D);
+    ivec3 offset = ivec3(zeroesExtreme) + ivec3(maxExtreme) * -1;
+    ivec3 offsetID3D = myGridID3D + offset;
 
-    field[myGridID] = simulationInfo.boundaryScale * field[VEC_TO_INDEX_BOUNDARY(myGridID3D + offset)];
-     //debugPrintfEXT("invID: %d, myGridID: %d, myGridID3D: %v3d, offset: %v3d", gl_GlobalInvocationID.x, myGridID, myGridID3D, myGridID3D + offset);
+    bool isCorner = compSum(ivec3(zeroesExtreme) + ivec3(maxExtreme)) == 3;
+    bool isEdge = compSum(ivec3(zeroesExtreme) + ivec3(maxExtreme)) == 2;
+    bool isFace = compSum(ivec3(zeroesExtreme) + ivec3(maxExtreme)) == 1;
+
+    if (isCorner) {
+      field[myGridID] = getCornerValue(myGridID3D, zeroesExtreme, maxExtreme);
+    } else if (isEdge) {
+      field[myGridID] = getEdgeValue(myGridID3D, zeroesExtreme, maxExtreme);
+    } else if (isFace) {
+      field[myGridID] = getFaceValue(myGridID3D, zeroesExtreme, maxExtreme);
+    }
+
+    /*     debugPrintfEXT("myGridID: %d, newValue %3v4f, copiedValue: %3v4f", myGridID, field[myGridID],
+                   field[VEC_TO_INDEX_BOUNDARY(offsetID3D)]); */
+
+    /* debugPrintfEXT("invID: %d, myGridID: %d, myGridID3D: %v3d, offset: %v3d, fieldValue: %f, fieldOffsetValue %f, id: %d, offsetID: %d",
+     gl_GlobalInvocationID.x, myGridID, myGridID3D, offset, field[myGridID], field[VEC_TO_INDEX_BOUNDARY(myGridID3D + offset)], myGridID, VEC_TO_INDEX_BOUNDARY(offsetID3D)); */
   }
 }

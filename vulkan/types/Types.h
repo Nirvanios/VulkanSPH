@@ -7,9 +7,11 @@
 
 #include "glm/glm.hpp"
 #include "glm/gtx/hash.hpp"
+#include <bitset>
 #include <fmt/format.h>
 #include <spdlog/fmt/ostr.h>
 #include <vulkan/vulkan.hpp>
+#include <magic_enum.hpp>
 
 struct KeyValue {
   int key = 0;  //Particle ID
@@ -121,7 +123,7 @@ struct SimulationInfoGridFluid {
   float cellSize;
   float diffusionCoefficient;
   int boundaryScale;
-  int specificInfo;
+  unsigned int specificInfo;
 };
 
 struct GridInfo{
@@ -134,6 +136,25 @@ struct GridInfo{
 struct DrawInfo{
   int drawType;
   int visualization;
+};
+
+enum class BufferType { floatType = 0, vec4Type = 1};
+
+enum class GaussSeidelColorPhase { red = 0, black = 1 };
+
+enum class GaussSeidelStageType { diffuse = 0, project = 1 };
+
+class GaussSeidelFlags{
+ public:
+  GaussSeidelFlags &setColor(GaussSeidelColorPhase color) {flags.set(0, magic_enum::enum_integer(color)); return *this;}
+  GaussSeidelFlags &setStageType(GaussSeidelStageType stageType){flags.set(1, magic_enum::enum_integer(stageType)); return *this;};
+
+  GaussSeidelColorPhase getColor(){return magic_enum::enum_value<GaussSeidelColorPhase>(flags.test(0));};
+  GaussSeidelStageType getStage(){return magic_enum::enum_value<GaussSeidelStageType>(flags.test(1));};
+
+  explicit operator unsigned int() const {return static_cast<unsigned int>(flags.to_ulong());};
+ private:
+  std::bitset<2> flags{};
 };
 
 #endif//VULKANAPP_TYPES_H

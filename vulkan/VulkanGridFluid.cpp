@@ -10,6 +10,7 @@
 #include <utility>
 
 vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &semaphoreWait) {
+  auto specificInfo = GaussSeidelFlags();
 
   currentSemaphore = 0;
 
@@ -23,51 +24,118 @@ vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &semaphoreWai
   /**Diffuse velocities*/
   swapBuffers(bufferVelocitiesNew, bufferVelocitiesOld);
 
-  simulationInfo.specificInfo = magic_enum::enum_integer(SpecificInfo::black);
-  submit(Stages::diffuseVector, fence.get());
-  device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
-  device->getDevice()->resetFences(fence.get());
+  for (auto i = 0; i < 10; ++i) {
+/*    specificInfo.setStageType(GaussSeidelStageType::diffuse).setColor(GaussSeidelColorPhase::black);
+    simulationInfo.specificInfo = static_cast<unsigned int>(specificInfo);
+    submit(Stages::diffuseVector, fence.get());
+    waitFence();*/
 
-  simulationInfo.specificInfo = magic_enum::enum_integer(SpecificInfo::red);
-  submit(Stages::diffuseVector, fence.get());
-  device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
-  device->getDevice()->resetFences(fence.get());
+    specificInfo.setColor(GaussSeidelColorPhase::red);
+    simulationInfo.specificInfo = static_cast<unsigned int>(specificInfo);
+    submit(Stages::diffuseVector, fence.get());
+    waitFence();
 
-  bufferPressures->fill(std::vector<float>(glm::compMul(simulationInfo.gridSize.xyz() + glm::ivec3(2)), 0));
+    simulationInfo.specificInfo = magic_enum::enum_integer(BufferType::vec4Type);
+    submit(Stages::boundaryHandleVector, fence.get());
+    waitFence();
+  }
 
-  submit(Stages::divergenceVector);
-  device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
-  device->getDevice()->resetFences(fence.get());
+  /**Project*/
+  for (auto i = 0; i < 1; ++i) { project(); }
 
-  //TODO Project
-  //TODO swap -> Advect
-  //TODO Project
+  /**Advect velocities*/
+  swapBuffers(bufferVelocitiesNew, bufferVelocitiesOld);
+  submit(Stages::advectVector, fence.get());
+  waitFence();
+  simulationInfo.specificInfo = magic_enum::enum_integer(BufferType::vec4Type);
+  submit(Stages::boundaryHandleVector, fence.get());
+  waitFence();
+
+
+  /**Project*/
+  for (auto i = 0; i < 1; ++i) { project(); }
+  waitFence();
 
   /**Add Density Sources*/
   submit(Stages::addSourceScalar, fence.get());
 
   /**Diffusion of density*/
+  specificInfo.setStageType(GaussSeidelStageType::diffuse);
   swapBuffers(bufferDensityNew, bufferDensityOld);
-  simulationInfo.specificInfo = magic_enum::enum_integer(SpecificInfo::black);
+/*
+  simulationInfo.specificInfo =
+      static_cast<unsigned int>(specificInfo.setColor(GaussSeidelColorPhase::black));
   submit(Stages::diffuseScalar, fence.get());
-  device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
-  device->getDevice()->resetFences(fence.get());
+  waitFence();
+*/
+  for (auto i = 0; i < 10; ++i) {
+    simulationInfo.specificInfo =
+        static_cast<unsigned int>(specificInfo.setColor(GaussSeidelColorPhase::red));
+    submit(Stages::diffuseScalar, fence.get());
+    waitFence();
+  }
 
-  simulationInfo.specificInfo = magic_enum::enum_integer(SpecificInfo::red);
-  submit(Stages::diffuseScalar, fence.get());
-  device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
-  device->getDevice()->resetFences(fence.get());
+  setBoundaryScalarStageBuffer(bufferDensityNew);
+  simulationInfo.specificInfo = magic_enum::enum_integer(BufferType::floatType);
+  submit(Stages::boundaryHandleScalar, fence.get());
 
-  submit(Stages::boundaryHandle, fence.get());
 
   /**Advect Density*/
   swapBuffers(bufferDensityNew, bufferDensityOld);
   submit(Stages::advectScalar, fence.get());
-  device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
-  device->getDevice()->resetFences(fence.get());
-  submit(Stages::boundaryHandle, fence.get(), std::nullopt, outSemaphore);
+  waitFence();
+  setBoundaryScalarStageBuffer(bufferDensityNew);
+  simulationInfo.specificInfo = magic_enum::enum_integer(BufferType::floatType);
+  submit(Stages::boundaryHandleScalar, fence.get(), std::nullopt, outSemaphore);
 
   return vk::UniqueSemaphore(outSemaphore, device->getDevice().get());
+}
+void VulkanGridFluid::waitFence() {
+  device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
+  device->getDevice()->resetFences(fence.get());
+}
+
+void VulkanGridFluid::project() {
+  auto specificInfo = GaussSeidelFlags();
+  bufferPressures->fill(
+      std::vector<float>(glm::compMul(simulationInfo.gridSize.xyz() + glm::ivec3(2)), 0));
+
+  submit(Stages::divergenceVector, fence.get());
+  waitFence();
+
+
+
+  setBoundaryScalarStageBuffer(bufferDivergences);
+  simulationInfo.specificInfo = magic_enum::enum_integer(BufferType::floatType);
+  submit(Stages::boundaryHandleScalar, fence.get());
+  waitFence();
+
+
+  specificInfo.setStageType(GaussSeidelStageType::project);
+  for (auto j = 0; j < 10; ++j) {
+    simulationInfo.specificInfo =
+        static_cast<unsigned int>(specificInfo.setColor(GaussSeidelColorPhase::red));
+    submit(Stages::GaussSeidelDivergence, fence.get());
+    waitFence();
+
+/*    simulationInfo.specificInfo =
+        static_cast<unsigned int>(specificInfo.setColor(GaussSeidelColorPhase::black));
+    submit(Stages::GaussSeidelDivergence, fence.get());
+    device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
+    device->getDevice()->resetFences(fence.get());*/
+
+    setBoundaryScalarStageBuffer(bufferPressures);
+    simulationInfo.specificInfo = magic_enum::enum_integer(BufferType::floatType);
+    submit(Stages::boundaryHandleScalar, fence.get());
+    waitFence();
+
+  }
+
+  submit(Stages::gradientSubtractionVector, fence.get());
+  waitFence();
+
+  simulationInfo.specificInfo = magic_enum::enum_integer(BufferType::vec4Type);
+  submit(Stages::boundaryHandleVector, fence.get());
 }
 
 void VulkanGridFluid::recordCommandBuffer(Stages pipelineStage) {
@@ -87,7 +155,7 @@ void VulkanGridFluid::recordCommandBuffer(Stages pipelineStage) {
                                vk::ShaderStageFlagBits::eCompute, 0,
                                sizeof(SimulationInfoGridFluid), &simulationInfo);
   auto dispatchCount = glm::ivec3(glm::ceil(simulationInfo.cellCount / 32.0), 1, 1);
-  if (pipelineStage == Stages::boundaryHandle)
+  if (Utilities::isIn(pipelineStage, {Stages::boundaryHandleVector, Stages::boundaryHandleScalar}))
     dispatchCount = glm::ivec3(
         glm::ceil((2 * gridSizeBorder.x * gridSizeBorder.y + 2 * gridSizeBorder.x * gridSizeBorder.z
                    + 2 * gridSizeBorder.y * gridSizeBorder.z)
@@ -149,20 +217,25 @@ VulkanGridFluid::VulkanGridFluid(const Config &config,
             uint32_t i = 0;
             std::for_each(poolSize.begin(), poolSize.end(),
                           [&i](const auto &in) { i += in.descriptorCount; });
-            return i;
+            return static_cast<uint32_t>(20);
           }(),
       .poolSizeCount = poolSize.size(),
       .pPoolSizes = poolSize.data(),
   };
   descriptorPool = this->device->getDevice()->createDescriptorPoolUnique(poolCreateInfo);
 
-  std::map<Stages, std::string> fileNames{{Stages::addSourceScalar, "addForce.comp"},
-                                          {Stages::diffuseScalar, "GaussSeidelRedBlack.comp"},
-                                          {Stages::advectScalar, "advect.comp"},
-                                          {Stages::boundaryHandle, "boundary.comp"},
-                                          {Stages::addSourceVector, "addForce.comp"},
-                                          {Stages::diffuseVector, "GaussSeidelRedBlack.comp"},
-                                          {Stages::divergenceVector, "divergence.comp"}};
+  std::map<Stages, std::string> fileNames{
+      {Stages::addSourceScalar, "addForce.comp"},
+      {Stages::diffuseScalar, "GaussSeidelRedBlack.comp"},
+      {Stages::advectScalar, "advect.comp"},
+      {Stages::boundaryHandleScalar, "boundary.comp"},
+      {Stages::addSourceVector, "addForce.comp"},
+      {Stages::diffuseVector, "GaussSeidelRedBlack.comp"},
+      {Stages::divergenceVector, "divergence.comp"},
+      {Stages::GaussSeidelDivergence, "GaussSeidelRedBlack.comp"},
+      {Stages ::gradientSubtractionVector, "gradientSubtraction.comp"},
+      {Stages::boundaryHandleVector, "boundary.comp"},
+      {Stages::advectVector, "advect.comp"}};
   auto shaderPathTemplate = config.getVulkan().shaderFolder / "GridFluid/{}";
   for (const auto &stage : magic_enum::enum_values<Stages>()) {
     auto pipelineBuilder =
@@ -170,10 +243,12 @@ VulkanGridFluid::VulkanGridFluid(const Config &config,
             .setComputeShaderPath(fmt::format(shaderPathTemplate.string(), fileNames[stage]));
     if (Utilities::isIn(stage,
                         {Stages::addSourceScalar, Stages ::diffuseScalar, Stages::advectScalar,
-                         Stages::boundaryHandle}))
-      pipelineBuilder.addShaderMacro("TYPENAME_T float");
-    if (Utilities::isIn(stage, {Stages::addSourceVector, Stages::diffuseVector}))
-      pipelineBuilder.addShaderMacro("TYPENAME_T vec4");
+                         Stages::boundaryHandleScalar, Stages::GaussSeidelDivergence}))
+      pipelineBuilder.addShaderMacro("TYPENAME_T float").addShaderMacro("TYPE_FLOAT");
+    if (Utilities::isIn(stage,
+                        {Stages::addSourceVector, Stages::diffuseVector,
+                         Stages::boundaryHandleVector, Stages::advectVector}))
+      pipelineBuilder.addShaderMacro("TYPENAME_T vec4").addShaderMacro("TYPE_VEC4");
     if (descriptorBufferInfosCompute.contains(stage)) {
       pipelines[stage] = pipelineBuilder.build();
       descriptorSets[stage] = std::make_shared<DescriptorSet>(
@@ -185,8 +260,8 @@ VulkanGridFluid::VulkanGridFluid(const Config &config,
 
   fence = device->getDevice()->createFenceUnique({});
 
-  semaphores.resize(23);
-  std::generate_n(semaphores.begin(), 23,
+  semaphores.resize(10000);
+  std::generate_n(semaphores.begin(), 10000,
                   [&] { return device->getDevice()->createSemaphoreUnique({}); });
 }
 
@@ -223,7 +298,7 @@ void VulkanGridFluid::createBuffers() {
                                this->device, commandPool, queue);
   bufferDensitySources->fill(sources);
 
-  auto initialVelocities = std::vector<glm::vec4>(cellCountBorder, glm::vec4(0, 0, 0, 0));
+  auto initialVelocities = std::vector<glm::vec4>(cellCountBorder, glm::vec4(0, -10, 0, 0));
   initialVelocities[positionDensity - (simulationInfo.gridSize.x + 2)].y = -10;
   bufferVelocitiesNew = std::make_shared<Buffer>(
       bufferBuilder.setSize(sizeof(glm::vec4) * cellCountBorder), this->device, commandPool, queue);
@@ -231,7 +306,7 @@ void VulkanGridFluid::createBuffers() {
 
   bufferVelocitiesOld = std::make_shared<Buffer>(
       bufferBuilder.setSize(sizeof(glm::vec4) * cellCountBorder), this->device, commandPool, queue);
-  bufferVelocitiesOld->fill(std::vector<glm::vec4>(cellCountBorder, glm::vec4(0, 0, 0, 0)));
+  bufferVelocitiesOld->fill(std::vector<glm::vec4>(cellCountBorder, glm::vec4(0, -10, 0, 0)));
 
   bufferVelocitySources =
       std::make_shared<Buffer>(bufferBuilder.setSize(sizeof(glm::vec4) * simulationInfo.cellCount),
@@ -239,10 +314,9 @@ void VulkanGridFluid::createBuffers() {
   bufferVelocitySources->fill(
       std::vector<glm::vec4>(simulationInfo.cellCount, glm::vec4(0, 0, 0, 0)));
 
-  bufferDivergences =
-      std::make_shared<Buffer>(bufferBuilder.setSize(sizeof(float) * simulationInfo.cellCount),
-                               this->device, commandPool, queue);
-  bufferDivergences->fill(std::vector<float>(simulationInfo.cellCount, 0));
+  bufferDivergences = std::make_shared<Buffer>(
+      bufferBuilder.setSize(sizeof(float) * cellCountBorder), this->device, commandPool, queue);
+  bufferDivergences->fill(std::vector<float>(cellCountBorder, 0));
 
   bufferPressures = std::make_shared<Buffer>(bufferBuilder.setSize(sizeof(float) * cellCountBorder),
                                              this->device, commandPool, queue);
@@ -263,49 +337,66 @@ void VulkanGridFluid::updateDescriptorSets() {
 
 void VulkanGridFluid::swapBuffers(std::shared_ptr<Buffer> &buffer1,
                                   std::shared_ptr<Buffer> &buffer2) {
-  device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
-  device->getDevice()->resetFences(fence.get());
+  waitFence();
   buffer1.swap(buffer2);
   updateDescriptorSets();
 }
 
 void VulkanGridFluid::fillDescriptorBufferInfo() {
-  descriptorBufferInfosCompute[Stages::addSourceScalar] = {
+  const auto descriptorBufferInfoDensityNew =
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensityNew, 1},
-                           .bufferSize = bufferDensityNew->getSize()},
+                           .bufferSize = bufferDensityNew->getSize()};
+  const auto descriptorBufferInfoDensityOld =
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensityOld, 1},
+                           .bufferSize = bufferDensityOld->getSize()};
+  const auto descriptorBufferInfoDensitySources =
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensitySources, 1},
-                           .bufferSize = bufferDensitySources->getSize()}};
-  descriptorBufferInfosCompute[Stages::diffuseScalar] = {
-      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensityNew, 1},
-                           .bufferSize = bufferDensityNew->getSize()},
-      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensityOld, 1},
-                           .bufferSize = bufferDensityOld->getSize()}};
-  descriptorBufferInfosCompute[Stages::advectScalar] = {
-      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensityNew, 1},
-                           .bufferSize = bufferDensityNew->getSize()},
-      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensityOld, 1},
-                           .bufferSize = bufferDensityOld->getSize()},
+                           .bufferSize = bufferDensitySources->getSize()};
+  const auto descriptorBufferInfoVelocitiesNew =
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferVelocitiesNew, 1},
-                           .bufferSize = bufferVelocitiesNew->getSize()}};
-  descriptorBufferInfosCompute[Stages::boundaryHandle] = {
-      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensityNew, 1},
-                           .bufferSize = bufferDensityNew->getSize()}};
-  descriptorBufferInfosCompute[Stages::addSourceVector] = {
-      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferVelocitiesNew, 1},
-                           .bufferSize = bufferVelocitiesNew->getSize()},
-      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferVelocitySources, 1},
-                           .bufferSize = bufferVelocitySources->getSize()}};
-  descriptorBufferInfosCompute[Stages::diffuseVector] = {
-      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferVelocitiesNew, 1},
-                           .bufferSize = bufferVelocitiesNew->getSize()},
+                           .bufferSize = bufferVelocitiesNew->getSize()};
+  const auto descriptorBufferInfoVelocitiesOld =
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferVelocitiesOld, 1},
-                           .bufferSize = bufferVelocitiesOld->getSize()}};
-  descriptorBufferInfosCompute[Stages::divergenceVector] = {
-      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferVelocitiesNew, 1},
-                           .bufferSize = bufferVelocitiesNew->getSize()},
-      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDivergences, 1},
-                           .bufferSize = bufferDivergences->getSize()},
+                           .bufferSize = bufferVelocitiesOld->getSize()};
+  const auto descriptorBufferInfoVelocitiesSources =
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferVelocitySources, 1},
+                           .bufferSize = bufferVelocitySources->getSize()};
+  const auto descriptorBufferInfoPressure =
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferPressures, 1},
-                           .bufferSize = bufferPressures->getSize()}};
+                           .bufferSize = bufferPressures->getSize()};
+  const auto descriptorBufferInfoDivergences =
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDivergences, 1},
+                           .bufferSize = bufferDivergences->getSize()};
+
+  descriptorBufferInfosCompute[Stages::addSourceScalar] = {descriptorBufferInfoDensityNew,
+                                                           descriptorBufferInfoDensitySources};
+  descriptorBufferInfosCompute[Stages::diffuseScalar] = {descriptorBufferInfoDensityNew,
+                                                         descriptorBufferInfoDensityOld};
+  descriptorBufferInfosCompute[Stages::advectScalar] = {descriptorBufferInfoDensityNew,
+                                                        descriptorBufferInfoDensityOld,
+                                                        descriptorBufferInfoVelocitiesNew};
+  descriptorBufferInfosCompute[Stages::boundaryHandleScalar] = {descriptorBufferInfoDensityNew};
+  descriptorBufferInfosCompute[Stages::addSourceVector] = {descriptorBufferInfoVelocitiesNew,
+                                                           descriptorBufferInfoVelocitiesSources};
+  descriptorBufferInfosCompute[Stages::diffuseVector] = {descriptorBufferInfoVelocitiesNew,
+                                                         descriptorBufferInfoVelocitiesOld};
+  descriptorBufferInfosCompute[Stages::divergenceVector] = {descriptorBufferInfoVelocitiesNew,
+                                                            descriptorBufferInfoDivergences,
+                                                            descriptorBufferInfoPressure};
+  descriptorBufferInfosCompute[Stages::GaussSeidelDivergence] = {descriptorBufferInfoPressure,
+                                                                 descriptorBufferInfoDivergences};
+  descriptorBufferInfosCompute[Stages::gradientSubtractionVector] = {
+      descriptorBufferInfoVelocitiesNew, descriptorBufferInfoPressure};
+  descriptorBufferInfosCompute[Stages::boundaryHandleVector] = {descriptorBufferInfoVelocitiesNew};
+  descriptorBufferInfosCompute[Stages::advectVector] = {descriptorBufferInfoVelocitiesNew, descriptorBufferInfoVelocitiesOld, descriptorBufferInfoVelocitiesOld};
 }
+
 const vk::UniqueFence &VulkanGridFluid::getFenceAfterCompute() const { return fence; }
+
+void VulkanGridFluid::setBoundaryScalarStageBuffer(std::shared_ptr<Buffer> &buffer) {
+  descriptorBufferInfosCompute[Stages::boundaryHandleScalar].begin()->buffer =
+      std::span<std::shared_ptr<Buffer>>{&buffer, 1};
+  descriptorBufferInfosCompute[Stages::boundaryHandleScalar].begin()->bufferSize =
+      buffer->getSize();
+  updateDescriptorSets();
+}
