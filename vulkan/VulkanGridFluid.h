@@ -58,9 +58,10 @@ class VulkanGridFluid {
 
   std::map<Stages, std::shared_ptr<Pipeline>> pipelines;
 
-  std::shared_ptr<Buffer> bufferDensityNew;
-  std::shared_ptr<Buffer> bufferDensityOld;
-  std::shared_ptr<Buffer> bufferDensitySources;
+  /** Density + temperature*/
+  std::shared_ptr<Buffer> bufferValuesNew;
+  std::shared_ptr<Buffer> bufferValuesOld;
+  std::shared_ptr<Buffer> bufferValuesSources;
 
   std::shared_ptr<Buffer> bufferVelocitiesNew;
   std::shared_ptr<Buffer> bufferVelocitiesOld;

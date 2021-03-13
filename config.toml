@@ -17,6 +17,7 @@ particleModel = "/home/aka/CLionProjects/VulkanSPH/resources/sphere.obj"
 
 [App.simulationGridFluid]
 cellModel = "/home/aka/CLionProjects/VulkanSPH/resources/cube.obj"
+ambientTemperature = 25.0
 
 [Vulkan]
 pathToShaders = "/home/aka/CLionProjects/VulkanSPH/shaders/"

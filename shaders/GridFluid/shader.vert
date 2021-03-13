@@ -20,7 +20,7 @@ layout(binding = 0) uniform UniformBufferObject {
 }
 ubo;
 
-layout(std430, binding = 2) buffer densityBuffer { float density[]; };
+layout(std430, binding = 2) buffer densityBuffer { vec2 density[]; };
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inColor;
@@ -59,7 +59,7 @@ void main() {
 
   gl_Position = ubo.proj * ubo.view * ubo.model
       * (vec4(inPosition * 0.5 * simulationInfo.cellSize, 1.0) + vec4(myId3D * simulationInfo.cellSize, 0));
-  fragColor = vec4(inColor, density[myId]);
+  fragColor = vec4(inColor, density[myId].x);
   outPosition = gl_Position.xyz;
   outNormal = inNormal;
 }

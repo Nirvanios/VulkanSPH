@@ -61,7 +61,7 @@ vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &semaphoreWai
 
   /**Diffusion of density*/
   specificInfo.setStageType(GaussSeidelStageType::diffuse);
-  swapBuffers(bufferDensityNew, bufferDensityOld);
+  swapBuffers(bufferValuesNew, bufferValuesOld);
 /*
   simulationInfo.specificInfo =
       static_cast<unsigned int>(specificInfo.setColor(GaussSeidelColorPhase::black));
@@ -75,16 +75,16 @@ vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &semaphoreWai
     waitFence();
   }
 
-  setBoundaryScalarStageBuffer(bufferDensityNew);
+  setBoundaryScalarStageBuffer(bufferValuesNew);
   simulationInfo.specificInfo = magic_enum::enum_integer(BufferType::floatType);
   submit(Stages::boundaryHandleScalar, fence.get());
 
 
   /**Advect Density*/
-  swapBuffers(bufferDensityNew, bufferDensityOld);
+  swapBuffers(bufferValuesNew, bufferValuesOld);
   submit(Stages::advectScalar, fence.get());
   waitFence();
-  setBoundaryScalarStageBuffer(bufferDensityNew);
+  setBoundaryScalarStageBuffer(bufferValuesNew);
   simulationInfo.specificInfo = magic_enum::enum_integer(BufferType::floatType);
   submit(Stages::boundaryHandleScalar, fence.get(), std::nullopt, outSemaphore);
 
@@ -244,7 +244,7 @@ VulkanGridFluid::VulkanGridFluid(const Config &config,
     if (Utilities::isIn(stage,
                         {Stages::addSourceScalar, Stages ::diffuseScalar, Stages::advectScalar,
                          Stages::boundaryHandleScalar, Stages::GaussSeidelDivergence}))
-      pipelineBuilder.addShaderMacro("TYPENAME_T float").addShaderMacro("TYPE_FLOAT");
+      pipelineBuilder.addShaderMacro("TYPENAME_T vec2").addShaderMacro("TYPE_VEC2");
     if (Utilities::isIn(stage,
                         {Stages::addSourceVector, Stages::diffuseVector,
                          Stages::boundaryHandleVector, Stages::advectVector}))
@@ -267,8 +267,8 @@ VulkanGridFluid::VulkanGridFluid(const Config &config,
 
 void VulkanGridFluid::createBuffers() {
   auto cellCountBorder = glm::compMul(simulationInfo.gridSize.xyz() + glm::ivec3(2));
-  auto initialDensity = std::vector<float>(cellCountBorder, 0);
-  auto sources = std::vector<float>(simulationInfo.cellCount, 0);
+  auto initialDensity = std::vector<glm::vec2>(cellCountBorder, glm::vec2(0));
+  auto sources = std::vector<glm::vec2>(simulationInfo.cellCount, glm::vec2(0));
   [[maybe_unused]] auto positionSources =
       ((simulationInfo.gridSize.z / 2) * simulationInfo.gridSize.x * simulationInfo.gridSize.y)
       + (simulationInfo.gridSize.x / 2)
@@ -279,24 +279,24 @@ void VulkanGridFluid::createBuffers() {
        * (simulationInfo.gridSize.y + 2))
       + ((simulationInfo.gridSize.x + 2) / 2)
       + ((simulationInfo.gridSize.x + 2) * simulationInfo.gridSize.y);
-  initialDensity[positionDensity] = 1.0f;
+  initialDensity[positionDensity] = glm::vec2(1.0f, 0.0f);
 
   auto bufferBuilder = BufferBuilder()
                            .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
                                           | vk::BufferUsageFlagBits::eStorageBuffer)
                            .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal);
-  bufferDensityNew = std::make_shared<Buffer>(
-      bufferBuilder.setSize(sizeof(float) * cellCountBorder), this->device, commandPool, queue);
-  bufferDensityNew->fill(initialDensity);
+  bufferValuesNew = std::make_shared<Buffer>(
+      bufferBuilder.setSize(sizeof(glm::vec2) * cellCountBorder), this->device, commandPool, queue);
+  bufferValuesNew->fill(initialDensity);
 
-  bufferDensityOld = std::make_shared<Buffer>(
-      bufferBuilder.setSize(sizeof(float) * cellCountBorder), this->device, commandPool, queue);
-  bufferDensityOld->fill(initialDensity);
+  bufferValuesOld = std::make_shared<Buffer>(
+      bufferBuilder.setSize(sizeof(glm::vec2) * cellCountBorder), this->device, commandPool, queue);
+  bufferValuesOld->fill(initialDensity);
 
-  bufferDensitySources =
-      std::make_shared<Buffer>(bufferBuilder.setSize(sizeof(float) * simulationInfo.cellCount),
+  bufferValuesSources =
+      std::make_shared<Buffer>(bufferBuilder.setSize(sizeof(glm::vec2) * simulationInfo.cellCount),
                                this->device, commandPool, queue);
-  bufferDensitySources->fill(sources);
+  bufferValuesSources->fill(sources);
 
   auto initialVelocities = std::vector<glm::vec4>(cellCountBorder, glm::vec4(0, -10, 0, 0));
   initialVelocities[positionDensity - (simulationInfo.gridSize.x + 2)].y = -10;
@@ -324,7 +324,7 @@ void VulkanGridFluid::createBuffers() {
 }
 
 const std::shared_ptr<Buffer> &VulkanGridFluid::getBufferDensity() const {
-  return bufferDensityNew;
+  return bufferValuesNew;
 }
 
 void VulkanGridFluid::updateDescriptorSets() {
@@ -344,14 +344,14 @@ void VulkanGridFluid::swapBuffers(std::shared_ptr<Buffer> &buffer1,
 
 void VulkanGridFluid::fillDescriptorBufferInfo() {
   const auto descriptorBufferInfoDensityNew =
-      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensityNew, 1},
-                           .bufferSize = bufferDensityNew->getSize()};
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferValuesNew, 1},
+                           .bufferSize = bufferValuesNew->getSize()};
   const auto descriptorBufferInfoDensityOld =
-      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensityOld, 1},
-                           .bufferSize = bufferDensityOld->getSize()};
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferValuesOld, 1},
+                           .bufferSize = bufferValuesOld->getSize()};
   const auto descriptorBufferInfoDensitySources =
-      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensitySources, 1},
-                           .bufferSize = bufferDensitySources->getSize()};
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferValuesSources, 1},
+                           .bufferSize = bufferValuesSources->getSize()};
   const auto descriptorBufferInfoVelocitiesNew =
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferVelocitiesNew, 1},
                            .bufferSize = bufferVelocitiesNew->getSize()};

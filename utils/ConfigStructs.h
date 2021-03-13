@@ -37,6 +37,7 @@ struct SimulationSPHConfig {
 
 struct SimulationGridFluidConfig {
   std::filesystem::path cellModel;
+  float ambientTemperature;
 };
 
 struct AppConfig {

@@ -34,6 +34,7 @@ Config::Config(const std::string &configFile) {
   app.simulationSPH.useNNS = toml::find<bool>(tomlSimulationSPH, "useNNS");
 
   app.simulationGridFluid.cellModel = toml::find<std::string>(tomlSimulationGridFluid, "cellModel");
+  app.simulationGridFluid.ambientTemperature = toml::find<float>(tomlSimulationGridFluid, "ambientTemperature");
 
   Vulkan.shaderFolder = toml::find<std::string>(tomlVulkan, "pathToShaders");
 
