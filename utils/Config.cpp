@@ -28,9 +28,12 @@ Config::Config(const std::string &configFile) {
   app.simulation.gridSize =
       glm::make_vec3(toml::find<std::vector<int>>(tomlSimulation, "gridSize").data());
   app.simulation.gasStiffness = toml::find<float>(tomlSimulation, "gasStiffness");
+  app.simulation.heatCapacity = toml::find<float>(tomlSimulation, "heatCapacity");
+  app.simulation.heatConductivity = toml::find<float>(tomlSimulation, "heatConductivity");
   app.simulation.viscosityCoefficient = toml::find<float>(tomlSimulation, "viscosityCoefficient");
   app.simulation.timeStep = toml::find<float>(tomlSimulation, "timeStep");
   app.simulation.useNNS = toml::find<bool>(tomlSimulation, "useNNS");
+
 
   Vulkan.shaderFolder = toml::find<std::string>(tomlVulkan, "pathToShaders");
 

@@ -80,6 +80,7 @@ struct alignas(16) ParticleRecord {
   glm::vec4 currentVelocity;
   float massDensity;
   float pressure;
+  float temperature;
   int gridID;
   int dummy;
 
@@ -105,6 +106,8 @@ struct SimulationInfo {
   float restDensity;
   float viscosityCoefficient;
   float gasStiffnessConstant;
+  float heatConductivity;
+  float heatCapacity;
   float timeStep;
   float supportRadius;
   float tensionThreshold;

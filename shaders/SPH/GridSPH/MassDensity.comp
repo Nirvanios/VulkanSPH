@@ -23,6 +23,8 @@ layout(push_constant) uniform Info {
   float restDensity;
   float viscosityCoefficient;
   float gasStiffnessConstant;
+  float heatConductivity;
+  float heatCapacity;
   float timeStep;
   float supportRadius;
   float tensionThreshold;
@@ -37,6 +39,7 @@ struct ParticleRecord {
   vec4 previousVelocity;
   float massDensity;
   float pressure;
+  float temperature;
   int gridID;
   float pressureForceLength;
 };

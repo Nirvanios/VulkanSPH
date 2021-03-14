@@ -25,6 +25,8 @@ struct SimulationConfig {
   float timeStep;
   float viscosityCoefficient;
   float gasStiffness;
+  float heatConductivity;
+  float heatCapacity;
   float fluidVolume;
   float fluidDensity;
   int particleCount;
