@@ -29,6 +29,8 @@ Config::Config(const std::string &configFile) {
   app.simulationSPH.gridSize =
       glm::make_vec3(toml::find<std::vector<int>>(tomlSimulationSPH, "gridSize").data());
   app.simulationSPH.gasStiffness = toml::find<float>(tomlSimulationSPH, "gasStiffness");
+  app.simulationSPH.heatCapacity = toml::find<float>(tomlSimulationSPH, "heatCapacity");
+  app.simulationSPH.heatConductivity = toml::find<float>(tomlSimulationSPH, "heatConductivity");
   app.simulationSPH.viscosityCoefficient = toml::find<float>(tomlSimulationSPH, "viscosityCoefficient");
   app.simulationSPH.timeStep = toml::find<float>(tomlSimulationSPH, "timeStep");
   app.simulationSPH.useNNS = toml::find<bool>(tomlSimulationSPH, "useNNS");

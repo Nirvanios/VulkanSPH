@@ -14,6 +14,8 @@ particleModelSize = [20,60,20] #[12, 16, 12] #[4, 4, 4]
 gridOrigin =  [0.0, 0.0, 0.0]
 gridSize = [3,3,3] #[8, 8, 8]
 particleModel = "/home/aka/CLionProjects/VulkanSPH/resources/sphere.obj"
+heatConductivity = 0.62
+heatCapacity = 4.179
 
 [App.simulationGridFluid]
 cellModel = "/home/aka/CLionProjects/VulkanSPH/resources/cube.obj"

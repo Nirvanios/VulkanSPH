@@ -19,6 +19,7 @@ struct ParticleRecord {
   vec4 previousVelocity;
   float massDensity;
   float pressure;
+  float temperature;
   int gridID;
   float pressureForceLength;
 };
