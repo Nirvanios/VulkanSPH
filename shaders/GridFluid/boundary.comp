@@ -41,7 +41,7 @@ int compSum(ivec3 vector) { return vector.x + vector.y + vector.z; }
 
 TYPENAME_T getFaceValue(const ivec3 myGridID3D, const bvec3 zeroesExtreme, const bvec3 maxExtreme) {
 const ivec3 offsetID3D = myGridID3D + ivec3(zeroesExtreme) + ivec3(maxExtreme) * -1;
-#if defined(TYPE_VEC2)
+#if defined(TYPE_FLOAT) || defined(TYPE_VEC2)
   return field[VEC_TO_INDEX_BOUNDARY(offsetID3D)];
 #elif defined(TYPE_VEC4)
   ivec4 faceModifier = -1 * ivec4(ivec3(zeroesExtreme) + ivec3(maxExtreme), 0);

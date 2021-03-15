@@ -24,11 +24,11 @@ vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &semaphoreWai
   /**Diffuse velocities*/
   swapBuffers(bufferVelocitiesNew, bufferVelocitiesOld);
 
-  for (auto i = 0; i < 10; ++i) {
-/*    specificInfo.setStageType(GaussSeidelStageType::diffuse).setColor(GaussSeidelColorPhase::black);
+  for (auto i = 0; i < 20; ++i) {
+    specificInfo.setStageType(GaussSeidelStageType::diffuse).setColor(GaussSeidelColorPhase::black);
     simulationInfo.specificInfo = static_cast<unsigned int>(specificInfo);
     submit(Stages::diffuseVector, fence.get());
-    waitFence();*/
+    waitFence();
 
     specificInfo.setColor(GaussSeidelColorPhase::red);
     simulationInfo.specificInfo = static_cast<unsigned int>(specificInfo);
@@ -42,7 +42,8 @@ vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &semaphoreWai
 
   /**Project*/
   for (auto i = 0; i < 1; ++i) { project(); }
-
+  [[maybe_unused]] auto vel = bufferVelocitiesNew->read<glm::vec4>();
+  [[maybe_unused]] auto pres = bufferPressures->read<float>();
   /**Advect velocities*/
   swapBuffers(bufferVelocitiesNew, bufferVelocitiesOld);
   submit(Stages::advectVector, fence.get());
@@ -50,7 +51,6 @@ vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &semaphoreWai
   simulationInfo.specificInfo = magic_enum::enum_integer(BufferType::vec4Type);
   submit(Stages::boundaryHandleVector, fence.get());
   waitFence();
-
 
   /**Project*/
   for (auto i = 0; i < 1; ++i) { project(); }
@@ -62,13 +62,13 @@ vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &semaphoreWai
   /**Diffusion of density*/
   specificInfo.setStageType(GaussSeidelStageType::diffuse);
   swapBuffers(bufferValuesNew, bufferValuesOld);
-/*
-  simulationInfo.specificInfo =
-      static_cast<unsigned int>(specificInfo.setColor(GaussSeidelColorPhase::black));
-  submit(Stages::diffuseScalar, fence.get());
-  waitFence();
-*/
-  for (auto i = 0; i < 10; ++i) {
+
+  for (auto i = 0; i < 20; ++i) {
+    simulationInfo.specificInfo =
+        static_cast<unsigned int>(specificInfo.setColor(GaussSeidelColorPhase::black));
+    submit(Stages::diffuseScalar, fence.get());
+    waitFence();
+
     simulationInfo.specificInfo =
         static_cast<unsigned int>(specificInfo.setColor(GaussSeidelColorPhase::red));
     submit(Stages::diffuseScalar, fence.get());
@@ -78,7 +78,6 @@ vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &semaphoreWai
   setBoundaryScalarStageBuffer(bufferValuesNew);
   simulationInfo.specificInfo = magic_enum::enum_integer(BufferType::floatType);
   submit(Stages::boundaryHandleScalar, fence.get());
-
 
   /**Advect Density*/
   swapBuffers(bufferValuesNew, bufferValuesOld);
@@ -103,32 +102,36 @@ void VulkanGridFluid::project() {
   submit(Stages::divergenceVector, fence.get());
   waitFence();
 
-
+  [[maybe_unused]] auto div = bufferDivergences->read<float>();
 
   setBoundaryScalarStageBuffer(bufferDivergences);
   simulationInfo.specificInfo = magic_enum::enum_integer(BufferType::floatType);
   submit(Stages::boundaryHandleScalar, fence.get());
   waitFence();
 
+  div = bufferDivergences->read<float>();
 
   specificInfo.setStageType(GaussSeidelStageType::project);
-  for (auto j = 0; j < 10; ++j) {
+  for (auto j = 0; j < 20; ++j) {
+    simulationInfo.specificInfo =
+        static_cast<unsigned int>(specificInfo.setColor(GaussSeidelColorPhase::black));
+    submit(Stages::GaussSeidelDivergence, fence.get());
+    waitFence();
+
+    [[maybe_unused]] auto pres = bufferPressures->read<float>();
+
     simulationInfo.specificInfo =
         static_cast<unsigned int>(specificInfo.setColor(GaussSeidelColorPhase::red));
     submit(Stages::GaussSeidelDivergence, fence.get());
     waitFence();
 
-/*    simulationInfo.specificInfo =
-        static_cast<unsigned int>(specificInfo.setColor(GaussSeidelColorPhase::black));
-    submit(Stages::GaussSeidelDivergence, fence.get());
-    device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
-    device->getDevice()->resetFences(fence.get());*/
+    pres = bufferPressures->read<float>();
 
     setBoundaryScalarStageBuffer(bufferPressures);
     simulationInfo.specificInfo = magic_enum::enum_integer(BufferType::floatType);
     submit(Stages::boundaryHandleScalar, fence.get());
     waitFence();
-
+    pres = bufferPressures->read<float>();
   }
 
   submit(Stages::gradientSubtractionVector, fence.get());
@@ -136,6 +139,18 @@ void VulkanGridFluid::project() {
 
   simulationInfo.specificInfo = magic_enum::enum_integer(BufferType::vec4Type);
   submit(Stages::boundaryHandleVector, fence.get());
+  waitFence();
+
+  submit(Stages::divergenceVector, fence.get());
+  waitFence();
+
+  setBoundaryScalarStageBuffer(bufferDivergences);
+  simulationInfo.specificInfo = magic_enum::enum_integer(BufferType::floatType);
+  submit(Stages::boundaryHandleScalar, fence.get());
+  waitFence();
+
+  div = bufferDivergences->read<float>();
+  return;
 }
 
 void VulkanGridFluid::recordCommandBuffer(Stages pipelineStage) {
@@ -241,13 +256,14 @@ VulkanGridFluid::VulkanGridFluid(const Config &config,
     auto pipelineBuilder =
         computePipelineBuilder.setLayoutBindingInfo(bindingInfosCompute[stage])
             .setComputeShaderPath(fmt::format(shaderPathTemplate.string(), fileNames[stage]));
-    if (Utilities::isIn(stage,
-                        {Stages::addSourceScalar, Stages ::diffuseScalar, Stages::advectScalar,
-                         Stages::boundaryHandleScalar, Stages::GaussSeidelDivergence}))
+    if (Utilities::isIn(stage, {Stages::boundaryHandleScalar, Stages::GaussSeidelDivergence}))
+      pipelineBuilder.addShaderMacro("TYPENAME_T float").addShaderMacro("TYPE_FLOAT");
+    else if (Utilities::isIn(
+                 stage, {Stages::addSourceScalar, Stages ::diffuseScalar, Stages::advectScalar}))
       pipelineBuilder.addShaderMacro("TYPENAME_T vec2").addShaderMacro("TYPE_VEC2");
-    if (Utilities::isIn(stage,
-                        {Stages::addSourceVector, Stages::diffuseVector,
-                         Stages::boundaryHandleVector, Stages::advectVector}))
+    else if (Utilities::isIn(stage,
+                             {Stages::addSourceVector, Stages::diffuseVector,
+                              Stages::boundaryHandleVector, Stages::advectVector}))
       pipelineBuilder.addShaderMacro("TYPENAME_T vec4").addShaderMacro("TYPE_VEC4");
     if (descriptorBufferInfosCompute.contains(stage)) {
       pipelines[stage] = pipelineBuilder.build();
@@ -260,7 +276,7 @@ VulkanGridFluid::VulkanGridFluid(const Config &config,
 
   fence = device->getDevice()->createFenceUnique({});
 
-  semaphores.resize(10000);
+  semaphores.resize(10000);//TODO pool
   std::generate_n(semaphores.begin(), 10000,
                   [&] { return device->getDevice()->createSemaphoreUnique({}); });
 }
@@ -323,9 +339,7 @@ void VulkanGridFluid::createBuffers() {
   bufferPressures->fill(std::vector<float>(cellCountBorder, 0));
 }
 
-const std::shared_ptr<Buffer> &VulkanGridFluid::getBufferDensity() const {
-  return bufferValuesNew;
-}
+const std::shared_ptr<Buffer> &VulkanGridFluid::getBufferDensity() const { return bufferValuesNew; }
 
 void VulkanGridFluid::updateDescriptorSets() {
   std::for_each(pipelines.begin(), pipelines.end(), [&](auto &in) {
@@ -388,7 +402,9 @@ void VulkanGridFluid::fillDescriptorBufferInfo() {
   descriptorBufferInfosCompute[Stages::gradientSubtractionVector] = {
       descriptorBufferInfoVelocitiesNew, descriptorBufferInfoPressure};
   descriptorBufferInfosCompute[Stages::boundaryHandleVector] = {descriptorBufferInfoVelocitiesNew};
-  descriptorBufferInfosCompute[Stages::advectVector] = {descriptorBufferInfoVelocitiesNew, descriptorBufferInfoVelocitiesOld, descriptorBufferInfoVelocitiesOld};
+  descriptorBufferInfosCompute[Stages::advectVector] = {descriptorBufferInfoVelocitiesNew,
+                                                        descriptorBufferInfoVelocitiesOld,
+                                                        descriptorBufferInfoVelocitiesOld};
 }
 
 const vk::UniqueFence &VulkanGridFluid::getFenceAfterCompute() const { return fence; }
