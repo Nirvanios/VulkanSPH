@@ -28,7 +28,8 @@ class VulkanGridFluid {
     gradientSubtractionVector,
     advectVector,
     boundaryHandleScalar,
-    boundaryHandleVector
+    boundaryHandleVector,
+    boundaryHandleVec2
   };
 
   void submit(Stages pipelineStage, const vk::Fence = nullptr,
@@ -162,6 +163,11 @@ class VulkanGridFluid {
                                   .descriptorCount = 1,
                                   .stageFlags = vk::ShaderStageFlagBits::eCompute}}},
       {Stages::boundaryHandleVector,
+       {PipelineLayoutBindingInfo{.binding = 0,
+                                  .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                  .descriptorCount = 1,
+                                  .stageFlags = vk::ShaderStageFlagBits::eCompute}}},
+      {Stages::boundaryHandleVec2,
        {PipelineLayoutBindingInfo{.binding = 0,
                                   .descriptorType = vk::DescriptorType::eStorageBuffer,
                                   .descriptorCount = 1,

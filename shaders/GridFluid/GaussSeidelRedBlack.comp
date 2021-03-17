@@ -67,16 +67,6 @@ void main() {
   const uint myId = (myId3D.x + 1) + (myId3D.y + 1) * gridSizeWithBorders.x
       + (myId3D.z + 1) * gridSizeWithBorders.x * gridSizeWithBorders.y;
 
-  /*    if(gl_GlobalInvocationID.x == 0){
-    for(int i = 0; i < gridSizeWithBorders.x * gridSizeWithBorders.y * gridSizeWithBorders.z; ++i){
-      if(any(greaterThan(vec4(fieldNew[i]), vec4(0)))) 
-      debugPrintfEXT("gl_GlobalInvocationID: %d, myId: %d, i: %d, value: %f", gl_GlobalInvocationID.x, myId, i, fieldNew[i]);
-    }
-  } */
-  /*
-  if(gl_GlobalInvocationID.x == 8){
-    debugPrintfEXT("myId: %d, myId3D: %v3d, myGridIdFlatten: %d, myGridID3D: %v3d", myId, myId3D, myGridIdFlatten, myGridID3D);
-  } */
 
   if (all(lessThan(myGridID3D, gridSize.xyz))) {
     float alpha = 0;
@@ -97,11 +87,6 @@ void main() {
         break;
     }
 
-    if (myId == 36 && color == RED)
-      debugPrintfEXT("myId: %d, upId: %d, upvalue: %f", myId,
-                     myId + VEC_TO_INDEX_BOUNDARY(vec3(0, 1, 0)),
-                     fieldNew[myId + VEC_TO_INDEX_BOUNDARY(vec3(0, 1, 0))]);
-
     fieldNew[myId] = (base
                       + alpha
                           * (fieldNew[myId - VEC_TO_INDEX_BOUNDARY(vec3(1, 0, 0))]
@@ -111,32 +96,5 @@ void main() {
                              + fieldNew[myId - VEC_TO_INDEX_BOUNDARY(vec3(0, 0, 1))]
                              + fieldNew[myId + VEC_TO_INDEX_BOUNDARY(vec3(0, 0, 1))]))
         / beta;
-
-    /* 
-    if(color == RED && gl_GlobalInvocationID.x == 0){
-      for(int z = 1; z <= simulationInfo.gridSize.z; ++z){
-        for(int y = 1; y <= simulationInfo.gridSize.y; ++y){
-          for(int x = 1; x <= simulationInfo.gridSize.x; ++x){
-            int id = TO_INDEX_BOUNDARY(x,y,z);
-            fieldNew[id] = (fieldOld[id]
-                            + alpha
-                                * (fieldNew[id - VEC_TO_INDEX_BOUNDARY(vec3(1, 0, 0))]
-                                  + fieldNew[id + VEC_TO_INDEX_BOUNDARY(vec3(1, 0, 0))]
-                                  + fieldNew[id - VEC_TO_INDEX_BOUNDARY(vec3(0, 1, 0))]
-                                  + fieldNew[id + VEC_TO_INDEX_BOUNDARY(vec3(0, 1, 0))]
-                                  + fieldNew[id - VEC_TO_INDEX_BOUNDARY(vec3(0, 0, 1))]
-                                  + fieldNew[id + VEC_TO_INDEX_BOUNDARY(vec3(0, 0, 1))]))
-              / beta;
-              // if(id == 31) debugPrintfEXT("id: %d, pressure: %f", id, fieldNew[id]);
-          }
-        }
-      }
-    } */
-    /*     if (type == PROJECT)//|| fieldOld[myId] > 0 || fieldNew[myId] > 0)
-      debugPrintfEXT("myId: %d, myGridIdFlatten: %d, Black: %d, type: %d, alpha: %3f, ValueOld %f, ValueNew %f",
-                     myId, myGridIdFlatten, color, type, alpha, base, fieldNew[myId]); */
-    //debugPrintfEXT("%d",myId - VEC_TO_INDEX_BOUNDARY(vec3(0, 0, 1)));
-    /* if (myId == 62)
-      debugPrintfEXT("myId :%d, upID: %d, upvalue: %f", myId, myId + VEC_TO_INDEX_BOUNDARY(vec3(0, 1, 0)), fieldNew[myId + VEC_TO_INDEX_BOUNDARY(vec3(0, 1, 0))]); */
   }
 }
