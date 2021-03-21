@@ -32,9 +32,9 @@ void VideoDiskSaver::insertFrameImpl(const std::vector<std::byte> &data, PixelFo
 AVPixelFormat VideoDiskSaver::getAVPixelFormat(PixelFormat pixelFormat) {
     switch (pixelFormat) {
         case PixelFormat::RGB:
-            return AV_PIX_FMT_RGB24;
+            return AV_PIX_FMT_BGR24;
         case PixelFormat::RGBA:
-            return AV_PIX_FMT_RGBA;
+            return AV_PIX_FMT_BGRA;
     }
     return AV_PIX_FMT_MONOBLACK;
 }
