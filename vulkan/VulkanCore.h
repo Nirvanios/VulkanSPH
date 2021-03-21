@@ -100,8 +100,8 @@ class VulkanCore {
   vk::UniqueCommandPool commandPoolGraphics;
   std::vector<vk::UniqueCommandBuffer> commandBuffersGraphic;
 
-  std::vector<vk::UniqueSemaphore> semaphoreImageAvailable, semaphoreRenderFinished,
-      semaphoreAfterSimulation, semaphoreAfterSort;
+  std::vector<vk::UniqueSemaphore> semaphoreImageAvailable, semaphoreRenderFinished, semaphoreBetweenRender,
+      semaphoreAfterSimulationSPH,semaphoreAfterSimulationGrid, semaphoreAfterSort;
   std::vector<vk::UniqueFence> fencesInFlight;
   std::vector<std::optional<vk::Fence>> fencesImagesInFlight;
 
@@ -131,6 +131,8 @@ class VulkanCore {
 
   FPSCounter fpsCounter;
   std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> imgui;
+  SimulationType simulationType = SimulationType::SPH;
+
 
   std::unique_ptr<VulkanSPH> vulkanSPH;
   std::unique_ptr<VulkanGridSPH> vulkanGridSPH;
@@ -151,7 +153,7 @@ class VulkanCore {
 
   void createCommandPool();
   void createCommandBuffers();
-  void recordCommandBuffers();
+  void recordCommandBuffers(uint32_t imageIndex);
   void createDescriptorPool();
 
   void createDepthResources();
@@ -166,6 +168,8 @@ class VulkanCore {
   void recreateSwapchain();
 
   void createTextureImages();
+
+  void rebuildRenderPipelines();
 };
 
 #endif//VULKANAPP_VULKANCORE_H

@@ -74,11 +74,11 @@ VulkanGridFluidRender::VulkanGridFluidRender(
 
   createDepthResources();
 
-  framebuffersSwapchain = std::make_shared<Framebuffers>(device, swapchain->getSwapchainImages(),
+  /*  framebuffersSwapchain = std::make_shared<Framebuffers>(device, swapchain->getSwapchainImages(),
                                                          pipeline->getRenderPass("toSwapchain"),
-                                                         imageDepth->getImageView());
+                                                         imageDepth->getImageView());*/
 
-  commandBuffers.resize(framebuffersSwapchain->getFramebufferImageCount());
+  commandBuffers.resize(swapchain->getSwapchainImageCount());
   commandBuffers = device->allocateCommandBuffer(commandPool, commandBuffers.size());
 
   createVertexBuffer({model});
@@ -228,4 +228,31 @@ void VulkanGridFluidRender::setImgui(std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan
 void VulkanGridFluidRender::updateDensityBuffer(std::shared_ptr<Buffer> densityBufferNew) {
   bufferDensity = std::move(densityBufferNew);
   descriptorSet->updateDescriptorSet(descriptorBufferInfos, bindingInfosRender);
+}
+void VulkanGridFluidRender::rebuildPipeline(bool clearBeforeDraw) {
+  pipeline = PipelineBuilder{config, device, swapchain}
+                 .setLayoutBindingInfo(bindingInfosRender)
+                 .setPipelineType(PipelineType::Graphics)
+                 .setVertexShaderPath(config.getVulkan().shaderFolder / "GridFluid/shader.vert")
+                 .setFragmentShaderPath(config.getVulkan().shaderFolder / "GridFluid/shader.frag")
+                 .addPushConstant(vk::ShaderStageFlagBits::eVertex, sizeof(SimulationInfoGridFluid))
+                 .setBlendEnabled(true)
+                 .addRenderPass("toSwapchain",
+                                RenderPassBuilder{device}
+                                    .setDepthAttachmentFormat(VulkanUtils::findDepthFormat(device))
+                                    .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
+                                    .setColorAttachmentLoadOp(clearBeforeDraw
+                                                                  ? vk::AttachmentLoadOp::eClear
+                                                                  : vk::AttachmentLoadOp::eLoad)
+                                    .build())
+                 .build();
+
+  descriptorSet =
+      std::make_shared<DescriptorSet>(device, swapchain->getSwapchainImageCount(),
+                                      pipeline->getDescriptorSetLayout(), descriptorPool);
+  descriptorSet->updateDescriptorSet(descriptorBufferInfos, bindingInfosRender);
+}
+void VulkanGridFluidRender::setFramebuffersSwapchain(
+    const std::shared_ptr<Framebuffers> &framebuffer) {
+  framebuffersSwapchain = framebuffer;
 }

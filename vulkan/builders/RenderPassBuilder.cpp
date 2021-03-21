@@ -40,7 +40,7 @@ RenderPassBuilder::RenderPassBuilder(std::shared_ptr<Device> devicePtr) : device
   colorAttachmentDescription =
       vk::AttachmentDescription{.format = vk::Format::eUndefined,
                                 .samples = vk::SampleCountFlagBits::e1,
-                                .loadOp = colorLoadOp,
+                                .loadOp = vk::AttachmentLoadOp::eClear,
                                 .storeOp = vk::AttachmentStoreOp::eStore,
                                 .stencilLoadOp = vk::AttachmentLoadOp::eDontCare,
                                 .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
@@ -69,6 +69,20 @@ RenderPassBuilder &RenderPassBuilder::setDepthAttachmentFormat(vk::Format format
   return *this;
 }
 RenderPassBuilder &RenderPassBuilder::setColorAttachmentLoadOp(vk::AttachmentLoadOp op) {
-  colorLoadOp = op;
+  colorAttachmentDescription.loadOp = op;
+  depthAttachmentDescription.loadOp = op;
+
+  if(op == vk::AttachmentLoadOp::eLoad) {
+    colorAttachmentDescription.initialLayout = vk::ImageLayout::eColorAttachmentOptimal;
+    depthAttachmentDescription.initialLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+  }
+  else {
+    depthAttachmentDescription.initialLayout = vk::ImageLayout::eUndefined;
+    colorAttachmentDescription.initialLayout = vk::ImageLayout::eUndefined;
+  }
+  return *this;
+}
+RenderPassBuilder &RenderPassBuilder::setColorAttachementFinalLayout(vk::ImageLayout layout) {
+  colorAttachmentDescription.finalLayout = layout;
   return *this;
 }

@@ -28,6 +28,8 @@ class VulkanGridFluidRender {
                            const vk::UniqueFence &fenceInFlight);
   void setImgui(std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> &inImgui);
   void updateDensityBuffer(std::shared_ptr<Buffer> densityBufferNew);
+  void rebuildPipeline(bool clearBeforeDraw);
+  void setFramebuffersSwapchain(const std::shared_ptr<Framebuffers> &framebuffer);
 
  private:
   std::array<PipelineLayoutBindingInfo, 3> bindingInfosRender{

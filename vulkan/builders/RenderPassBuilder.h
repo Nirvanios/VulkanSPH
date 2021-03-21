@@ -16,6 +16,7 @@ class RenderPassBuilder {
   RenderPassBuilder &setColorAttachmentFormat(vk::Format format);
   RenderPassBuilder &setColorAttachmentLoadOp(vk::AttachmentLoadOp op);
   RenderPassBuilder &setDepthAttachmentFormat(vk::Format format);
+  RenderPassBuilder &setColorAttachementFinalLayout(vk::ImageLayout layout);
 
  private:
   std::shared_ptr<Device> device;
@@ -23,8 +24,6 @@ class RenderPassBuilder {
   bool useDepth = false;
   vk::AttachmentDescription colorAttachmentDescription;
   vk::AttachmentDescription depthAttachmentDescription;
-
-  vk::AttachmentLoadOp colorLoadOp = vk::AttachmentLoadOp::eClear;
 
 };
 

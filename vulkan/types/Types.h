@@ -147,6 +147,8 @@ enum class GaussSeidelColorPhase { red = 0, black = 1 };
 
 enum class GaussSeidelStageType { diffuse = 0, project = 1 };
 
+enum class SimulationType {SPH = 0, Grid = 1, Combined = 2};
+
 class GaussSeidelFlags{
  public:
   GaussSeidelFlags &setColor(GaussSeidelColorPhase color) {flags.set(0, magic_enum::enum_integer(color)); return *this;}
