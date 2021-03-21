@@ -47,12 +47,12 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
           .addPushConstant(vk::ShaderStageFlagBits::eVertex, sizeof(DrawInfo))
           .addRenderPass("toSwapchain",
                          RenderPassBuilder{device}
-                             .setDepthAttachmentFormat(findDepthFormat())
+                             .setDepthAttachmentFormat(VulkanUtils::findDepthFormat(device))
                              .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
                              .build())
           .addRenderPass("toTexture",
                          RenderPassBuilder{device}
-                             .setDepthAttachmentFormat(findDepthFormat())
+                             .setDepthAttachmentFormat(VulkanUtils::findDepthFormat(device))
                              .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
                              .build());
   pipelineGraphics = pipelineBuilder.build();
@@ -265,32 +265,7 @@ void VulkanCore::recordCommandBuffers(uint32_t imageIndex) {
       vk::ImageLayout::eGeneral, vk::AccessFlagBits::eMemoryWrite, vk::AccessFlagBits::eMemoryRead);
 
   if (config.getApp().outputToFile) {
-    /*
-    stagingImage->transitionImageLayout(commandBufferGraphics, vk::ImageLayout::eUndefined,
-                                        vk::ImageLayout::eTransferDstOptimal, {},
-                                        vk::AccessFlagBits::eTransferWrite);
-
-    vk::ArrayWrapper1D<vk::Offset3D, 2> offset{std::array<vk::Offset3D, 2>{
-        vk::Offset3D{.x = 0, .y = 0, .z = 0},
-        vk::Offset3D{.x = swapchain->getExtentWidth(), .y = swapchain->getExtentHeight(), .z = 1}}};
-    vk::ImageBlit imageBlitRegion{
-        .srcSubresource = {.aspectMask = vk::ImageAspectFlagBits::eColor, .layerCount = 1},
-        .srcOffsets = offset,
-        .dstSubresource = {.aspectMask = vk::ImageAspectFlagBits::eColor, .layerCount = 1},
-        .dstOffsets = offset};
-
-    commandBufferGraphics->blitImage(
-        swapchain->getSwapchainImages()[imageIndex]->getRawImage(), vk::ImageLayout::eTransferSrcOptimal,
-        stagingImage->getImage().get(), vk::ImageLayout::eTransferDstOptimal, 1, &imageBlitRegion,
-        vk::Filter::eLinear);
-
-
-    stagingImage->transitionImageLayout(commandBufferGraphics, vk::ImageLayout::eTransferDstOptimal,
-                                        vk::ImageLayout::eTransferSrcOptimal, {},
-                                        vk::AccessFlagBits::eTransferWrite);
-*/
-
-    swapchain->getSwapchainImages()[imageIndex]->transitionImageLayout(
+        swapchain->getSwapchainImages()[imageIndex]->transitionImageLayout(
         commandBufferGraphics, vk::ImageLayout::ePresentSrcKHR,
         vk::ImageLayout::eTransferSrcOptimal, vk::AccessFlagBits::eMemoryRead,
         vk::AccessFlagBits::eTransferRead);
@@ -316,9 +291,6 @@ void VulkanCore::recordCommandBuffers(uint32_t imageIndex) {
         vk::ImageLayout::ePresentSrcKHR, vk::AccessFlagBits::eTransferRead,
         vk::AccessFlagBits::eMemoryRead);
 
-    /*    stagingImage->transitionImageLayout(commandBufferGraphics, vk::ImageLayout::eTransferSrcOptimal,
-                                        vk::ImageLayout::eGeneral, {},
-                                        vk::AccessFlagBits::eTransferWrite);*/
     imageOutput->transitionImageLayout(
         commandBufferGraphics, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eGeneral,
         vk::AccessFlagBits ::eTransferWrite, vk::AccessFlagBits::eMemoryRead);
@@ -464,12 +436,12 @@ void VulkanCore::recreateSwapchain() {
           .setFragmentShaderPath(config.getVulkan().shaderFolder / "SPH/shader.frag")
           .addRenderPass("toSwapchain",
                          RenderPassBuilder{device}
-                             .setDepthAttachmentFormat(findDepthFormat())
+                             .setDepthAttachmentFormat(VulkanUtils::findDepthFormat(device))
                              .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
                              .build())
           .addRenderPass("toTexture",
                          RenderPassBuilder{device}
-                             .setDepthAttachmentFormat(findDepthFormat())
+                             .setDepthAttachmentFormat(VulkanUtils::findDepthFormat(device))
                              .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
                              .build())
           .build();
@@ -608,7 +580,7 @@ void VulkanCore::createDepthResources() {
   auto builder = ImageBuilder()
                      .createView(true)
                      .setImageViewAspect(vk::ImageAspectFlagBits::eDepth)
-                     .setFormat(findDepthFormat())
+                     .setFormat(VulkanUtils::findDepthFormat(device))
                      .setHeight(swapchain->getExtentHeight())
                      .setWidth(swapchain->getExtentWidth())
                      .setProperties(vk::MemoryPropertyFlagBits::eDeviceLocal)
@@ -624,26 +596,6 @@ void VulkanCore::createDepthResources() {
   imageDepthTexture->transitionImageLayoutNow(device, commandPoolGraphics, queueGraphics,
                                               vk::ImageLayout::eUndefined,
                                               vk::ImageLayout::eDepthStencilAttachmentOptimal);
-}
-
-vk::Format VulkanCore::findDepthFormat() {
-  return findSupportedFormat(
-      {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
-      vk::ImageTiling::eOptimal, vk::FormatFeatureFlagBits::eDepthStencilAttachment);
-}
-
-vk::Format VulkanCore::findSupportedFormat(const std::vector<vk::Format> &candidates,
-                                           vk::ImageTiling tiling,
-                                           const vk::FormatFeatureFlags &features) {
-  for (const auto &format : candidates) {
-    auto properties = device->getPhysicalDevice().getFormatProperties(format);
-    if ((tiling == vk::ImageTiling::eLinear
-         && (properties.linearTilingFeatures & features) == features)
-        || (tiling == vk::ImageTiling::eOptimal
-            && (properties.optimalTilingFeatures & features) == features))
-      return format;
-  }
-  throw std::runtime_error("Failed to find supported format!");
 }
 
 void VulkanCore::setViewMatrixGetter(std::function<glm::mat4()> getter) {
@@ -748,7 +700,7 @@ void VulkanCore::createTextureImages() {
 }
 void VulkanCore::rebuildRenderPipelines() {
   auto renderPassSPH = RenderPassBuilder{device}
-                           .setDepthAttachmentFormat(findDepthFormat())
+                           .setDepthAttachmentFormat(VulkanUtils::findDepthFormat(device))
                            .setColorAttachmentFormat(swapchain->getSwapchainImageFormat());
 
   auto pipelineBuilder =

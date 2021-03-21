@@ -157,9 +157,6 @@ class VulkanCore {
   void createDescriptorPool();
 
   void createDepthResources();
-  vk::Format findSupportedFormat(const std::vector<vk::Format> &candidates, vk::ImageTiling tiling,
-                                 const vk::FormatFeatureFlags &features);
-  vk::Format findDepthFormat();
 
   void drawFrame();
   void updateUniformBuffers(uint32_t currentImage);
