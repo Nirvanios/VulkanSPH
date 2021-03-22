@@ -27,6 +27,10 @@ VulkanSPH::VulkanSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device
       computePipelineBuilder
           .setComputeShaderPath(this->config.getVulkan().shaderFolder / "SPH/GridSPH/MassDensity.comp")
           .build();
+  pipelineComputeMassDensityCenter =
+      computePipelineBuilder
+          .setComputeShaderPath(this->config.getVulkan().shaderFolder / "SPH/GridSPH/MassDensityCenter.comp")
+          .build();
   pipelineComputeForces =
       computePipelineBuilder
           .setComputeShaderPath(this->config.getVulkan().shaderFolder / "SPH/GridSPH/Forces.comp")
@@ -80,6 +84,7 @@ VulkanSPH::VulkanSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device
 
   fence = this->device->getDevice()->createFenceUnique({});
   semaphoreMassDensityFinished = this->device->getDevice()->createSemaphoreUnique({});
+  semaphoreMassDensityCenterFinished = this->device->getDevice()->createSemaphoreUnique({});
 }
 
 
@@ -103,9 +108,17 @@ vk::UniqueSemaphore VulkanSPH::run(const vk::UniqueSemaphore &semaphoreWait) {
   this->device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
   this->device->getDevice()->resetFences(fence.get());
 
-  recordCommandBuffer(pipelineComputeForces);
+  recordCommandBuffer(pipelineComputeMassDensityCenter);
   submitInfoCompute.pCommandBuffers = &commandBufferCompute.get();
   submitInfoCompute.pWaitSemaphores = &semaphoreMassDensityFinished.get();
+  submitInfoCompute.pSignalSemaphores = &semaphoreMassDensityCenterFinished.get();
+  queue.submit(submitInfoCompute, fence.get());
+  this->device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
+  this->device->getDevice()->resetFences(fence.get());
+
+  recordCommandBuffer(pipelineComputeForces);
+  submitInfoCompute.pCommandBuffers = &commandBufferCompute.get();
+  submitInfoCompute.pWaitSemaphores = &semaphoreMassDensityCenterFinished.get();
   submitInfoCompute.pSignalSemaphores = &semaphoreOut;
   queue.submit(submitInfoCompute, fence.get());
   this->device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);

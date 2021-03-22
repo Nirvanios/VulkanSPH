@@ -19,12 +19,15 @@ layout(std430, binding = 0) buffer Grid { KeyValue grid[]; };
 struct ParticleRecord {
   vec4 position;
   vec4 velocity;
-  vec4 currentVelocity;
+  vec4 previousVelocity;
+  vec4 massDensityCenter;
   float massDensity;
   float pressure;
   float temperature;
   int gridID;
   float pressureForceLength;
+  float surfaceArea;
+  float weightingKernelFraction;
 };
 
 layout(std430, binding = 1) buffer positionBuffer { ParticleRecord particleRecords[]; };

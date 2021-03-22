@@ -17,11 +17,14 @@ struct ParticleRecord {
   vec4 position;
   vec4 velocity;
   vec4 previousVelocity;
+  vec4 massDensityCenter;
   float massDensity;
   float pressure;
   float temperature;
   int gridID;
   float pressureForceLength;
+  float surfaceArea;
+  float weightingKernelFraction;
 };
 
 layout(std430, binding = 2) buffer positionBuffer { ParticleRecord particleRecords[]; };

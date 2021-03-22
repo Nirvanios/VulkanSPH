@@ -5,6 +5,10 @@
 #define gridSize simulationInfo.gridSizeXYZcountW.xyz
 #define cellCount simulationInfo.gridSizeXYZcountW.w
 
+#if !defined(BRUTE) && !defined(GRID)
+#define GRID
+#endif
+
 float M_PI = 3.1415;
 
 float defaultKernel(in vec4 position, in float positionNorm, in float supportRadius) {
@@ -33,6 +37,13 @@ vec4 spikyGradientKernel(in vec4 position, in float positionNorm, in float suppo
 float viscosityLaplacianKernel(in vec4 position, in float positionNorm, in float supportRadius) {
   return 45 / (M_PI * pow(supportRadius, 6)) * (supportRadius - positionNorm);
 }
+float linearTentKernel(float distanceSurfaceParticle, float sdfCountourValue) {
+  return (1 / distanceSurfaceParticle) * (1 + (sdfCountourValue / distanceSurfaceParticle))
+      * int(sdfCountourValue < 0);
+}
+float contourSDF(vec3 position, vec3 isoDensityDistributionCenter, float distanceSurfaceParticle) {
+  return length(position - isoDensityDistributionCenter) - distanceSurfaceParticle;
+}
 
 layout(push_constant) uniform Info {
   ivec4 gridSizeXYZcountW;
@@ -56,11 +67,14 @@ struct ParticleRecord {
   vec4 position;
   vec4 velocity;
   vec4 previousVelocity;
+  vec4 massDensityCenter;
   float massDensity;
   float pressure;
   float temperature;
   int gridID;
   float pressureForceLength;
+  float surfaceArea;
+  float weightingKernelFraction;
 };
 
 #define WALL_DAMPING 0.3f
@@ -89,11 +103,15 @@ void main() {
         */
 
     //Compute pressure, viscosity force
+    const float particleRadius = simulationInfo.supportRadius * 0.5;
+
     vec4 pressureForce = vec4(0.0f);
     vec4 viscosityForce = vec4(0.0f);
     float colorField = 0.0f;
     vec4 inwardSurfaceNormal = vec4(0.0f);
     float temperature = 0.0f;
+    float surfaceArea = 0.0;
+
 #if defined(GRID)
 
     for (int z = -1; z < 2; ++z) {
@@ -134,11 +152,24 @@ void main() {
                     * gradientKernel(positionDiff, length(positionDiff),
                                      simulationInfo.supportRadius);
 
-                temperature += ((4*simulationInfo.particleMass) / (particleRecords[neighbourID].massDensity*particleRecords[myId].massDensity))*
-                                ((simulationInfo.heatConductivity * simulationInfo.heatConductivity)/(simulationInfo.heatConductivity + simulationInfo.heatConductivity)) * 
-                                (particleRecords[myId].temperature - particleRecords[neighbourID].temperature) *
-                                gradientKernelScalar(positionDiff, length(positionDiff),
-                                     simulationInfo.supportRadius);          
+                temperature += ((4 * simulationInfo.particleMass)
+                                / (particleRecords[neighbourID].massDensity
+                                   * particleRecords[myId].massDensity))
+                    * ((simulationInfo.heatConductivity * simulationInfo.heatConductivity)
+                       / (simulationInfo.heatConductivity + simulationInfo.heatConductivity))
+                    * (particleRecords[myId].temperature - particleRecords[neighbourID].temperature)
+                    * gradientKernelScalar(positionDiff, length(positionDiff),
+                                           simulationInfo.supportRadius);
+                //TODO particle radius
+                surfaceArea +=
+                    linearTentKernel(particleRadius,
+                                     contourSDF(particleRecords[neighbourID].position.xyz,
+                                                particleRecords[neighbourID].massDensityCenter.xyz,
+                                                particleRadius))
+                    * (simulationInfo.particleMass / particleRecords[neighbourID].massDensity)
+                    * (defaultKernel(positionDiff, length(positionDiff),
+                                     simulationInfo.supportRadius)
+                       / particleRecords[neighbourID].weightingKernelFraction);
               }
             }
             ++sortedID;
@@ -147,7 +178,7 @@ void main() {
       }
     }
 
-#else
+#elif defined(BRUTE)
     for (int i = 0; i < simulationInfo.particleCount; ++i) {
       vec4 positionDiff = particleRecords[myId].position - particleRecords[i].position;
       if (i != myId && length(positionDiff) < simulationInfo.supportRadius) {
@@ -170,6 +201,8 @@ void main() {
     viscosityForce *= simulationInfo.viscosityCoefficient;
     vec4 internalForces = pressureForce + viscosityForce;
     particleRecords[myId].pressureForceLength = length(pressureForce);
+    particleRecords[myId].surfaceArea =
+        (simulationInfo.particleMass / particleRecords[myId].massDensity) * surfaceArea;
 
     /**
         * EXTERNAL FORCES
@@ -228,6 +261,7 @@ void main() {
     particleRecords[myId].previousVelocity = newVelocity;
     particleRecords[myId].position = newPosition;
 
-    particleRecords[myId].temperature += (temperature * simulationInfo.timeStep) / simulationInfo.heatCapacity;
+    particleRecords[myId].temperature +=
+        (temperature * simulationInfo.timeStep) / simulationInfo.heatCapacity;
   }
 }

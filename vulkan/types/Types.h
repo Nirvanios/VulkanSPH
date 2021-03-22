@@ -80,11 +80,14 @@ struct alignas(16) ParticleRecord {
   glm::vec4 position;
   glm::vec4 velocity;
   glm::vec4 currentVelocity;
+  glm::vec4 massDensityCenter;
   float massDensity;
   float pressure;
   float temperature;
   int gridID;
   int dummy;
+  float surfaceArea;
+  float weightingKernelFraction;
 
   template<typename OStream>
   friend OStream &operator<<(OStream &os, const ParticleRecord &particleRecord) {

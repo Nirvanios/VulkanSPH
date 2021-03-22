@@ -40,6 +40,7 @@ class VulkanSPH {
   std::shared_ptr<Device> device;
 
   std::shared_ptr<Pipeline> pipelineComputeMassDensity;
+  std::shared_ptr<Pipeline> pipelineComputeMassDensityCenter;
   std::shared_ptr<Pipeline> pipelineComputeForces;
 
   vk::Queue queue;
@@ -55,6 +56,7 @@ class VulkanSPH {
   vk::UniqueCommandBuffer commandBufferCompute;
 
   vk::UniqueSemaphore semaphoreMassDensityFinished;
+  vk::UniqueSemaphore semaphoreMassDensityCenterFinished;
   vk::UniqueFence fence;
 
   void recordCommandBuffer(const std::shared_ptr<Pipeline> &pipeline);

@@ -88,6 +88,8 @@ std::vector<ParticleRecord> TestRenderer::createParticles() {
         data[(z * sizeY * sizeX) + (y * sizeX) + x].massDensity = -1.0f;
         data[(z * sizeY * sizeX) + (y * sizeX) + x].pressure = -1.0f;
         data[(z * sizeY * sizeX) + (y * sizeX) + x].temperature = x+y+z == 0 ? 250.f : 25.f; // TODO from config
+        data[(z * sizeY * sizeX) + (y * sizeX) + x].surfaceArea = 0.0f; // TODO from config
+
       }
     }
   }
