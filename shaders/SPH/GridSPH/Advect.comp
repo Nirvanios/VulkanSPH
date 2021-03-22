@@ -1,0 +1,144 @@
+#version 450
+
+#extension GL_EXT_debug_printf : enable
+
+#define gridSize simulationInfo.gridSizeXYZcountW.xyz
+#define cellCount simulationInfo.gridSizeXYZcountW.w
+
+#if !defined(BRUTE) && !defined(GRID)
+#define GRID
+#endif
+
+float M_PI = 3.1415;
+
+float defaultKernel(in vec4 position, in float positionNorm, in float supportRadius) {
+  if (positionNorm >= 0.0f && positionNorm <= supportRadius)
+    return (315 / (64 * M_PI * pow(supportRadius, 9)))
+        * pow(pow(supportRadius, 2) - pow(positionNorm, 2), 3);
+  else
+    return 0.0f;
+}
+vec4 gradientKernel(in vec4 position, in float positionNorm, in float supportRadius) {
+  return -945 / (32 * M_PI * pow(supportRadius, 9)) * position
+      * pow(pow(supportRadius, 2) - pow(positionNorm, 2), 2);
+}
+float gradientKernelScalar(in vec4 position, in float positionNorm, in float supportRadius) {
+  return -945 / (32 * M_PI * pow(supportRadius, 9))
+      * pow(pow(supportRadius, 2) - pow(positionNorm, 2), 2);
+}
+float laplacianKernel(in vec4 position, in float positionNorm, in float supportRadius) {
+  return -945 / (32 * M_PI * pow(supportRadius, 9)) * (pow(supportRadius, 2) - pow(positionNorm, 2))
+      * (3 * pow(supportRadius, 2) - 7 * pow(positionNorm, 2));
+}
+vec4 spikyGradientKernel(in vec4 position, in float positionNorm, in float supportRadius) {
+  return -45 / (M_PI * pow(supportRadius, 6)) * (position / positionNorm)
+      * pow(supportRadius - positionNorm, 2);
+}
+float viscosityLaplacianKernel(in vec4 position, in float positionNorm, in float supportRadius) {
+  return 45 / (M_PI * pow(supportRadius, 6)) * (supportRadius - positionNorm);
+}
+float linearTentKernel(float distanceSurfaceParticle, float sdfCountourValue) {
+  return (1 / distanceSurfaceParticle) * (1 + (sdfCountourValue / distanceSurfaceParticle))
+      * int(sdfCountourValue < 0);
+}
+float contourSDF(vec3 position, vec3 isoDensityDistributionCenter, float distanceSurfaceParticle) {
+  return length(position - isoDensityDistributionCenter) - distanceSurfaceParticle;
+}
+
+layout(push_constant) uniform Info {
+  ivec4 gridSizeXYZcountW;
+  vec4 GridOrigin;
+  vec4 gravityForce;
+  float particleMass;
+  float restDensity;
+  float viscosityCoefficient;
+  float gasStiffnessConstant;
+  float heatConductivity;
+  float heatCapacity;
+  float timeStep;
+  float supportRadius;
+  float tensionThreshold;
+  float tensionCoefficient;
+  uint particleCount;
+}
+simulationInfo;
+
+struct ParticleRecord {
+  vec4 position;
+  vec4 velocity;
+  vec4 previousVelocity;
+  vec4 massDensityCenter;
+  vec4 force;
+  float massDensity;
+  float pressure;
+  float temperature;
+  int gridID;
+  float pressureForceLength;
+  float surfaceArea;
+  float weightingKernelFraction;
+};
+
+#define WALL_DAMPING 0.3f
+
+layout(std430, binding = 0) buffer positionBuffer { ParticleRecord particleRecords[]; };
+
+struct KeyValue {
+  int key;  //Particle ID
+  int value;//Cell ID
+};
+
+layout(std430, binding = 1) buffer Grid { KeyValue grid[]; };
+layout(std430, binding = 2) buffer Indexes { int indexes[]; };
+
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+
+void main() {
+  const uint myId = gl_GlobalInvocationID.x;
+  if (myId < simulationInfo.particleCount) {
+    int myGridID = particleRecords[myId].gridID;
+    int myGridIDxy = myGridID - ((myGridID / (gridSize.x * gridSize.y)) * gridSize.x * gridSize.y);
+    ivec3 myGridID3D = ivec3(myGridIDxy % gridSize.x, myGridIDxy / gridSize.x,
+                             myGridID / (gridSize.x * gridSize.y));
+
+    vec4 acceleration = particleRecords[myId].force / particleRecords[myId].massDensity;
+
+    vec4 newVelocity =
+        particleRecords[myId].previousVelocity + acceleration * simulationInfo.timeStep;
+
+    vec4 newPosition = particleRecords[myId].position + newVelocity * simulationInfo.timeStep;
+    newVelocity = (particleRecords[myId].velocity + newVelocity) / 2.0;
+
+    vec3 minBorder = simulationInfo.GridOrigin.xyz + simulationInfo.supportRadius * 0.1;
+    vec3 maxBorder =
+        minBorder + gridSize * simulationInfo.supportRadius - simulationInfo.supportRadius * 0.1;
+
+    if (newPosition.x < minBorder.x) {
+      newPosition.x = minBorder.x;
+      newVelocity.x *= -1 * WALL_DAMPING;
+    }
+    if (newPosition.x > maxBorder.x) {
+      newPosition.x = maxBorder.x;
+      newVelocity.x *= -1 * WALL_DAMPING;
+    }
+    if (newPosition.y < minBorder.y) {
+      newPosition.y = minBorder.y;
+      newVelocity.y *= -1 * WALL_DAMPING;
+    }
+    if (newPosition.y > maxBorder.y) {
+      newPosition.y = maxBorder.y;
+      newVelocity.y *= -1 * WALL_DAMPING;
+    }
+    if (newPosition.z < minBorder.z) {
+      newPosition.z = minBorder.z;
+      newVelocity.z *= -1 * WALL_DAMPING;
+    }
+    if (newPosition.z > maxBorder.z) {
+      newPosition.z = maxBorder.z;
+      newVelocity.z *= -1 * WALL_DAMPING;
+    }
+
+    particleRecords[myId].velocity = (newVelocity + particleRecords[myId].velocity) / 2;
+    particleRecords[myId].previousVelocity = newVelocity;
+    particleRecords[myId].position = newPosition;
+  }
+}

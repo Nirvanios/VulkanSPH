@@ -6,6 +6,7 @@
 #define VULKANAPP_VULKANSPH_H
 
 #include "../utils/Config.h"
+#include "enums.h"
 #include "types/DescriptorSet.h"
 #include "types/Pipeline.h"
 #include "types/Swapchain.h"
@@ -15,7 +16,7 @@ class VulkanSPH {
             std::shared_ptr<Swapchain> swapchain, const SimulationInfoSPH &simulationInfo,
             const std::vector<ParticleRecord> &particles, std::shared_ptr<Buffer> bufferIndexes,
             std::shared_ptr<Buffer> bufferSortedPairs);
-  vk::UniqueSemaphore run(const vk::UniqueSemaphore &semaphoreWait);
+  vk::UniqueSemaphore run(const vk::UniqueSemaphore &semaphoreWait, SPHStep step);
 
   [[nodiscard]] const std::shared_ptr<Buffer> &getBufferParticles() const;
 
@@ -42,6 +43,7 @@ class VulkanSPH {
   std::shared_ptr<Pipeline> pipelineComputeMassDensity;
   std::shared_ptr<Pipeline> pipelineComputeMassDensityCenter;
   std::shared_ptr<Pipeline> pipelineComputeForces;
+  std::shared_ptr<Pipeline> pipelineAdvect;
 
   vk::Queue queue;
 

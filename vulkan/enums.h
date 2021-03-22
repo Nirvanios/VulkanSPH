@@ -9,4 +9,6 @@ enum class DrawType { Particles, Grid};
 
 enum class Visualization { None, Density, PressureForce, Velocity};
 
+enum class SPHStep { advect, compute};
+
 #endif//VULKANAPP_ENUMS_H

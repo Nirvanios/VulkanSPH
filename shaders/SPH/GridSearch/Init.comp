@@ -21,6 +21,7 @@ struct ParticleRecord {
   vec4 velocity;
   vec4 previousVelocity;
   vec4 massDensityCenter;
+  vec4 force;
   float massDensity;
   float pressure;
   float temperature;

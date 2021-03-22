@@ -81,6 +81,7 @@ struct alignas(16) ParticleRecord {
   glm::vec4 velocity;
   glm::vec4 currentVelocity;
   glm::vec4 massDensityCenter;
+  glm::vec4 force;
   float massDensity;
   float pressure;
   float temperature;
@@ -137,6 +138,11 @@ struct GridInfo{
   glm::vec4 gridOrigin;
   float cellSize;
   unsigned int particleCount;
+};
+
+struct CellInfo{
+  unsigned int tags;
+  int indexes;
 };
 
 struct DrawInfo{

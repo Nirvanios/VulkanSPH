@@ -1,6 +1,6 @@
 [App]
 DEBUG = true
-outputToFile = true
+outputToFile = false
 
 [App.simulationSPH]
 useNNS = true
