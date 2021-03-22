@@ -101,7 +101,7 @@ class VulkanCore {
   std::vector<vk::UniqueCommandBuffer> commandBuffersGraphic;
 
   std::vector<vk::UniqueSemaphore> semaphoreImageAvailable, semaphoreRenderFinished, semaphoreBetweenRender,
-      semaphoreAfterSimulationSPH,semaphoreAfterSimulationGrid, semaphoreAfterSort, semaphoreAfterSPHAdvect;
+      semaphoreAfterSimulationSPH,semaphoreAfterSimulationGrid, semaphoreAfterSort, semaphoreAfterMassDensity, semaphoreAfterForces;
   std::vector<vk::UniqueFence> fencesInFlight;
   std::vector<std::optional<vk::Fence>> fencesImagesInFlight;
 

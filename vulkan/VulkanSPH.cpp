@@ -110,14 +110,13 @@ vk::UniqueSemaphore VulkanSPH::run(const vk::UniqueSemaphore &semaphoreWait, SPH
 
     case SPHStep::advect:
       recordCommandBuffer(pipelineAdvect);
-      submitInfoCompute.pCommandBuffers = &commandBufferCompute.get();
       submitInfoCompute.pSignalSemaphores = &semaphoreOut;
       queue.submit(submitInfoCompute, fence.get());
 
       this->device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
       this->device->getDevice()->resetFences(fence.get());
       break;
-    case SPHStep::compute:
+    case SPHStep::massDensity:
       recordCommandBuffer(pipelineComputeMassDensity);
       queue.submit(submitInfoCompute, fence.get());
 
@@ -125,16 +124,16 @@ vk::UniqueSemaphore VulkanSPH::run(const vk::UniqueSemaphore &semaphoreWait, SPH
       this->device->getDevice()->resetFences(fence.get());
 
       recordCommandBuffer(pipelineComputeMassDensityCenter);
-      submitInfoCompute.pCommandBuffers = &commandBufferCompute.get();
       submitInfoCompute.pWaitSemaphores = &semaphoreMassDensityFinished.get();
-      submitInfoCompute.pSignalSemaphores = &semaphoreMassDensityCenterFinished.get();
+      submitInfoCompute.pSignalSemaphores = &semaphoreOut;
       queue.submit(submitInfoCompute, fence.get());
       this->device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
       this->device->getDevice()->resetFences(fence.get());
+      break;
 
+    case SPHStep::force:
       recordCommandBuffer(pipelineComputeForces);
-      submitInfoCompute.pCommandBuffers = &commandBufferCompute.get();
-      submitInfoCompute.pWaitSemaphores = &semaphoreMassDensityCenterFinished.get();
+      submitInfoCompute.pWaitSemaphores = semaphoreInput.data();
       submitInfoCompute.pSignalSemaphores = &semaphoreOut;
       queue.submit(submitInfoCompute, fence.get());
       this->device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);

@@ -301,7 +301,8 @@ void VulkanCore::recordCommandBuffers(uint32_t imageIndex) {
 void VulkanCore::createSyncObjects() {
   fencesImagesInFlight.resize(swapchain->getSwapchainImageCount());
   semaphoreAfterSimulationSPH.resize(swapchain->getSwapchainImageCount());
-  semaphoreAfterSPHAdvect.resize(swapchain->getSwapchainImageCount());
+  semaphoreAfterMassDensity.resize(swapchain->getSwapchainImageCount());
+  semaphoreAfterForces.resize(swapchain->getSwapchainImageCount());
   semaphoreAfterSimulationGrid.resize(swapchain->getSwapchainImageCount());
   semaphoreAfterSort.resize(swapchain->getSwapchainImageCount());
 
@@ -354,8 +355,9 @@ void VulkanCore::drawFrame() {
     if (Utilities::isIn(simulationType, {SimulationType::SPH, SimulationType::Combined})) {
       semaphoreAfterSort[currentFrame] = vulkanGridSPH->run(semaphoreImageAvailable[currentFrame]);
 
-      semaphoreAfterSPHAdvect[currentFrame] = vulkanSPH->run(semaphoreAfterSort[currentFrame], SPHStep::compute);
-      semaphoreAfterSimulationSPH[currentFrame] = vulkanSPH->run(semaphoreAfterSPHAdvect[currentFrame], SPHStep::advect);
+      semaphoreAfterMassDensity[currentFrame] = vulkanSPH->run(semaphoreAfterSort[currentFrame], SPHStep::massDensity);
+      semaphoreAfterForces[currentFrame] = vulkanSPH->run(semaphoreAfterMassDensity[currentFrame], SPHStep::force);
+      semaphoreAfterSimulationSPH[currentFrame] = vulkanSPH->run(semaphoreAfterForces[currentFrame], SPHStep::advect);
     }
     if (Utilities::isIn(simulationType, {SimulationType::Grid, SimulationType::Combined})) {
       {
