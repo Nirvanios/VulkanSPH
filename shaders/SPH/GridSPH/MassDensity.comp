@@ -2,6 +2,10 @@
 
 #extension GL_EXT_debug_printf : enable
 
+#if !defined(BRUTE) && !defined(GRID)
+#define GRID
+#endif
+
 float M_PI = 3.1415;
 
 int count = 0;
@@ -60,8 +64,13 @@ struct KeyValue {
   int value;//Cell ID
 };
 
+struct CellInfo {
+  uint tags;
+  int indexes;
+};
+
 layout(std430, binding = 1) buffer Grid { KeyValue grid[]; };
-layout(std430, binding = 2) buffer Indexes { int indexes[]; };
+layout(std430, binding = 2) buffer Indexes { CellInfo cellInfos[]; };
 
 layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 
@@ -84,7 +93,7 @@ void main() {
           if (myGridID3D.x + x < 0 || myGridID3D.x + x > gridSize.x - 1) continue;
           int currentGridID = myGridID + x + gridSize.x * (y + gridSize.y * z);
           if (currentGridID < 0 || currentGridID > cellCount) continue;
-          int sortedID = indexes[currentGridID];
+          int sortedID = cellInfos[currentGridID].indexes;
           if (sortedID == -1) { continue; }
 
           while (grid[sortedID].value == currentGridID && sortedID < simulationInfo.particleCount) {

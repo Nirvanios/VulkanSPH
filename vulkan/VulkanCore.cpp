@@ -83,9 +83,8 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
   bufferIndexes = std::make_shared<Buffer>(
       BufferBuilder()
           .setSize(
-              sizeof(int)
+              sizeof(CellInfo)
               * Utilities::getNextPow2Number(glm::compMul(config.getApp().simulationSPH.gridSize)))
-          //.setSize(64*sizeof(int))
           .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
                          | vk::BufferUsageFlagBits::eStorageBuffer)
           .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
