@@ -3,26 +3,33 @@
 //
 
 #include "VulkanGridSPH.h"
-#include <spdlog/spdlog.h>
 #include <iostream>
+#include <spdlog/spdlog.h>
 
 VulkanGridSPH::VulkanGridSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device> device,
-                             Config config, std::shared_ptr<Swapchain> swapchain,
+                             Config inConfig, std::shared_ptr<Swapchain> swapchain,
                              SimulationInfoSPH simulationInfo,
                              std::shared_ptr<Buffer> bufferParticles,
                              std::shared_ptr<Buffer> bufferCellParticlesPair,
                              std::shared_ptr<Buffer> bufferIndexes)
-    : config(std::move(config)), simulationInfo(simulationInfo), device(std::move(device)),
+    : config(std::move(inConfig)), simulationInfo(simulationInfo), device(std::move(device)),
       bufferParticles(std::move(bufferParticles)),
       bufferCellParticlePair(std::move(bufferCellParticlesPair)),
       bufferIndexes(std::move(bufferIndexes)) {
 
-  pipeline = PipelineBuilder{this->config, this->device, swapchain}
-                 .setLayoutBindingInfo(bindingInfosCompute)
-                 .setPipelineType(PipelineType::Compute)
-                 .addPushConstant(vk::ShaderStageFlagBits::eCompute, sizeof(SimulationInfoSPH))
-                 .setComputeShaderPath( this->config.getVulkan().shaderFolder / "SPH/GridSearch/Init.comp")
-                 .build();
+  gridInfo = {.gridSize = glm::ivec4(config.getApp().simulationSPH.gridSize, 0),
+      .gridOrigin = glm::vec4(config.getApp().simulationSPH.gridOrigin, 0),
+      .cellSize = simulationInfo.supportRadius,
+      .particleCount =
+      static_cast<unsigned int>(config.getApp().simulationSPH.particleCount)};
+
+  pipeline =
+      PipelineBuilder{this->config, this->device, swapchain}
+          .setLayoutBindingInfo(bindingInfosCompute)
+          .setPipelineType(PipelineType::Compute)
+          .addPushConstant(vk::ShaderStageFlagBits::eCompute, sizeof(SimulationInfoSPH))
+          .setComputeShaderPath(this->config.getVulkan().shaderFolder / "SPH/GridSearch/Init.comp")
+          .build();
 
   auto queueFamilyIndices = Device::findQueueFamilies(this->device->getPhysicalDevice(), surface);
   vk::CommandPoolCreateInfo commandPoolCreateInfoCompute{
@@ -52,10 +59,9 @@ VulkanGridSPH::VulkanGridSPH(const vk::UniqueSurfaceKHR &surface, std::shared_pt
 
   std::array<DescriptorBufferInfo, 2> descriptorBufferInfosCompute{
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferCellParticlePair, 1},
-          .bufferSize = bufferCellParticlePair->getSize()},
+                           .bufferSize = bufferCellParticlePair->getSize()},
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&this->bufferParticles, 1},
-                           .bufferSize = this->bufferParticles->getSize()}
-      };
+                           .bufferSize = this->bufferParticles->getSize()}};
   descriptorSetCompute = std::make_shared<DescriptorSet>(
       this->device, 1, pipeline->getDescriptorSetLayout(), descriptorPool);
   descriptorSetCompute->updateDescriptorSet(descriptorBufferInfosCompute, bindingInfosCompute);
@@ -64,6 +70,8 @@ VulkanGridSPH::VulkanGridSPH(const vk::UniqueSurfaceKHR &surface, std::shared_pt
 
   vulkanSort = std::make_unique<VulkanSort>(surface, this->device, this->config, swapchain,
                                             this->bufferCellParticlePair, this->bufferIndexes);
+
+
 }
 
 vk::UniqueSemaphore VulkanGridSPH::run(const vk::UniqueSemaphore &waitSemaphore) {
@@ -83,16 +91,10 @@ vk::UniqueSemaphore VulkanGridSPH::run(const vk::UniqueSemaphore &waitSemaphore)
   device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
   device->getDevice()->resetFences(fence.get());
 
-
   return vulkanSort->run(vk::UniqueSemaphore(semaphoreBeforeSort, this->device->getDevice().get()));
 }
 
 void VulkanGridSPH::recordCommandBuffer(const std::shared_ptr<Pipeline> &pipeline) {
-  GridInfo gridInfo{.gridSize = glm::ivec4(config.getApp().simulationSPH.gridSize, 0),
-                    .gridOrigin = glm::vec4(config.getApp().simulationSPH.gridOrigin, 0),
-                    .cellSize = simulationInfo.supportRadius,
-                    .particleCount =
-                        static_cast<unsigned int>(config.getApp().simulationSPH.particleCount)};
 
   vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse,
                                        .pInheritanceInfo = nullptr};
@@ -110,3 +112,4 @@ void VulkanGridSPH::recordCommandBuffer(const std::shared_ptr<Pipeline> &pipelin
       static_cast<int>(std::ceil(config.getApp().simulationSPH.particleCount / 32.0)), 1, 1);
   commandBufferCompute->end();
 }
+const GridInfo &VulkanGridSPH::getGridInfo() const { return gridInfo; }

@@ -105,6 +105,9 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
       buffersUniformCameraPos);
   vulkanGridFluidRender->setFramebuffersSwapchain(framebuffersSwapchain);
 
+  vulkanGridFluidSphCoupling = std::make_unique<VulkanGridFluidSPHCoupling>(
+      config, vulkanGridSPH->getGridInfo(), device, surface, swapchain, bufferIndexes);
+
   auto tmpBuffer = std::vector{vulkanSPH->getBufferParticles()};
   std::array<DescriptorBufferInfo, 3> descriptorBufferInfosGraphic{
       DescriptorBufferInfo{.buffer = buffersUniformMVP, .bufferSize = sizeof(UniformBufferObject)},
@@ -264,7 +267,7 @@ void VulkanCore::recordCommandBuffers(uint32_t imageIndex) {
       vk::ImageLayout::eGeneral, vk::AccessFlagBits::eMemoryWrite, vk::AccessFlagBits::eMemoryRead);
 
   if (config.getApp().outputToFile) {
-        swapchain->getSwapchainImages()[imageIndex]->transitionImageLayout(
+    swapchain->getSwapchainImages()[imageIndex]->transitionImageLayout(
         commandBufferGraphics, vk::ImageLayout::ePresentSrcKHR,
         vk::ImageLayout::eTransferSrcOptimal, vk::AccessFlagBits::eMemoryRead,
         vk::AccessFlagBits::eTransferRead);
@@ -300,6 +303,7 @@ void VulkanCore::recordCommandBuffers(uint32_t imageIndex) {
 void VulkanCore::createSyncObjects() {
   fencesImagesInFlight.resize(swapchain->getSwapchainImageCount());
   semaphoreAfterSimulationSPH.resize(swapchain->getSwapchainImageCount());
+  semaphoreAfterTag.resize(swapchain->getSwapchainImageCount());
   semaphoreAfterMassDensity.resize(swapchain->getSwapchainImageCount());
   semaphoreAfterForces.resize(swapchain->getSwapchainImageCount());
   semaphoreAfterSimulationGrid.resize(swapchain->getSwapchainImageCount());
@@ -354,9 +358,13 @@ void VulkanCore::drawFrame() {
     if (Utilities::isIn(simulationType, {SimulationType::SPH, SimulationType::Combined})) {
       semaphoreAfterSort[currentFrame] = vulkanGridSPH->run(semaphoreImageAvailable[currentFrame]);
 
-      semaphoreAfterMassDensity[currentFrame] = vulkanSPH->run(semaphoreAfterSort[currentFrame], SPHStep::massDensity);
-      semaphoreAfterForces[currentFrame] = vulkanSPH->run(semaphoreAfterMassDensity[currentFrame], SPHStep::force);
-      semaphoreAfterSimulationSPH[currentFrame] = vulkanSPH->run(semaphoreAfterForces[currentFrame], SPHStep::advect);
+      semaphoreAfterMassDensity[currentFrame] =
+          vulkanSPH->run(semaphoreAfterSort[currentFrame], SPHStep::massDensity);
+      semaphoreAfterForces[currentFrame] =
+          vulkanSPH->run(semaphoreAfterMassDensity[currentFrame], SPHStep::force);
+      semaphoreAfterSimulationSPH[currentFrame] =
+          vulkanSPH->run(semaphoreAfterForces[currentFrame], SPHStep::advect);
+      semaphoreAfterTag[currentFrame] = vulkanGridFluidSphCoupling->run(semaphoreAfterSimulationSPH[currentFrame]);
     }
     if (Utilities::isIn(simulationType, {SimulationType::Grid, SimulationType::Combined})) {
       {
@@ -372,11 +380,11 @@ void VulkanCore::drawFrame() {
         semaphoreGridRenderIn = &semaphoreAfterSimulationGrid[currentFrame];
         break;
       case SimulationType::SPH:
-        semaphoreSPHRenderIn = {semaphoreAfterSimulationSPH[currentFrame].get()};
+        semaphoreSPHRenderIn = {semaphoreAfterTag[currentFrame].get()};
         break;
       case SimulationType::Combined:
         semaphoreSPHRenderIn = {semaphoreAfterSimulationGrid[currentFrame].get(),
-                                semaphoreAfterSimulationSPH[currentFrame].get()};
+                                semaphoreAfterTag[currentFrame].get()};
         semaphoreGridRenderIn = &semaphoreBetweenRender[currentFrame];
         break;
     }

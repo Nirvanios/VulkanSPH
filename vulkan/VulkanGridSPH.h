@@ -18,6 +18,7 @@ class VulkanGridSPH {
                 std::shared_ptr<Buffer> bufferCellParticlesPair,
                 std::shared_ptr<Buffer> bufferIndexes);
   vk::UniqueSemaphore run(const vk::UniqueSemaphore &waitSemaphore);
+  const GridInfo &getGridInfo() const;
 
  private:
   std::array<PipelineLayoutBindingInfo, 2> bindingInfosCompute{
@@ -32,6 +33,7 @@ class VulkanGridSPH {
 
   Config config;
   SimulationInfoSPH simulationInfo;
+  GridInfo gridInfo;
 
   std::unique_ptr<VulkanSort> vulkanSort;
 

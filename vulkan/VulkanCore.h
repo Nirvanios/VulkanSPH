@@ -19,6 +19,7 @@
 #include "../utils/FPSCounter.h"
 #include "VulkanGridFluid.h"
 #include "VulkanGridFluidRender.h"
+#include "VulkanGridFluidSPHCoupling.h"
 #include "VulkanGridSPH.h"
 #include "VulkanSPH.h"
 #include "VulkanSort.h"
@@ -101,7 +102,7 @@ class VulkanCore {
   std::vector<vk::UniqueCommandBuffer> commandBuffersGraphic;
 
   std::vector<vk::UniqueSemaphore> semaphoreImageAvailable, semaphoreRenderFinished, semaphoreBetweenRender,
-      semaphoreAfterSimulationSPH,semaphoreAfterSimulationGrid, semaphoreAfterSort, semaphoreAfterMassDensity, semaphoreAfterForces;
+      semaphoreAfterSimulationSPH, semaphoreAfterTag,semaphoreAfterSimulationGrid, semaphoreAfterSort, semaphoreAfterMassDensity, semaphoreAfterForces;
   std::vector<vk::UniqueFence> fencesInFlight;
   std::vector<std::optional<vk::Fence>> fencesImagesInFlight;
 
@@ -138,6 +139,7 @@ class VulkanCore {
   std::unique_ptr<VulkanGridSPH> vulkanGridSPH;
   std::unique_ptr<VulkanGridFluid> vulkanGridFluid;
   std::unique_ptr<VulkanGridFluidRender> vulkanGridFluidRender;
+  std::unique_ptr<VulkanGridFluidSPHCoupling> vulkanGridFluidSphCoupling;
 
   void mainLoop();
   void cleanup();

@@ -1,0 +1,63 @@
+#version 450
+
+#define TAG_CELL_TYPE_BIT 0
+#define TAG_IS_INTERFACE_BIT 1
+
+#define CELL_TYPE_FLUID 1
+#define CELL_TYPE_AIR 0
+
+#define IS_INTERFACE 1
+#define IS_NOT_INTERFACE 0
+
+struct CellInfo {
+  uint tags;
+  int indexes;
+};
+
+layout(push_constant) uniform GridInfo {
+  ivec4 gridSize;
+  vec4 gridOrigin;
+  float cellSize;
+  uint particleCount;
+};
+
+layout(std430, binding = 0) buffer Indexes { CellInfo cellInfos[]; };
+
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+
+void main() {
+  const uint myId = gl_GlobalInvocationID.x;
+
+  if (myId < particleCount - 1) {
+      
+ 
+    if (cellInfos[myId].indexes == -1)
+      cellInfos[myId].tags = bitfieldInsert(cellInfos[myId].tags, CELL_TYPE_AIR, TAG_CELL_TYPE_BIT, 1);
+    else {
+      uint myGridID = myId;
+      uint myGridIDxy =
+          myGridID - ((myGridID / (gridSize.x * gridSize.y)) * gridSize.x * gridSize.y);
+      ivec3 myGridID3D = ivec3(myGridIDxy % gridSize.x, myGridIDxy / gridSize.x,
+                               myGridID / (gridSize.x * gridSize.y));
+      bool isInterface = false;
+      cellInfos[myId].tags = bitfieldInsert(cellInfos[myId].tags, CELL_TYPE_FLUID, TAG_CELL_TYPE_BIT, 1);
+
+      for (int z = -1; z < 2; ++z) {
+        if (myGridID3D.z + z < 0 || myGridID3D.z + z > gridSize.z) continue;
+        for (int y = -1; y < 2; ++y) {
+          if (myGridID3D.y + y < 0 || myGridID3D.y + y > gridSize.y) continue;
+          for (int x = -1; x < 2; ++x) {
+            if (myGridID3D.x + x < 0 || myGridID3D.x + x > gridSize.x - 1) continue;
+            uint currentGridID = myGridID + x + gridSize.x * (y + gridSize.y * z);
+            isInterface = isInterface || cellInfos[currentGridID].indexes == -1;
+          }
+        }
+      }
+      if(isInterface) 
+         cellInfos[myId].tags = bitfieldInsert(cellInfos[myId].tags, IS_INTERFACE, TAG_IS_INTERFACE_BIT, 1);
+      else  
+         cellInfos[myId].tags = bitfieldInsert(cellInfos[myId].tags, IS_NOT_INTERFACE, TAG_IS_INTERFACE_BIT, 1);
+    } 
+
+  }
+}
