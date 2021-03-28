@@ -28,6 +28,8 @@ layout(push_constant) uniform GridSimulationInfoUniform {
   float diffusionCoefficient;
   int boundaryScale;
   uint specificInfo;
+  float heatConductivity;
+  float heatCapacity;
 }
 simulationInfo;
 

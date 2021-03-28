@@ -276,7 +276,7 @@ VulkanGridFluid::VulkanGridFluid(const Config &config,
 
 void VulkanGridFluid::createBuffers() {
   auto cellCountBorder = glm::compMul(simulationInfo.gridSize.xyz() + glm::ivec3(2));
-  auto initialDensity = std::vector<glm::vec2>(cellCountBorder, glm::vec2(0));
+  auto initialDensity = std::vector<glm::vec2>(cellCountBorder, glm::vec2(300.0, 0.0));
   auto sources = std::vector<glm::vec2>(simulationInfo.cellCount, glm::vec2(0));
   [[maybe_unused]] auto positionSources =
       ((simulationInfo.gridSize.z / 2) * simulationInfo.gridSize.x * simulationInfo.gridSize.y)
@@ -288,7 +288,7 @@ void VulkanGridFluid::createBuffers() {
        * (simulationInfo.gridSize.y + 2))
       + ((simulationInfo.gridSize.x + 2) / 2)
       + ((simulationInfo.gridSize.x + 2) * simulationInfo.gridSize.y);
-  initialDensity[positionDensity] = glm::vec2(1.0f, 0.0f);
+  //initialDensity[positionDensity] = glm::vec2(0.0f, 0.0f);
 
   auto bufferBuilder = BufferBuilder()
                            .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
@@ -332,7 +332,9 @@ void VulkanGridFluid::createBuffers() {
   bufferPressures->fill(std::vector<float>(cellCountBorder, 0));
 }
 
-const std::shared_ptr<Buffer> &VulkanGridFluid::getBufferDensity() const { return bufferValuesNew; }
+const std::shared_ptr<Buffer> &VulkanGridFluid::getBufferValuesNew() const { return bufferValuesNew; }
+
+const std::shared_ptr<Buffer> &VulkanGridFluid::getBufferValuesOld() const { return bufferValuesOld; }
 
 void VulkanGridFluid::updateDescriptorSets() {
   std::for_each(pipelines.begin(), pipelines.end(), [&](auto &in) {

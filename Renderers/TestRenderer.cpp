@@ -87,9 +87,8 @@ std::vector<ParticleRecord> TestRenderer::createParticles() {
         data[(z * sizeY * sizeX) + (y * sizeX) + x].velocity = glm::vec4{0.0f};
         data[(z * sizeY * sizeX) + (y * sizeX) + x].massDensity = -1.0f;
         data[(z * sizeY * sizeX) + (y * sizeX) + x].pressure = -1.0f;
-        data[(z * sizeY * sizeX) + (y * sizeX) + x].temperature = x+y+z == 0 ? 250.f : 25.f; // TODO from config
-        data[(z * sizeY * sizeX) + (y * sizeX) + x].surfaceArea = 0.0f; // TODO from config
-
+        data[(z * sizeY * sizeX) + (y * sizeX) + x].temperature = 25.f;// TODO from config
+        data[(z * sizeY * sizeX) + (y * sizeX) + x].surfaceArea = 0.0f;// TODO from config
       }
     }
   }
@@ -161,5 +160,7 @@ SimulationInfoGridFluid TestRenderer::getSimulationInfoGridFluid() {
                                  .cellSize = 0.02,
                                  .diffusionCoefficient = 0.001,
                                  .boundaryScale = 1,
-                                 .specificInfo = 0};
+                                 .specificInfo = 0,
+                                 .heatConductivity = 0.62, //TODO config
+                                 .heatCapacity = 4.179};
 }

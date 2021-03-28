@@ -104,7 +104,7 @@ struct alignas(16) ParticleRecord {
   }
 };
 
-struct SimulationInfoSPH {
+struct alignas(16) SimulationInfoSPH {
   glm::ivec4 gridSize;
   glm::vec4 gridOrigin;
   glm::vec4 gravityForce;
@@ -122,7 +122,7 @@ struct SimulationInfoSPH {
   //unsigned int cellCount;
 };
 
-struct SimulationInfoGridFluid {
+struct alignas(16) SimulationInfoGridFluid {
   glm::ivec4 gridSize;
   glm::vec4 gridOrigin;
   float timeStep;
@@ -131,6 +131,8 @@ struct SimulationInfoGridFluid {
   float diffusionCoefficient;
   int boundaryScale;
   unsigned int specificInfo;
+  float heatConductivity;
+  float heatCapacity;
 };
 
 struct GridInfo{
@@ -148,6 +150,11 @@ struct CellInfo{
 struct DrawInfo{
   int drawType;
   int visualization;
+};
+
+struct SimulationInfo{
+  SimulationInfoSPH simulationInfoSPH;
+  SimulationInfoGridFluid simulationInfoGridFluid;
 };
 
 enum class BufferType { floatType = 0, vec4Type = 1};

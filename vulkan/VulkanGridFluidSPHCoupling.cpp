@@ -6,13 +6,18 @@
 #include "../utils/Exceptions.h"
 
 #include <glm/gtx/component_wise.hpp>
-VulkanGridFluidSPHCoupling::VulkanGridFluidSPHCoupling(const Config &config,
-                                                       const GridInfo &inGridInfo,
-                                                       std::shared_ptr<Device> inDevice,
-                                                       const vk::UniqueSurfaceKHR &surface,
-                                                       std::shared_ptr<Swapchain> swapchain,
-                                                       std::shared_ptr<Buffer> inBufferIndexes)
-    : config(config), gridInfo(inGridInfo), device(std::move(inDevice)), bufferIndexes(std::move(inBufferIndexes)) {
+VulkanGridFluidSPHCoupling::VulkanGridFluidSPHCoupling(
+    const Config &config, const GridInfo &inGridInfo, const SimulationInfo &inSimulationInfo,
+    std::shared_ptr<Device> inDevice, const vk::UniqueSurfaceKHR &surface,
+    std::shared_ptr<Swapchain> swapchain, std::shared_ptr<Buffer> inBufferIndexes,
+    std::shared_ptr<Buffer> inBufferParticles, std::shared_ptr<Buffer> inBufferGridValuesOld,
+    std::shared_ptr<Buffer> inBufferGridValuesNew, std::shared_ptr<Buffer> inBufferGridSPH)
+    : config(config), gridInfo(inGridInfo), simulationInfo(inSimulationInfo),
+      device(std::move(inDevice)), bufferIndexes(std::move(inBufferIndexes)),
+      bufferParticles(std::move(inBufferParticles)),
+      bufferGridValuesOld(std::move(inBufferGridValuesOld)),
+      bufferGridValuesNew(std::move(inBufferGridValuesNew)),
+      bufferGridSPH(std::move(inBufferGridSPH)) {
 
   auto queueFamilyIndices = Device::findQueueFamilies(this->device->getPhysicalDevice(), surface);
   vk::CommandPoolCreateInfo commandPoolCreateInfoCompute{
@@ -22,6 +27,8 @@ VulkanGridFluidSPHCoupling::VulkanGridFluidSPHCoupling(const Config &config,
   commandPool = this->device->getDevice()->createCommandPoolUnique(commandPoolCreateInfoCompute);
   commandBuffer = std::move(this->device->allocateCommandBuffer(commandPool, 1)[0]);
   queue = this->device->getComputeQueue();
+
+  createBuffers();
 
   fillDescriptorBufferInfo();
 
@@ -46,12 +53,19 @@ VulkanGridFluidSPHCoupling::VulkanGridFluidSPHCoupling(const Config &config,
   };
   descriptorPool = this->device->getDevice()->createDescriptorPoolUnique(poolCreateInfo);
 
-  std::map<Stages, std::string> fileNames{{Stages::tag, "TagCells.comp"}};
+  std::map<Stages, std::string> fileNames{{Stages::tag, "TagCells.comp"},
+                                          {Stages::TransferHeatToCells, "HeatTransfer.comp"},
+                                          {Stages::TransferHeatToParticles, "HeatTransfer.comp"}};
   auto shaderPathTemplate = config.getVulkan().shaderFolder / "Evaporation/{}";
   for (const auto &stage : magic_enum::enum_values<Stages>()) {
     auto pipelineBuilder =
         computePipelineBuilder.setLayoutBindingInfo(bindingInfosCompute[stage])
             .setComputeShaderPath(fmt::format(shaderPathTemplate.string(), fileNames[stage]));
+    if (Utilities::isIn(stage, {Stages::TransferHeatToCells})) {
+      pipelineBuilder.addShaderMacro("PARTICLE_TO_CELL");
+    } else if (Utilities::isIn(stage, {Stages::TransferHeatToParticles})) {
+      pipelineBuilder.addShaderMacro("CELL_TO_PARTICLE");
+    }
     if (descriptorBufferInfosCompute.contains(stage)) {
       pipelines[stage] = pipelineBuilder.build();
       descriptorSets[stage] = std::make_shared<DescriptorSet>(
@@ -75,9 +89,16 @@ vk::UniqueSemaphore VulkanGridFluidSPHCoupling::run(const vk::UniqueSemaphore &s
 
   auto outSemaphore = device->getDevice()->createSemaphore({});
 
-  submit(Stages::tag, fence.get(), semaphoreWait.get(), outSemaphore);
+  submit(Stages::tag, fence.get(), semaphoreWait.get());
   waitFence();
   [[maybe_unused]] auto ind = bufferIndexes->read<CellInfo>();
+
+  submit(Stages::TransferHeatToCells, fence.get(), std::nullopt, outSemaphore);
+  waitFence();
+  [[maybe_unused]] auto tempsCells = bufferGridValuesNew->read<glm::vec2>();
+  [[maybe_unused]] auto tempsCellsOld = bufferGridValuesOld->read<glm::vec2>();
+  [[maybe_unused]] auto particles = bufferParticles->read<ParticleRecord>();
+  [[maybe_unused]] auto tempsParticle = bufferParticleTempsNew->read<float>();
 
   return vk::UniqueSemaphore(outSemaphore, device->getDevice().get());
 }
@@ -116,9 +137,18 @@ void VulkanGridFluidSPHCoupling::recordCommandBuffer(
       vk::PipelineBindPoint::eCompute, pipeline->getPipelineLayout().get(), 0, 1,
       &descriptorSets[pipelineStage]->getDescriptorSets()[0].get(), 0, nullptr);
 
-  commandBuffer->pushConstants(pipeline->getPipelineLayout().get(),
-                               vk::ShaderStageFlagBits::eCompute, 0, sizeof(GridInfo), &gridInfo);
-  auto dispatchCount = glm::ivec3(glm::ceil(glm::compMul(gridInfo.gridSize.xyz()) / 32.0), 1, 1);
+  if (Utilities::isIn(pipelineStage, {Stages::tag})) {
+    commandBuffer->pushConstants(pipeline->getPipelineLayout().get(),
+                                 vk::ShaderStageFlagBits::eCompute, 0, sizeof(GridInfo), &gridInfo);
+  }
+  auto dispatchCount = glm::ivec3(0.0);
+  if (Utilities::isIn(pipelineStage, {Stages::tag, Stages::TransferHeatToParticles})) {
+    dispatchCount = glm::ivec3(glm::ceil(glm::compMul(gridInfo.gridSize.xyz()) / 32.0), 1, 1);
+  }
+  if (Utilities::isIn(pipelineStage, {Stages::tag, Stages::TransferHeatToCells})) {
+    dispatchCount =
+        glm::ivec3(glm::ceil(simulationInfo.simulationInfoSPH.particleCount / 32.0), 1, 1);
+  }
   commandBuffer->dispatch(dispatchCount.x, dispatchCount.y, dispatchCount.z);
   commandBuffer->end();
 }
@@ -130,14 +160,67 @@ void VulkanGridFluidSPHCoupling::updateDescriptorSets() {
                                                bindingInfosCompute[stage]);
   });
 }
+
 void VulkanGridFluidSPHCoupling::fillDescriptorBufferInfo() {
-  const auto descriptorBufferInfoValuesNew =
+  const auto descriptorBufferIndexes =
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferIndexes, 1},
                            .bufferSize = bufferIndexes->getSize()};
+  const auto descriptorBufferParticles =
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferParticles, 1},
+                           .bufferSize = bufferParticles->getSize()};
+  const auto descriptorBufferParticlesTempsNew =
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferParticleTempsNew, 1},
+                           .bufferSize = bufferParticleTempsNew->getSize()};
+  const auto descriptorBufferGridOld =
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferGridValuesOld, 1},
+                           .bufferSize = bufferGridValuesOld->getSize()};
+  const auto descriptorBufferGridNew =
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferGridValuesNew, 1},
+                           .bufferSize = bufferGridValuesNew->getSize()};
+  const auto descriptorBufferGridSPH =
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferGridSPH, 1},
+                           .bufferSize = bufferGridSPH->getSize()};
+  const auto descriptorBufferUniformSimualtionInfo = DescriptorBufferInfo{
+      .buffer = std::span<std::shared_ptr<Buffer>>{&bufferUniformSimulationInfo, 1},
+      .bufferSize = bufferUniformSimulationInfo->getSize()};
 
-  descriptorBufferInfosCompute[Stages::tag] = {descriptorBufferInfoValuesNew};
+  descriptorBufferInfosCompute[Stages::tag] = {descriptorBufferIndexes};
+  descriptorBufferInfosCompute[Stages::TransferHeatToParticles] = {
+      descriptorBufferIndexes,
+      descriptorBufferParticles,
+      descriptorBufferParticlesTempsNew,
+      descriptorBufferGridOld,
+      descriptorBufferGridNew,
+      descriptorBufferGridSPH,
+      descriptorBufferUniformSimualtionInfo};
+  descriptorBufferInfosCompute[Stages::TransferHeatToCells] = {
+      descriptorBufferIndexes,
+      descriptorBufferParticles,
+      descriptorBufferParticlesTempsNew,
+      descriptorBufferGridOld,
+      descriptorBufferGridNew,
+      descriptorBufferGridSPH,
+      descriptorBufferUniformSimualtionInfo};
 }
-void VulkanGridFluidSPHCoupling::createBuffers() { throw NotImplementedException(); }
+
+void VulkanGridFluidSPHCoupling::createBuffers() {
+  const auto particleCount = simulationInfo.simulationInfoSPH.particleCount;
+  auto bufferBuilder = BufferBuilder()
+                           .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
+                                          | vk::BufferUsageFlagBits::eStorageBuffer)
+                           .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal);
+
+  bufferParticleTempsNew = std::make_shared<Buffer>(
+      bufferBuilder.setSize(sizeof(glm::vec2) * particleCount), this->device, commandPool, queue);
+
+  bufferBuilder.setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
+                              | vk::BufferUsageFlagBits::eUniformBuffer);
+
+  bufferUniformSimulationInfo = std::make_shared<Buffer>(
+      bufferBuilder.setSize(sizeof(SimulationInfo)), this->device, commandPool, queue);
+  bufferUniformSimulationInfo->fill(std::array<SimulationInfo, 1>{simulationInfo});
+}
+
 void VulkanGridFluidSPHCoupling::waitFence() {
   device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
   device->getDevice()->resetFences(fence.get());

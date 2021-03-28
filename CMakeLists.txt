@@ -102,7 +102,7 @@ CPMAddPackage(
 CPMAddPackage(
         NAME pf_imgui
         GITHUB_REPOSITORY PetrFlajsingr/pf_imgui
-        GIT_TAG 0.1
+        GIT_TAG v0.1
 )
 CPMAddPackage(
         NAME m  agic_enum

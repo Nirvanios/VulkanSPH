@@ -1,0 +1,45 @@
+#version 450
+
+struct ParticleRecord {
+  vec4 position;
+  vec4 velocity;
+  vec4 previousVelocity;
+  vec4 massDensityCenter;
+  vec4 force;
+  float massDensity;
+  float pressure;
+  float temperature;
+  int gridID;
+  float pressureForceLength;
+  float surfaceArea;
+  float weightingKernelFraction;
+};
+
+layout(std430, binding = 0) buffer PositionBuffer { ParticleRecord particleRecords[]; };
+layout(std430, binding = 1) buffer TempsBufferNew { float particleTempsNew[]; };
+
+layout(push_constant) uniform SimulationInfoSPH {
+  ivec4 gridSizeXYZcountW;
+  vec4 GridOrigin;
+  vec4 gravityForce;
+  float particleMass;
+  float restDensity;
+  float viscosityCoefficient;
+  float gasStiffnessConstant;
+  float heatConductivity;
+  float heatCapacity;
+  float timeStep;
+  float supportRadius;
+  float tensionThreshold;
+  float tensionCoefficient;
+  uint particleCount;
+}simulationInfoSPH;
+
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+
+void main() {
+  const uint myId = gl_GlobalInvocationID.x;
+  if (myId < simulationInfoSPH.particleCount) {
+      particleRecords[myId].temperature = particleTempsNew[myId];
+    }
+}

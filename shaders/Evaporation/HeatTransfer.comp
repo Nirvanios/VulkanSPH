@@ -1,0 +1,189 @@
+#version 450
+
+#extension GL_EXT_debug_printf : enable
+
+#define TO_INDEX(a, b, c)                                                                          \
+  (int(a + simulationInfoGrid.gridSize.x * (b + simulationInfoGrid.gridSize.y * c)))
+#define TO_INDEX_BOUNDARY(a, b, c)                                                                 \
+  (int(a + (simulationInfoGrid.gridSize.x + 2) * (b + (simulationInfoGrid.gridSize.y + 2) * c)))
+
+#define VEC_TO_INDEX(a) (TO_INDEX(a.x, a.y, a.z))
+#define VEC_TO_INDEX_BOUNDARY(a) (TO_INDEX_BOUNDARY(a.x, a.y, a.z))
+
+#define TAG_CELL_TYPE_BIT 0
+#define TAG_IS_INTERFACE_BIT 1
+
+#define CELL_TYPE_FLUID 1
+#define CELL_TYPE_AIR 0
+
+#define IS_INTERFACE 1
+#define IS_NOT_INTERFACE 0
+
+struct CellInfo {
+  uint tags;
+  int indexes;
+};
+
+struct ParticleRecord {
+  vec4 position;
+  vec4 velocity;
+  vec4 previousVelocity;
+  vec4 massDensityCenter;
+  vec4 force;
+  float massDensity;
+  float pressure;
+  float temperature;
+  int gridID;
+  float pressureForceLength;
+  float surfaceArea;
+  float weightingKernelFraction;
+};
+
+struct KeyValue {
+  int key;  //Particle ID
+  int value;//Cell ID
+};
+
+struct SimulationInfoGrid {
+  ivec4 gridSize;
+  vec4 gridOrigin;
+  float timeStep;
+  int cellCount;
+  float cellSize;
+  float diffusionCoefficient;
+  int boundaryScale;
+  uint specificInfo;
+  float heatConductivity;
+  float heatCapacity;
+};
+
+struct SimulationInfoSPH {
+  ivec4 gridSizeXYZcountW;
+  vec4 GridOrigin;
+  vec4 gravityForce;
+  float particleMass;
+  float restDensity;
+  float viscosityCoefficient;
+  float gasStiffnessConstant;
+  float heatConductivity;
+  float heatCapacity;
+  float timeStep;
+  float supportRadius;
+  float tensionThreshold;
+  float tensionCoefficient;
+  uint particleCount;
+};
+
+layout(binding = 6) uniform SimulationInfo {
+  SimulationInfoSPH simulationInfoSPH;
+  SimulationInfoGrid simulationInfoGrid;
+};
+
+layout(std430, binding = 0) buffer Indexes { CellInfo cellInfos[]; };
+layout(std430, binding = 1) buffer PositionBuffer { ParticleRecord particleRecords[]; };
+layout(std430, binding = 2) buffer TempsBufferNew { float particleTempsNew[]; };
+layout(std430, binding = 3) buffer GridOld { vec2 gridDensityHeatBufferOld[]; };
+layout(std430, binding = 4) buffer GridNew { vec2 gridDensityHeatBufferNew[]; };
+layout(std430, binding = 5) buffer GridSPH { KeyValue gridSPH[]; };
+
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+
+bvec3 hasMinExtreme(const ivec3 myGridID3D) { return lessThan(myGridID3D, vec3(0)); }
+
+bvec3 hasMaxExtreme(const ivec3 myGridID3D) {
+  return greaterThanEqual(myGridID3D, simulationInfoGrid.gridSize.xyz);
+}
+bool isOnEdge(const ivec3 myGridID3D) {
+  return any(hasMinExtreme(myGridID3D)) || any(hasMaxExtreme(myGridID3D));
+}
+
+int neighbours[] = {-VEC_TO_INDEX(vec3(1, 0, 0)), VEC_TO_INDEX(vec3(1, 0, 0)),
+                    -VEC_TO_INDEX(vec3(0, 1, 0)), VEC_TO_INDEX(vec3(0, 1, 0)),
+                    -VEC_TO_INDEX(vec3(0, 0, 1)), VEC_TO_INDEX(vec3(0, 0, 1))};
+ivec3 neighbours3D[] = {-(ivec3(1, 0, 0)), (ivec3(1, 0, 0)),  -(ivec3(0, 1, 0)),
+                        (ivec3(0, 1, 0)),  -(ivec3(0, 0, 1)), (ivec3(0, 0, 1))};
+void main() {
+  const uint myId = gl_GlobalInvocationID.x;
+
+  const ivec3 gridSizeWithBorders = simulationInfoGrid.gridSize.xyz + ivec3(2);
+  const ivec3 myId3DGrid =
+      ivec3(myId % simulationInfoGrid.gridSize.x,
+            int(myId % (simulationInfoGrid.gridSize.x * simulationInfoGrid.gridSize.y)
+                / simulationInfoGrid.gridSize.x),
+            int(myId / (simulationInfoGrid.gridSize.x * simulationInfoGrid.gridSize.y)));
+  const uint myIdGrid = (myId3DGrid.x + 1) + (myId3DGrid.y + 1) * gridSizeWithBorders.x
+      + (myId3DGrid.z + 1) * gridSizeWithBorders.x * gridSizeWithBorders.y;
+
+  bool isInterface = bool(bitfieldExtract(cellInfos[myId].tags, TAG_IS_INTERFACE_BIT, 1));
+  uint cellType = bitfieldExtract(cellInfos[myId].tags, TAG_CELL_TYPE_BIT, 1);
+
+#if defined(CELL_TO_PARTICLE)
+  if (myId < simulationInfoSPH.particleCount) {
+
+    particleTempsNew[myId] = particleRecords[myId].temperature;
+
+    if (isInterface && cellType == CELL_TYPE_FLUID) {
+      vec4 relativePosition = particleRecords[myId].position - simulationInfoGrid.gridOrigin;
+      ivec3 particleGridIndex3D = ivec3(floor(relativePosition.xyz / simulationInfoGrid.cellSize));
+      vec3 alpha =
+          (particleRecords[myId].position.xyz - particleGridIndex3D) / simulationInfoGrid.cellSize;
+
+      float particleHeatChange = 0.0;
+      for (int i = 0; i < 6; ++i) {
+        uint cellId = particleRecords[myId + neighbours[i]].gridID;
+        if (isOnEdge(particleGridIndex3D + neighbours3D[i])
+            && gridDensityHeatBufferOld[cellId].x > 0)
+          continue;
+        particleHeatChange +=
+            ((4 * simulationInfoSPH.heatConductivity * simulationInfoGrid.heatConductivity)
+             / (simulationInfoGrid.heatConductivity + simulationInfoSPH.heatConductivity))
+            * (gridDensityHeatBufferOld[cellId].y - particleRecords[myId].temperature)
+            * (1 * int(i % 2 == 0) - alpha[int(i / 2)]);
+      }
+
+      particleHeatChange *= (particleRecords[myId].surfaceArea
+                             / (particleRecords[myId].massDensity * simulationInfoSPH.heatCapacity))
+          * simulationInfoSPH.timeStep;
+      debugPrintfEXT("myId: %d, particleHeatChange %f", myId, particleHeatChange);
+      particleTempsNew[myId] += particleHeatChange;
+    }
+  }
+
+#elif defined(PARTICLE_TO_CELL)
+  gridDensityHeatBufferNew[myIdGrid] = gridDensityHeatBufferOld[myIdGrid];
+  float cellHeatChange = 0.0;
+  if (isInterface && cellType == CELL_TYPE_AIR && gridDensityHeatBufferOld[myIdGrid].x > 0) {
+
+    for (int i = 0; i < 6; ++i) {
+      if (isOnEdge(myId3DGrid + neighbours3D[i])) { continue; }
+
+      int sortedID = cellInfos[myId + neighbours[i]].indexes;
+      if (sortedID == -1) { continue; }
+      debugPrintfEXT("myId: %d, sortedID: %d, i: %d", myId, sortedID, i);
+      uint currentGridID = myId + neighbours[i];
+      while (gridSPH[sortedID].value == currentGridID
+             && sortedID < simulationInfoSPH.particleCount) {
+        vec4 relativePosition = particleRecords[sortedID].position - simulationInfoGrid.gridOrigin;
+        ivec3 particleGridIndex3D =
+            ivec3(floor(relativePosition.xyz / simulationInfoGrid.cellSize));
+        vec3 alpha = (particleRecords[sortedID].position.xyz - particleGridIndex3D)
+            / simulationInfoGrid.cellSize;
+
+        cellHeatChange +=
+            ((4 * simulationInfoSPH.heatConductivity * simulationInfoGrid.heatConductivity)
+             / (simulationInfoGrid.heatConductivity + simulationInfoSPH.heatConductivity))
+            * (particleRecords[sortedID].temperature - gridDensityHeatBufferOld[myIdGrid].y)
+            * (1 - alpha[int(i / 2)]) * particleRecords[sortedID].surfaceArea;
+
+        ++sortedID;
+      }
+    }
+    //debugPrintfEXT("myId: %d, cellHeatChange: %f", myId, particleRecords[0].massDensity);
+    cellHeatChange *=
+        (1.0f / (gridDensityHeatBufferOld[myIdGrid].x * simulationInfoGrid.heatCapacity))
+        * simulationInfoSPH.timeStep;
+    gridDensityHeatBufferNew[myIdGrid].y += cellHeatChange;
+    debugPrintfEXT("myId: %d, cellHeatChange: %f", myId, cellHeatChange);
+  }
+#endif
+}

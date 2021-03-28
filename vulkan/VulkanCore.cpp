@@ -101,12 +101,14 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
   vulkanGridFluidRender = std::make_unique<VulkanGridFluidRender>(
       config, device, surface, swapchain,
       Utilities::loadModelFromObj(config.getApp().simulationGridFluid.cellModel),
-      simulationInfoGridFluid, vulkanGridFluid->getBufferDensity(), buffersUniformMVP,
+      simulationInfoGridFluid, vulkanGridFluid->getBufferValuesNew(), buffersUniformMVP,
       buffersUniformCameraPos);
   vulkanGridFluidRender->setFramebuffersSwapchain(framebuffersSwapchain);
 
   vulkanGridFluidSphCoupling = std::make_unique<VulkanGridFluidSPHCoupling>(
-      config, vulkanGridSPH->getGridInfo(), device, surface, swapchain, bufferIndexes);
+      config, vulkanGridSPH->getGridInfo(), SimulationInfo{simulationInfoSPH, simulationInfoGridFluid}, device, surface, swapchain, bufferIndexes,
+      vulkanSPH->getBufferParticles(), vulkanGridFluid->getBufferValuesOld(),
+      vulkanGridFluid->getBufferValuesNew(), bufferCellParticlePair);
 
   auto tmpBuffer = std::vector{vulkanSPH->getBufferParticles()};
   std::array<DescriptorBufferInfo, 3> descriptorBufferInfosGraphic{
@@ -364,7 +366,8 @@ void VulkanCore::drawFrame() {
           vulkanSPH->run(semaphoreAfterMassDensity[currentFrame], SPHStep::force);
       semaphoreAfterSimulationSPH[currentFrame] =
           vulkanSPH->run(semaphoreAfterForces[currentFrame], SPHStep::advect);
-      semaphoreAfterTag[currentFrame] = vulkanGridFluidSphCoupling->run(semaphoreAfterSimulationSPH[currentFrame]);
+      semaphoreAfterTag[currentFrame] =
+          vulkanGridFluidSphCoupling->run(semaphoreAfterSimulationSPH[currentFrame]);
     }
     if (Utilities::isIn(simulationType, {SimulationType::Grid, SimulationType::Combined})) {
       {
@@ -372,7 +375,7 @@ void VulkanCore::drawFrame() {
             vulkanGridFluid->run(semaphoreImageAvailable[currentFrame]);
         device->getDevice()->waitForFences(vulkanGridFluid->getFenceAfterCompute().get(), VK_TRUE,
                                            UINT64_MAX);
-        vulkanGridFluidRender->updateDensityBuffer(vulkanGridFluid->getBufferDensity());
+        vulkanGridFluidRender->updateDensityBuffer(vulkanGridFluid->getBufferValuesNew());
       }
     }
     switch (simulationType) {

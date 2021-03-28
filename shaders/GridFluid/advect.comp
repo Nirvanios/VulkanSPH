@@ -20,6 +20,8 @@ layout(push_constant) uniform GridSimulationInfoUniform {
   float diffusionCoefficient;
   int boundaryScale;
   uint specificInfo;
+  float heatConductivity;
+  float heatCapacity;
 }
 simulationInfo;
 layout(std430, binding = 0) buffer advectedBufferNew { TYPENAME_T advectedFieldNew[]; };

@@ -13,8 +13,9 @@ class VulkanGridFluid {
                   std::shared_ptr<Device> inDevice, const vk::UniqueSurfaceKHR &surface,
                   std::shared_ptr<Swapchain> swapchain);
   vk::UniqueSemaphore run(const vk::UniqueSemaphore &semaphoreWait);
-  [[nodiscard]] const std::shared_ptr<Buffer> &getBufferDensity() const;
-  const vk::UniqueFence &getFenceAfterCompute() const;
+  [[nodiscard]] const std::shared_ptr<Buffer> &getBufferValuesNew() const;
+  [[nodiscard]] const std::shared_ptr<Buffer> &getBufferValuesOld() const;
+  [[nodiscard]] const vk::UniqueFence &getFenceAfterCompute() const;
 
  private:
   enum class Stages {

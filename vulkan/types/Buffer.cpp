@@ -23,14 +23,19 @@ void Buffer::copyBuffer(const vk::DeviceSize &copySize, const vk::UniqueBuffer &
 
   VulkanUtils::endOnetimeCommand(std::move(commandBuffer), queue, semaphores);
 }
+
 void Buffer::copy(const vk::DeviceSize &copySize, const Buffer &srcBuffer, int offset,
                   const std::vector<vk::Semaphore> &semaphores) {
   copyBuffer(copySize, srcBuffer.getBuffer(), buffer, semaphores, offset);
 }
+
 void Buffer::copy(const vk::DeviceSize &copySize, const Buffer &srcBuffer, const Buffer &dstBuffer, int offset,
                   const std::vector<vk::Semaphore> &semaphores) {
   copyBuffer(copySize, srcBuffer.getBuffer(), dstBuffer.getBuffer(), semaphores, offset);
 }
+
 const vk::UniqueBuffer &Buffer::getBuffer() const { return buffer; }
+
 const vk::UniqueDeviceMemory &Buffer::getDeviceMemory() const { return deviceMemory; }
+
 vk::DeviceSize Buffer::getSize() const { return size; }
