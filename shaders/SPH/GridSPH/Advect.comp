@@ -76,6 +76,7 @@ struct ParticleRecord {
   float pressureForceLength;
   float surfaceArea;
   float weightingKernelFraction;
+  float weight;
 };
 
 #define WALL_DAMPING 0.3f
@@ -91,7 +92,6 @@ struct CellInfo {
   uint tags;
   int indexes;
 };
-
 
 layout(std430, binding = 1) buffer Grid { KeyValue grid[]; };
 layout(std430, binding = 2) buffer Indexes { CellInfo cellInfos[]; };

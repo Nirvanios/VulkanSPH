@@ -20,6 +20,7 @@ layout(push_constant) uniform GridSimulationInfoUniform {
   uint specificInfo;
   float heatConductivity;
   float heatCapacity;
+  float specificGasConstant;
 }
 simulationInfo;
 
@@ -50,7 +51,7 @@ void main() {
                 - pressureField[VEC_TO_INDEX_BOUNDARY((myGridID3D - ivec3(0, 1, 0)))]),//y
                (pressureField[VEC_TO_INDEX_BOUNDARY((myGridID3D + ivec3(0, 0, 1)))]
                 - pressureField[VEC_TO_INDEX_BOUNDARY((myGridID3D - ivec3(0, 0, 1)))]));//z
-/*     if (myId == 31)
+    /*     if (myId == 31)
       debugPrintfEXT("myId: %d, up: %f, donw: %f", myId,
                      pressureField[VEC_TO_INDEX_BOUNDARY((myGridID3D + ivec3(0, 1, 0)))],
                      pressureField[VEC_TO_INDEX_BOUNDARY((myGridID3D - ivec3(0, 1, 0)))]); */

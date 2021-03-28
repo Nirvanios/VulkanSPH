@@ -276,7 +276,7 @@ VulkanGridFluid::VulkanGridFluid(const Config &config,
 
 void VulkanGridFluid::createBuffers() {
   auto cellCountBorder = glm::compMul(simulationInfo.gridSize.xyz() + glm::ivec3(2));
-  auto initialDensity = std::vector<glm::vec2>(cellCountBorder, glm::vec2(300.0, 0.0));
+  auto initialDensity = std::vector<glm::vec2>(cellCountBorder, glm::vec2(300.0, 100.0));
   auto sources = std::vector<glm::vec2>(simulationInfo.cellCount, glm::vec2(0));
   [[maybe_unused]] auto positionSources =
       ((simulationInfo.gridSize.z / 2) * simulationInfo.gridSize.x * simulationInfo.gridSize.y)
@@ -307,8 +307,8 @@ void VulkanGridFluid::createBuffers() {
                                this->device, commandPool, queue);
   bufferValuesSources->fill(sources);
 
-  auto initialVelocities = std::vector<glm::vec4>(cellCountBorder, glm::vec4(0, -10, 0, 0));
-  initialVelocities[positionDensity - (simulationInfo.gridSize.x + 2)].y = -10;
+  auto initialVelocities = std::vector<glm::vec4>(cellCountBorder, glm::vec4(0, -0.010, 0, 0));
+  initialVelocities[positionDensity - (simulationInfo.gridSize.x + 2)].y = -0.010;
   bufferVelocitiesNew = std::make_shared<Buffer>(
       bufferBuilder.setSize(sizeof(glm::vec4) * cellCountBorder), this->device, commandPool, queue);
   bufferVelocitiesNew->fill(initialVelocities);
@@ -411,4 +411,8 @@ void VulkanGridFluid::setBoundaryScalarStageBuffer(std::shared_ptr<Buffer> &buff
   descriptorBufferInfosCompute[Stages::boundaryHandleScalar].begin()->bufferSize =
       buffer->getSize();
   updateDescriptorSets();
+}
+
+const std::shared_ptr<Buffer> &VulkanGridFluid::getBufferVelocitiesNew() const {
+  return bufferVelocitiesNew;
 }

@@ -50,6 +50,7 @@ struct ParticleRecord {
   float pressureForceLength;
   float surfaceArea;
   float weightingKernelFraction;
+  float weight;
 };
 
 #define WALL_DAMPING 0.3f
@@ -110,7 +111,7 @@ void main() {
         }
       }
     }
-    
+
 #else
     count *= -1;
     float massDensity2 = 0;

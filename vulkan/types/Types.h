@@ -89,6 +89,7 @@ struct alignas(16) ParticleRecord {
   int dummy;
   float surfaceArea;
   float weightingKernelFraction;
+  float weight;
 
   template<typename OStream>
   friend OStream &operator<<(OStream &os, const ParticleRecord &particleRecord) {
@@ -133,6 +134,7 @@ struct alignas(16) SimulationInfoGridFluid {
   unsigned int specificInfo;
   float heatConductivity;
   float heatCapacity;
+  float specificGasConstant;
 };
 
 struct GridInfo{

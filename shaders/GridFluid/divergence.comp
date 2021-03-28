@@ -20,6 +20,7 @@ layout(push_constant) uniform GridSimulationInfoUniform {
   uint specificInfo;
   float heatConductivity;
   float heatCapacity;
+  float specificGasConstant;
 }
 simulationInfo;
 
@@ -71,7 +72,7 @@ void main() {
                      velocityField[myId - VEC_TO_INDEX_BOUNDARY(vec3(0, 1, 0))]);
     } */
 
-/*     debugPrintfEXT("invID: %d, myId: %d, partialResult: %f", gl_GlobalInvocationID.x, myId,
+    /*     debugPrintfEXT("invID: %d, myId: %d, partialResult: %f", gl_GlobalInvocationID.x, myId,
                    divergenceField[myId]);
     if (divergenceField[myId] > 0)
       debugPrintfEXT("invID: %d, myId: %d, up: %f, down: %f", gl_GlobalInvocationID.x, myId,

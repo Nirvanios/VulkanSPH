@@ -30,6 +30,7 @@ layout(push_constant) uniform GridSimulationInfoUniform {
   uint specificInfo;
   float heatConductivity;
   float heatCapacity;
+  float specificGasConstant;
 }
 simulationInfo;
 
@@ -68,7 +69,6 @@ void main() {
             int(myGridIdFlatten / (gridSize.x * gridSize.y)));
   const uint myId = (myId3D.x + 1) + (myId3D.y + 1) * gridSizeWithBorders.x
       + (myId3D.z + 1) * gridSizeWithBorders.x * gridSizeWithBorders.y;
-
 
   if (all(lessThan(myGridID3D, gridSize.xyz))) {
     float alpha = 0;

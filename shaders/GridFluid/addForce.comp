@@ -13,11 +13,12 @@ layout(push_constant) uniform GridSimulationInfoUniform {
   uint specificInfo;
   float heatConductivity;
   float heatCapacity;
+  float specificGasConstant;
 }
 simulationInfo;
 
 #ifndef TYPENAME_T
-  #define TYPENAME_T vec4
+#define TYPENAME_T vec4
 #endif
 
 layout(std430, binding = 0) buffer velocityBuffer { TYPENAME_T velocityField[]; };

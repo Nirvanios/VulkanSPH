@@ -22,6 +22,7 @@ layout(push_constant) uniform GridSimulationInfoUniform {
   uint specificInfo;
   float heatConductivity;
   float heatCapacity;
+  float specificGasConstant;
 }
 simulationInfo;
 layout(std430, binding = 0) buffer advectedBufferNew { TYPENAME_T advectedFieldNew[]; };
@@ -49,7 +50,8 @@ TYPENAME_T trilinearInterpolation(TYPENAME_T pairsXYZ[2][2][2], vec3 bias) {
 }
 
 void advect(ivec3 myCellPos, uint myId) {
-  vec3 backwardVelocity = myCellPos - simulationInfo.gridSize.xyz * simulationInfo.timeStep * velocityFieldOld[myId].xyz;
+  vec3 backwardVelocity = myCellPos
+      - simulationInfo.gridSize.xyz * simulationInfo.timeStep * velocityFieldOld[myId].xyz;
 
   vec3 interpolationOrigin = min(simulationInfo.gridSize.xyz + 0.5, max(backwardVelocity, 0.5));
 
@@ -89,9 +91,10 @@ void main() {
       + (myId3D.z + 1) * gridSizeWithBorders.x * gridSizeWithBorders.y;
 
   if (all(lessThan(myId3D, simulationInfo.gridSize.xyz))) {
-/*     if (myId == 67 || myId == 62)
+    /*     if (myId == 67 || myId == 62)
       debugPrintfEXT("myId: %d advectedFieldOld: %.3f, advectedBufferNew: %.3f", myId,
                      advectedFieldOld[myId], advectedFieldNew[myId]);
- */    advect(myId3D + 1, myId);
+ */
+    advect(myId3D + 1, myId);
   }
 }

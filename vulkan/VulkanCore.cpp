@@ -108,7 +108,7 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
   vulkanGridFluidSphCoupling = std::make_unique<VulkanGridFluidSPHCoupling>(
       config, vulkanGridSPH->getGridInfo(), SimulationInfo{simulationInfoSPH, simulationInfoGridFluid}, device, surface, swapchain, bufferIndexes,
       vulkanSPH->getBufferParticles(), vulkanGridFluid->getBufferValuesOld(),
-      vulkanGridFluid->getBufferValuesNew(), bufferCellParticlePair);
+      vulkanGridFluid->getBufferValuesNew(), bufferCellParticlePair, vulkanGridFluid->getBufferVelocitiesNew());
 
   auto tmpBuffer = std::vector{vulkanSPH->getBufferParticles()};
   std::array<DescriptorBufferInfo, 3> descriptorBufferInfosGraphic{

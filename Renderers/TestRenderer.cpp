@@ -89,6 +89,7 @@ std::vector<ParticleRecord> TestRenderer::createParticles() {
         data[(z * sizeY * sizeX) + (y * sizeX) + x].pressure = -1.0f;
         data[(z * sizeY * sizeX) + (y * sizeX) + x].temperature = 25.f;// TODO from config
         data[(z * sizeY * sizeX) + (y * sizeX) + x].surfaceArea = 0.0f;// TODO from config
+        data[(z * sizeY * sizeX) + (y * sizeX) + x].weight = 1.0f;// TODO from config
       }
     }
   }
@@ -161,6 +162,7 @@ SimulationInfoGridFluid TestRenderer::getSimulationInfoGridFluid() {
                                  .diffusionCoefficient = 0.001,
                                  .boundaryScale = 1,
                                  .specificInfo = 0,
-                                 .heatConductivity = 0.62, //TODO config
-                                 .heatCapacity = 4.179};
+                                 .heatConductivity = 0.62,//TODO config
+                                 .heatCapacity = 4.179,
+                                 .specificGasConstant = 461.5};
 }

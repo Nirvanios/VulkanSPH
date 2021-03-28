@@ -37,6 +37,7 @@ struct ParticleRecord {
   float pressureForceLength;
   float surfaceArea;
   float weightingKernelFraction;
+  float weight;
 };
 
 struct KeyValue {
@@ -55,6 +56,7 @@ struct SimulationInfoGrid {
   uint specificInfo;
   float heatConductivity;
   float heatCapacity;
+  float specificGasConstant;
 };
 
 struct SimulationInfoSPH {

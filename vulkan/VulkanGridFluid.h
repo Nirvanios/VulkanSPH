@@ -16,6 +16,7 @@ class VulkanGridFluid {
   [[nodiscard]] const std::shared_ptr<Buffer> &getBufferValuesNew() const;
   [[nodiscard]] const std::shared_ptr<Buffer> &getBufferValuesOld() const;
   [[nodiscard]] const vk::UniqueFence &getFenceAfterCompute() const;
+  const std::shared_ptr<Buffer> &getBufferVelocitiesNew() const;
 
  private:
   enum class Stages {

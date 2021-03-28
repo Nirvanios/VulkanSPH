@@ -13,6 +13,7 @@ layout(push_constant) uniform GridSimulationInfoUniform {
   uint specificInfo;
   float heatConductivity;
   float heatCapacity;
+  float specificGasConstant;
 }
 simulationInfo;
 
@@ -49,7 +50,7 @@ ivec3 getPosition(int index) {
   int z = index / (simulationInfo.gridSize.x * simulationInfo.gridSize.y);
   int zOffset = z * simulationInfo.gridSize.x * simulationInfo.gridSize.y;
   return ivec3((index - zOffset) % simulationInfo.gridSize.x,
-              (index - zOffset) / simulationInfo.gridSize.x, z);
+               (index - zOffset) / simulationInfo.gridSize.x, z);
 }
 
 const float cellScale = 0.022 * 0.5;
@@ -61,7 +62,8 @@ void main() {
       + (myId3D.z + 1) * gridSizeWithBorders.x * gridSizeWithBorders.y;
 
   gl_Position = ubo.proj * ubo.view * ubo.model
-      * (vec4(inPosition * 0.5 * simulationInfo.cellSize, 1.0) + vec4(myId3D * simulationInfo.cellSize, 0));
+      * (vec4(inPosition * 0.5 * simulationInfo.cellSize, 1.0)
+         + vec4(myId3D * simulationInfo.cellSize, 0));
   fragColor = vec4(inColor, density[myId].x);
   outPosition = gl_Position.xyz;
   outNormal = inNormal;

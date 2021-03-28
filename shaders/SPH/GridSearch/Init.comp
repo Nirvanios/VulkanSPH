@@ -29,6 +29,7 @@ struct ParticleRecord {
   float pressureForceLength;
   float surfaceArea;
   float weightingKernelFraction;
+  float weight;
 };
 
 layout(std430, binding = 1) buffer positionBuffer { ParticleRecord particleRecords[]; };
