@@ -111,6 +111,7 @@ void main() {
 
     //Compute pressure, viscosity force
     const float particleRadius = simulationInfo.supportRadius * 0.5;
+    float myWeightedMass = particleRecords[myId].weight * simulationInfo.particleMass;
 
     vec4 pressureForce = vec4(0.0f);
     vec4 viscosityForce = vec4(0.0f);
@@ -140,26 +141,28 @@ void main() {
                   particleRecords[myId].position - particleRecords[neighbourID].position;
 
               if (neighbourID != myId && length(positionDiff) < simulationInfo.supportRadius) {
-                pressureForce -= simulationInfo.particleMass
+                float neighbourWeightedMass = particleRecords[neighbourID].weight * simulationInfo.particleMass;
+
+                pressureForce -= neighbourID
                     * (particleRecords[myId].pressure + particleRecords[neighbourID].pressure)
                     / (2.f * particleRecords[neighbourID].massDensity)
                     * spikyGradientKernel(positionDiff, length(positionDiff),
                                           simulationInfo.supportRadius);
                 viscosityForce +=
                     (particleRecords[neighbourID].velocity - particleRecords[myId].velocity)
-                    * (simulationInfo.particleMass / particleRecords[neighbourID].massDensity)
+                    * (neighbourWeightedMass / particleRecords[neighbourID].massDensity)
                     * viscosityLaplacianKernel(positionDiff, length(positionDiff),
                                                simulationInfo.supportRadius);
                 colorField +=
-                    (simulationInfo.particleMass / particleRecords[neighbourID].massDensity)
-                    * laplacianKernel(positionDiff, length(positionDiff),
+                    (neighbourWeightedMass / particleRecords[neighbourID].massDensity)
+                    * defaultKernel(positionDiff, length(positionDiff),
                                       simulationInfo.supportRadius);
                 inwardSurfaceNormal +=
-                    (simulationInfo.particleMass / particleRecords[neighbourID].massDensity)
+                    (neighbourWeightedMass / particleRecords[neighbourID].massDensity)
                     * gradientKernel(positionDiff, length(positionDiff),
                                      simulationInfo.supportRadius);
 
-                temperature += ((4 * simulationInfo.particleMass)
+                temperature += ((4 * myWeightedMass)
                                 / (particleRecords[neighbourID].massDensity
                                    * particleRecords[myId].massDensity))
                     * ((simulationInfo.heatConductivity * simulationInfo.heatConductivity)
@@ -173,7 +176,7 @@ void main() {
                                      contourSDF(particleRecords[neighbourID].position.xyz,
                                                 particleRecords[neighbourID].massDensityCenter.xyz,
                                                 particleRadius))
-                    * (simulationInfo.particleMass / particleRecords[neighbourID].massDensity)
+                    * (neighbourWeightedMass / particleRecords[neighbourID].massDensity)
                     * (defaultKernel(positionDiff, length(positionDiff),
                                      simulationInfo.supportRadius)
                        / particleRecords[neighbourID].weightingKernelFraction);
@@ -209,7 +212,7 @@ void main() {
     vec4 internalForces = pressureForce + viscosityForce;
     particleRecords[myId].pressureForceLength = length(pressureForce);
     particleRecords[myId].surfaceArea =
-        (simulationInfo.particleMass / particleRecords[myId].massDensity) * surfaceArea;
+        (myWeightedMass / particleRecords[myId].massDensity) * surfaceArea;
 
     /**
         * EXTERNAL FORCES

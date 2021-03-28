@@ -103,7 +103,7 @@ void main() {
             if (myId != neighbourID) {
               vec4 positionDiff =
                   particleRecords[myId].position - particleRecords[neighbourID].position;
-              massDensity += simulationInfo.particleMass
+              massDensity += simulationInfo.particleMass * particleRecords[myId].weight
                   * defaultKernel(positionDiff, length(positionDiff), simulationInfo.supportRadius);
             }
             ++sortedID;

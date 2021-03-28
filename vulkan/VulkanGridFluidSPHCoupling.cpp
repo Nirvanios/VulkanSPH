@@ -92,16 +92,16 @@ vk::UniqueSemaphore VulkanGridFluidSPHCoupling::run(const vk::UniqueSemaphore &s
 
   auto outSemaphore = device->getDevice()->createSemaphore({});
 
-  submit(Stages::Tag, fence.get(), semaphoreWait.get());
-  waitFence();
-  [[maybe_unused]] auto ind = bufferIndexes->read<CellInfo>();
+  submit(Stages::Tag, fence.get(), semaphoreWait.get(), outSemaphore);
+  //waitFence();
+  //[[maybe_unused]] auto ind = bufferIndexes->read<CellInfo>();
 
-  submit(Stages::MassTransfer, fence.get(), std::nullopt, outSemaphore);
-  waitFence();
-  [[maybe_unused]] auto tempsCells = bufferGridValuesNew->read<glm::vec2>();
+  //submit(Stages::MassTransfer, fence.get(), std::nullopt, outSemaphore);
+  //waitFence();
+/*  [[maybe_unused]] auto tempsCells = bufferGridValuesNew->read<glm::vec2>();
   [[maybe_unused]] auto tempsCellsOld = bufferGridValuesOld->read<glm::vec2>();
   [[maybe_unused]] auto particles = bufferParticles->read<ParticleRecord>();
-  [[maybe_unused]] auto tempsParticle = bufferParticleTempsNew->read<float>();
+  [[maybe_unused]] auto tempsParticle = bufferParticleTempsNew->read<float>();*/
 
   return vk::UniqueSemaphore(outSemaphore, device->getDevice().get());
 }
