@@ -111,7 +111,8 @@ void main() {
 
     //Compute pressure, viscosity force
     const float particleRadius = simulationInfo.supportRadius * 0.5;
-    float myWeightedMass = particleRecords[myId].weight * simulationInfo.particleMass;
+    float myWeightedMass = simulationInfo.particleMass * particleRecords[myId].weight;
+
 
     vec4 pressureForce = vec4(0.0f);
     vec4 viscosityForce = vec4(0.0f);
@@ -139,11 +140,10 @@ void main() {
             if (myId != neighbourID) {
               vec4 positionDiff =
                   particleRecords[myId].position - particleRecords[neighbourID].position;
+                  float neighbourWeightedMass = simulationInfo.particleMass * particleRecords[neighbourID].weight;
 
               if (neighbourID != myId && length(positionDiff) < simulationInfo.supportRadius) {
-                float neighbourWeightedMass = particleRecords[neighbourID].weight * simulationInfo.particleMass;
-
-                pressureForce -= neighbourID
+                pressureForce -= neighbourWeightedMass
                     * (particleRecords[myId].pressure + particleRecords[neighbourID].pressure)
                     / (2.f * particleRecords[neighbourID].massDensity)
                     * spikyGradientKernel(positionDiff, length(positionDiff),
@@ -155,7 +155,7 @@ void main() {
                                                simulationInfo.supportRadius);
                 colorField +=
                     (neighbourWeightedMass / particleRecords[neighbourID].massDensity)
-                    * defaultKernel(positionDiff, length(positionDiff),
+                    * laplacianKernel(positionDiff, length(positionDiff),
                                       simulationInfo.supportRadius);
                 inwardSurfaceNormal +=
                     (neighbourWeightedMass / particleRecords[neighbourID].massDensity)
@@ -212,7 +212,7 @@ void main() {
     vec4 internalForces = pressureForce + viscosityForce;
     particleRecords[myId].pressureForceLength = length(pressureForce);
     particleRecords[myId].surfaceArea =
-        (myWeightedMass / particleRecords[myId].massDensity) * surfaceArea;
+        (myWeightedMass/ particleRecords[myId].massDensity) * surfaceArea;
 
     /**
         * EXTERNAL FORCES

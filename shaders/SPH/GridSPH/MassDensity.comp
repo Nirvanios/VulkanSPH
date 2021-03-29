@@ -125,7 +125,6 @@ void main() {
 #endif
 
     particleRecords[myId].massDensity = massDensity;
-
     particleRecords[myId].pressure =
         simulationInfo.gasStiffnessConstant * (massDensity - simulationInfo.restDensity);
   }
