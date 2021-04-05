@@ -1,0 +1,129 @@
+#version 450
+
+#extension GL_EXT_debug_printf : enable
+
+struct CellInfo {
+  uint tags;
+  int indexes;
+};
+
+struct ParticleRecord {
+  vec4 position;
+  vec4 velocity;
+  vec4 previousVelocity;
+  vec4 massDensityCenter;
+  vec4 force;
+  float massDensity;
+  float pressure;
+  float temperature;
+  int gridID;
+  float pressureForceLength;
+  float surfaceArea;
+  float weightingKernelFraction;
+  float weight;
+};
+
+struct KeyValue {
+  int key;  //Particle ID
+  int value;//Cell ID
+};
+
+struct SimulationInfoGrid {
+  ivec4 gridSize;
+  vec4 gridOrigin;
+  float timeStep;
+  int cellCount;
+  float cellSize;
+  float diffusionCoefficient;
+  int boundaryScale;
+  uint specificInfo;
+  float heatConductivity;
+  float heatCapacity;
+  float specificGasConstant;
+};
+
+struct SimulationInfoSPH {
+  ivec4 gridSizeXYZcountW;
+  vec4 GridOrigin;
+  vec4 gravityForce;
+  float particleMass;
+  float restDensity;
+  float viscosityCoefficient;
+  float gasStiffnessConstant;
+  float heatConductivity;
+  float heatCapacity;
+  float timeStep;
+  float supportRadius;
+  float tensionThreshold;
+  float tensionCoefficient;
+  uint particleCount;
+};
+
+layout(binding = 5) uniform SimulationInfo {
+  SimulationInfoSPH simulationInfoSPH;
+  SimulationInfoGrid simulationInfoGrid;
+};
+
+layout(std430, binding = 0) buffer Indexes { CellInfo cellInfos[]; };
+layout(std430, binding = 1) buffer PositionBuffer { ParticleRecord particleRecords[]; };
+layout(std430, binding = 2) buffer WeightsNewBuffer { float weightsNew[]; };
+layout(std430, binding = 3) buffer GridSPH { KeyValue gridSPH[]; };
+layout(std430, binding = 4) buffer HasParticlePair {
+  KeyValue hasPair[];
+};//-1 no pair, 0 has pair, x>0 pair count
+
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+
+void main() {
+
+  uint myId = gl_GlobalInvocationID.x;
+  uint cellCount =
+      simulationInfoGrid.gridSize.x * simulationInfoGrid.gridSize.y * simulationInfoGrid.gridSize.z;
+  //debugPrintfEXT("gridSize %v4d", simulationInfoGrid.gridSize);
+
+  if (myId < cellCount) {
+
+    if (cellInfos[myId].indexes != -1) {
+      int currentSortedID = cellInfos[myId].indexes;
+
+      while (gridSPH[currentSortedID].value == myId
+             && currentSortedID < simulationInfoSPH.particleCount) {
+        const int currentParticleID = gridSPH[currentSortedID].key;
+        int neighbourSortedID = cellInfos[myId].indexes;
+        //debugPrintfEXT("myId: %d, currentParticleID :%d", myId, currentParticleID);
+        if (particleRecords[currentParticleID].weight < 0.5
+            && hasPair[currentParticleID].value == -1) {
+          ++hasPair[currentParticleID].value;
+          while (gridSPH[neighbourSortedID].value == myId
+                 && neighbourSortedID < simulationInfoSPH.particleCount) {
+            const int neighbourParticleID = gridSPH[neighbourSortedID].key;
+
+            if (neighbourParticleID != currentParticleID
+                && particleRecords[neighbourParticleID].weight < 0.8
+                && hasPair[neighbourParticleID].value == -1) {
+              ++hasPair[neighbourParticleID].value;
+              ++hasPair[currentParticleID].value;
+              hasPair[neighbourParticleID].key = currentSortedID;
+              weightsNew[neighbourParticleID] = particleRecords[currentParticleID].weight;
+            }
+            ++neighbourSortedID;
+          }
+          particleRecords[currentParticleID].weight = 0;
+          debugPrintfEXT("myId: %d, weight 0", myId);
+        }
+        ++currentSortedID;
+      }
+      currentSortedID = cellInfos[myId].indexes;
+      while (gridSPH[currentSortedID].value == myId
+             && currentSortedID < simulationInfoSPH.particleCount) {
+        const int currentParticleID = gridSPH[currentSortedID].key;
+        if (hasPair[currentSortedID].key != -1) {
+          particleRecords[currentParticleID].weight +=
+              weightsNew[currentParticleID] / hasPair[hasPair[currentParticleID].key].value;
+              debugPrintfEXT("myId: %d, newWeight: %f", myId, weightsNew[currentParticleID] / hasPair[hasPair[currentParticleID].key].value);
+        }
+        ++currentSortedID;
+      }
+    }
+  }
+}

@@ -8,9 +8,10 @@
 #include "../builders/BufferBuilder.h"
 #include "Device.h"
 #include "Types.h"
+#include "../../utils/Utilities.h"
 #include <span>
 
-template<typename T>
+/*
 concept Pointer = std::is_pointer_v<T>;
 
 template<typename T>
@@ -22,16 +23,16 @@ concept RawDataProvider = requires(T t) {
 };
 
 template<Pointer T>
-using ptr_val = decltype(*std::declval<T>());
+using ptr_val = decltype(*std::declval<T>());*/
 
 class Buffer {
  public:
   Buffer(BufferBuilder builder, std::shared_ptr<Device> device,
          const vk::UniqueCommandPool &commandPool, const vk::Queue &queue);
 
-  void fill(const RawDataProvider auto &input, bool useStaging = true, int offset = 0) {
+  void fill(const Utilities::RawDataProvider auto &input, bool useStaging = true, int offset = 0) {
     assert(size >= input.size());
-    using ValueType = ptr_val<decltype(input.data())>;
+    using ValueType = Utilities::ptr_val<decltype(input.data())>;
     auto fillSize = sizeof(ValueType) * input.size();
 
     if (useStaging) {

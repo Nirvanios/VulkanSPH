@@ -12,7 +12,7 @@ class VulkanGridFluid {
   VulkanGridFluid(const Config &config, const SimulationInfoGridFluid &simulationInfo,
                   std::shared_ptr<Device> inDevice, const vk::UniqueSurfaceKHR &surface,
                   std::shared_ptr<Swapchain> swapchain);
-  vk::UniqueSemaphore run(const vk::UniqueSemaphore &semaphoreWait);
+  vk::UniqueSemaphore run();// TODO wait semaphore
   [[nodiscard]] const std::shared_ptr<Buffer> &getBufferValuesNew() const;
   [[nodiscard]] const std::shared_ptr<Buffer> &getBufferValuesOld() const;
   [[nodiscard]] const vk::UniqueFence &getFenceAfterCompute() const;
@@ -36,7 +36,8 @@ class VulkanGridFluid {
 
   void submit(Stages pipelineStage, const vk::Fence = nullptr,
               const std::optional<vk::Semaphore> &inSemaphore = std::nullopt,
-              const std::optional<vk::Semaphore> &outSemaphore = std::nullopt);
+              const std::optional<vk::Semaphore> &outSemaphore = std::nullopt,
+              SubmitSemaphoreType submitSemaphoreType = SubmitSemaphoreType::None);
   void recordCommandBuffer(Stages pipelineStage);
   void swapBuffers(std::shared_ptr<Buffer> &buffer1, std::shared_ptr<Buffer> &buffer2);
   void updateDescriptorSets();

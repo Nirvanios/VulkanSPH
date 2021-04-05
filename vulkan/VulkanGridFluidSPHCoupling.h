@@ -18,15 +18,24 @@ class VulkanGridFluidSPHCoupling {
       std::shared_ptr<Device> inDevice, const vk::UniqueSurfaceKHR &surface,
       std::shared_ptr<Swapchain> swapchain, std::shared_ptr<Buffer> inBufferIndexes,
       std::shared_ptr<Buffer> inBufferParticles, std::shared_ptr<Buffer> inBufferGridValuesOld,
-      std::shared_ptr<Buffer> inBufferGridValuesNew, std::shared_ptr<Buffer> inBufferGridSPH, std::shared_ptr<Buffer> inBufferGridVelocities);
-  vk::UniqueSemaphore run(const vk::UniqueSemaphore &semaphoreWait);
+      std::shared_ptr<Buffer> inBufferGridValuesNew, std::shared_ptr<Buffer> inBufferGridSPH,
+      std::shared_ptr<Buffer> inBufferGridVelocities);
+  vk::UniqueSemaphore run(const vk::Semaphore &semaphoreWait);
+  vk::UniqueSemaphore run(const std::vector<vk::Semaphore> &semaphoreWait);
   [[nodiscard]] const vk::UniqueFence &getFenceAfterCompute() const;
 
  private:
-  enum class Stages { Tag, TransferHeatToCells, TransferHeatToParticles, MassTransfer };
+  enum class Stages {
+    Tag,
+    TransferHeatToCells,
+    TransferHeatToParticles,
+    WriteNewParticleTemps,
+    MassTransfer,
+    WeightDistribution
+  };
 
-  void submit(Stages pipelineStage, const vk::Fence submitFence = nullptr,
-              const std::optional<vk::Semaphore> &inSemaphore = std::nullopt,
+  void submit(Stages pipelineStage, vk::Fence submitFence = nullptr,
+              const std::optional<std::vector<vk::Semaphore>> &inSemaphore = std::nullopt,
               const std::optional<vk::Semaphore> &outSemaphore = std::nullopt);
   void recordCommandBuffer(Stages pipelineStage);
   void swapBuffers(std::shared_ptr<Buffer> &buffer1, std::shared_ptr<Buffer> &buffer2);
@@ -59,6 +68,7 @@ class VulkanGridFluidSPHCoupling {
   std::shared_ptr<Buffer> bufferGridValuesNew;
   std::shared_ptr<Buffer> bufferGridVelocities;
   std::shared_ptr<Buffer> bufferGridSPH;
+  std::shared_ptr<Buffer> bufferHasPair;
 
   std::shared_ptr<Buffer> bufferUniformSimulationInfo;
 
@@ -131,6 +141,15 @@ class VulkanGridFluidSPHCoupling {
                                    .descriptorType = vk::DescriptorType::eUniformBuffer,
                                    .descriptorCount = 1,
                                    .stageFlags = vk::ShaderStageFlagBits::eCompute}}}},
+      {Stages::WriteNewParticleTemps,
+       {{PipelineLayoutBindingInfo{.binding = 0,
+                                   .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                   .descriptorCount = 1,
+                                   .stageFlags = vk::ShaderStageFlagBits::eCompute},
+         PipelineLayoutBindingInfo{.binding = 1,
+                                   .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                   .descriptorCount = 1,
+                                   .stageFlags = vk::ShaderStageFlagBits::eCompute}}}},
       {Stages::MassTransfer,
        {{PipelineLayoutBindingInfo{.binding = 0,
                                    .descriptorType = vk::DescriptorType::eStorageBuffer,
@@ -149,6 +168,31 @@ class VulkanGridFluidSPHCoupling {
                                    .descriptorCount = 1,
                                    .stageFlags = vk::ShaderStageFlagBits::eCompute},
          PipelineLayoutBindingInfo{.binding = 4,
+                                   .descriptorType = vk::DescriptorType::eUniformBuffer,
+                                   .descriptorCount = 1,
+                                   .stageFlags = vk::ShaderStageFlagBits::eCompute}}}},
+      {Stages::WeightDistribution,
+       {{PipelineLayoutBindingInfo{.binding = 0,
+                                   .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                   .descriptorCount = 1,
+                                   .stageFlags = vk::ShaderStageFlagBits::eCompute},
+         PipelineLayoutBindingInfo{.binding = 1,
+                                   .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                   .descriptorCount = 1,
+                                   .stageFlags = vk::ShaderStageFlagBits::eCompute},
+         PipelineLayoutBindingInfo{.binding = 2,
+                                   .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                   .descriptorCount = 1,
+                                   .stageFlags = vk::ShaderStageFlagBits::eCompute},
+         PipelineLayoutBindingInfo{.binding = 3,
+                                   .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                   .descriptorCount = 1,
+                                   .stageFlags = vk::ShaderStageFlagBits::eCompute},
+         PipelineLayoutBindingInfo{.binding = 4,
+                                   .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                   .descriptorCount = 1,
+                                   .stageFlags = vk::ShaderStageFlagBits::eCompute},
+         PipelineLayoutBindingInfo{.binding = 5,
                                    .descriptorType = vk::DescriptorType::eUniformBuffer,
                                    .descriptorCount = 1,
                                    .stageFlags = vk::ShaderStageFlagBits::eCompute}}}}};

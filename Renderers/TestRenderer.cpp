@@ -27,7 +27,8 @@ TestRenderer::TestRenderer(const Config &config)
   vulkanCore.initVulkan({Utilities::loadModelFromObj(config.getApp().simulationSPH.particleModel,
                                                      glm::vec3{0.5, 0.8, 1.0}),
                          gridModel},
-                        particles, simulationInfoSPH, getSimulationInfoGridFluid());
+                        particles, simulationInfoSPH,
+                        getSimulationInfoGridFluid(simulationInfoSPH.supportRadius));
   //vulkanCore.setSimulationInfo(getSimulationInfoSPH());
 }
 
@@ -89,7 +90,7 @@ std::vector<ParticleRecord> TestRenderer::createParticles() {
         data[(z * sizeY * sizeX) + (y * sizeX) + x].pressure = -1.0f;
         data[(z * sizeY * sizeX) + (y * sizeX) + x].temperature = 25.f;// TODO from config
         data[(z * sizeY * sizeX) + (y * sizeX) + x].surfaceArea = 0.0f;// TODO from config
-        data[(z * sizeY * sizeX) + (y * sizeX) + x].weight = 1.0f;// TODO from config
+        data[(z * sizeY * sizeX) + (y * sizeX) + x].weight = .49f;     // TODO from config
       }
     }
   }
@@ -152,13 +153,13 @@ Model TestRenderer::createGrid(const SimulationInfoSPH &simulationInfo) {
 
   return {.vertices = gridVertices, .indices = gridIndices};
 }
-SimulationInfoGridFluid TestRenderer::getSimulationInfoGridFluid() {
+SimulationInfoGridFluid TestRenderer::getSimulationInfoGridFluid(float supportRadius) {
   return SimulationInfoGridFluid{.gridSize = glm::ivec4(config.getApp().simulationSPH.gridSize, 0),
                                  .gridOrigin =
                                      glm::vec4(config.getApp().simulationSPH.gridOrigin, 0),
                                  .timeStep = config.getApp().simulationSPH.timeStep,
                                  .cellCount = glm::compMul(config.getApp().simulationSPH.gridSize),
-                                 .cellSize = 0.02,
+                                 .cellSize = supportRadius,
                                  .diffusionCoefficient = 0.001,
                                  .boundaryScale = 1,
                                  .specificInfo = 0,

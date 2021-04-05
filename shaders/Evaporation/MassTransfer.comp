@@ -147,8 +147,8 @@ void main() {
         neighboursMassChangeSum += neighboursMassChange[i];
       }
 
-      debugPrintfEXT("myId: %d, weightedParicleMass: %f, neighboursMassChangeSum: %f", myId,
-                     weightedParicleMass, neighboursMassChangeSum);
+/*       debugPrintfEXT("myId: %d, weightedParicleMass: %f, neighboursMassChangeSum: %f", myId,
+                     weightedParicleMass, neighboursMassChangeSum); */
 
       particleRecords[myId].weight *=
           ((weightedParicleMass - neighboursMassChangeSum) / weightedParicleMass);

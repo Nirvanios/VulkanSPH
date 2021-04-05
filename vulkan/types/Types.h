@@ -105,7 +105,7 @@ struct alignas(16) ParticleRecord {
   }
 };
 
-struct SimulationInfoSPH {
+struct alignas(16) SimulationInfoSPH {
   glm::ivec4 gridSize;
   glm::vec4 gridOrigin;
   glm::vec4 gravityForce;
@@ -123,7 +123,7 @@ struct SimulationInfoSPH {
   //unsigned int cellCount;
 };
 
-struct SimulationInfoGridFluid {
+struct alignas(16) SimulationInfoGridFluid {
   glm::ivec4 gridSize;
   glm::vec4 gridOrigin;
   float timeStep;
@@ -152,6 +152,7 @@ struct CellInfo{
 struct DrawInfo{
   int drawType;
   int visualization;
+  float supportRadius;
 };
 
 struct SimulationInfo{
@@ -166,6 +167,8 @@ enum class GaussSeidelColorPhase { red = 0, black = 1 };
 enum class GaussSeidelStageType { diffuse = 0, project = 1 };
 
 enum class SimulationType {SPH = 0, Grid = 1, Combined = 2};
+
+enum class SubmitSemaphoreType {None = 0, In = 1, Out = 2, InOut = 3};
 
 class GaussSeidelFlags{
  public:

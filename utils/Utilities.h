@@ -13,6 +13,21 @@
 #include <vector>
 
 namespace Utilities {
+
+template<typename T>
+concept Pointer = std::is_pointer_v<T>;
+
+template<typename T>
+concept RawDataProvider = requires(T t) {
+  { t.data() }
+  ->Pointer;
+  { t.size() }
+  ->std::convertible_to<std::size_t>;
+};
+
+template<Pointer T>
+using ptr_val = decltype(*std::declval<T>());
+
 inline std::string readFile(const std::string &filename) {
   std::ifstream file(filename, std::ios::ate | std::ios::binary);
 

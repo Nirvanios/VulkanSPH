@@ -7,7 +7,7 @@
 #include <magic_enum.hpp>
 #include <utility>
 
-vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &semaphoreWait) {
+vk::UniqueSemaphore VulkanGridFluid::run() {
   auto specificInfo = GaussSeidelFlags();
 
   currentSemaphore = 0;
@@ -17,7 +17,7 @@ vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &semaphoreWai
   auto outSemaphore = device->getDevice()->createSemaphore({});
 
   /**Add velocities sources*/
-  submit(Stages::addSourceVector, fence.get(), semaphoreWait.get());
+  submit(Stages::addSourceVector, fence.get(), std::nullopt, std::nullopt, SubmitSemaphoreType::In);
 
   /**Diffuse velocities*/
   swapBuffers(bufferVelocitiesNew, bufferVelocitiesOld);
@@ -59,7 +59,6 @@ vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &semaphoreWai
   specificInfo.setStageType(GaussSeidelStageType::diffuse);
   swapBuffers(bufferValuesNew, bufferValuesOld);
 
-
   for (auto i = 0; i < 19; ++i) {
     simulationInfo.specificInfo =
         static_cast<unsigned int>(specificInfo.setColor(GaussSeidelColorPhase::black));
@@ -72,7 +71,6 @@ vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &semaphoreWai
     waitFence();
     submit(Stages::boundaryHandleVec2, fence.get());
     waitFence();
-
   }
 
   simulationInfo.specificInfo =
@@ -86,7 +84,6 @@ vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &semaphoreWai
   waitFence();
 
   submit(Stages::boundaryHandleVec2, fence.get());
-
 
   /**Advect Density*/
   swapBuffers(bufferValuesNew, bufferValuesOld);
@@ -110,12 +107,10 @@ void VulkanGridFluid::project() {
   submit(Stages::divergenceVector, fence.get());
   waitFence();
 
-
   setBoundaryScalarStageBuffer(bufferDivergences);
   simulationInfo.specificInfo = magic_enum::enum_integer(BufferType::floatType);
   submit(Stages::boundaryHandleScalar, fence.get());
   waitFence();
-
 
   specificInfo.setStageType(GaussSeidelStageType::project);
   for (auto j = 0; j < 20; ++j) {
@@ -124,12 +119,10 @@ void VulkanGridFluid::project() {
     submit(Stages::GaussSeidelDivergence, fence.get());
     waitFence();
 
-
     simulationInfo.specificInfo =
         static_cast<unsigned int>(specificInfo.setColor(GaussSeidelColorPhase::red));
     submit(Stages::GaussSeidelDivergence, fence.get());
     waitFence();
-
 
     setBoundaryScalarStageBuffer(bufferPressures);
     simulationInfo.specificInfo = magic_enum::enum_integer(BufferType::floatType);
@@ -142,7 +135,6 @@ void VulkanGridFluid::project() {
 
   simulationInfo.specificInfo = magic_enum::enum_integer(BufferType::vec4Type);
   submit(Stages::boundaryHandleVector, fence.get());
-
 }
 
 void VulkanGridFluid::recordCommandBuffer(Stages pipelineStage) {
@@ -162,7 +154,9 @@ void VulkanGridFluid::recordCommandBuffer(Stages pipelineStage) {
                                vk::ShaderStageFlagBits::eCompute, 0,
                                sizeof(SimulationInfoGridFluid), &simulationInfo);
   auto dispatchCount = glm::ivec3(glm::ceil(simulationInfo.cellCount / 32.0), 1, 1);
-  if (Utilities::isIn(pipelineStage, {Stages::boundaryHandleVector, Stages::boundaryHandleScalar, Stages::boundaryHandleVec2}))
+  if (Utilities::isIn(
+          pipelineStage,
+          {Stages::boundaryHandleVector, Stages::boundaryHandleScalar, Stages::boundaryHandleVec2}))
     dispatchCount = glm::ivec3(
         glm::ceil((2 * gridSizeBorder.x * gridSizeBorder.y + 2 * gridSizeBorder.x * gridSizeBorder.z
                    + 2 * gridSizeBorder.y * gridSizeBorder.z)
@@ -173,11 +167,13 @@ void VulkanGridFluid::recordCommandBuffer(Stages pipelineStage) {
 }
 void VulkanGridFluid::submit(Stages pipelineStage, const vk::Fence submitFence,
                              const std::optional<vk::Semaphore> &inSemaphore,
-                             const std::optional<vk::Semaphore> &outSemaphore) {
+                             const std::optional<vk::Semaphore> &outSemaphore,
+                             SubmitSemaphoreType submitSemaphoreType) {
   std::array<vk::PipelineStageFlags, 1> waitStages{vk::PipelineStageFlagBits::eComputeShader};
   recordCommandBuffer(pipelineStage);
   vk::SubmitInfo submitInfoCompute{
-      .waitSemaphoreCount = 1,
+      .waitSemaphoreCount = static_cast<uint32_t>(
+          submitSemaphoreType == SubmitSemaphoreType::In && !inSemaphore.has_value() ? 0 : 1),
       .pWaitSemaphores =
           inSemaphore.has_value() ? &inSemaphore.value() : &semaphores[currentSemaphore - 1].get(),
       .pWaitDstStageMask = waitStages.data(),
@@ -251,8 +247,9 @@ VulkanGridFluid::VulkanGridFluid(const Config &config,
             .setComputeShaderPath(fmt::format(shaderPathTemplate.string(), fileNames[stage]));
     if (Utilities::isIn(stage, {Stages::boundaryHandleScalar, Stages::GaussSeidelDivergence}))
       pipelineBuilder.addShaderMacro("TYPENAME_T float").addShaderMacro("TYPE_FLOAT");
-    else if (Utilities::isIn(
-                 stage, {Stages::addSourceScalar, Stages ::diffuseScalar, Stages::advectScalar, Stages::boundaryHandleVec2}))
+    else if (Utilities::isIn(stage,
+                             {Stages::addSourceScalar, Stages ::diffuseScalar, Stages::advectScalar,
+                              Stages::boundaryHandleVec2}))
       pipelineBuilder.addShaderMacro("TYPENAME_T vec2").addShaderMacro("TYPE_VEC2");
     else if (Utilities::isIn(stage,
                              {Stages::addSourceVector, Stages::diffuseVector,
@@ -332,9 +329,13 @@ void VulkanGridFluid::createBuffers() {
   bufferPressures->fill(std::vector<float>(cellCountBorder, 0));
 }
 
-const std::shared_ptr<Buffer> &VulkanGridFluid::getBufferValuesNew() const { return bufferValuesNew; }
+const std::shared_ptr<Buffer> &VulkanGridFluid::getBufferValuesNew() const {
+  return bufferValuesNew;
+}
 
-const std::shared_ptr<Buffer> &VulkanGridFluid::getBufferValuesOld() const { return bufferValuesOld; }
+const std::shared_ptr<Buffer> &VulkanGridFluid::getBufferValuesOld() const {
+  return bufferValuesOld;
+}
 
 void VulkanGridFluid::updateDescriptorSets() {
   std::for_each(pipelines.begin(), pipelines.end(), [&](auto &in) {

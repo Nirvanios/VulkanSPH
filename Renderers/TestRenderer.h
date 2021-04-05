@@ -35,7 +35,7 @@ class TestRenderer {
   std::vector<ParticleRecord> createParticles();
   [[nodiscard]] Model createGrid(const SimulationInfoSPH &simulationInfo);
   [[nodiscard]] SimulationInfoSPH getSimulationInfoSPH();
-  [[nodiscard]] SimulationInfoGridFluid getSimulationInfoGridFluid();
+  [[nodiscard]] SimulationInfoGridFluid getSimulationInfoGridFluid(float supportRadius);
 };
 
 #endif//VULKANAPP_TESTRENDERER_H
