@@ -44,26 +44,30 @@ VulkanGridFluidRender::VulkanGridFluidRender(
     const SimulationInfoGridFluid &inSimulationInfoGridFluid,
     std::shared_ptr<Buffer> inBufferDensity,
     std::vector<std::shared_ptr<Buffer>> inBuffersUniformMVP,
-    std::vector<std::shared_ptr<Buffer>> inBuffersUniformCameraPos)
+    std::vector<std::shared_ptr<Buffer>> inBuffersUniformCameraPos,
+    std::shared_ptr<Buffer> inBufferTags)
     : currentFrame(0), config(config), simulationInfoGridFluid(inSimulationInfoGridFluid),
       device(device), swapchain(std::move(inSwapchain)),
       buffersUniformMVP(std::move(inBuffersUniformMVP)),
       buffersUniformCameraPos(std::move(inBuffersUniformCameraPos)),
-      bufferDensity(std::move(inBufferDensity)), queue(device->getGraphicsQueue()) {
+      bufferDensity(std::move(inBufferDensity)), bufferTags(std::move(inBufferTags)),
+      queue(device->getGraphicsQueue()) {
 
-  pipeline = PipelineBuilder{config, device, swapchain}
-                 .setLayoutBindingInfo(bindingInfosRender)
-                 .setPipelineType(PipelineType::Graphics)
-                 .setVertexShaderPath(config.getVulkan().shaderFolder / "GridFluid/shader.vert")
-                 .setFragmentShaderPath(config.getVulkan().shaderFolder / "GridFluid/shader.frag")
-                 .addPushConstant(vk::ShaderStageFlagBits::eVertex, sizeof(SimulationInfoGridFluid))
-                 .setBlendEnabled(true)
-                 .addRenderPass("toSwapchain",
-                                RenderPassBuilder{device}
-                                    .setDepthAttachmentFormat(VulkanUtils::findDepthFormat(device))
-                                    .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
-                                    .build())
-                 .build();
+  pipeline =
+      PipelineBuilder{config, device, swapchain}
+          .setLayoutBindingInfo(bindingInfosRender)
+          .setPipelineType(PipelineType::Graphics)
+          .setVertexShaderPath(config.getVulkan().shaderFolder / "GridFluid/Render/shader.vert")
+          .setFragmentShaderPath(config.getVulkan().shaderFolder / "GridFluid/Render/shader.frag")
+          .addPushConstant(vk::ShaderStageFlagBits::eVertex, sizeof(SimulationInfoGridFluid))
+          .setBlendEnabled(true)
+          .setDepthTestEnabled(false)
+          .addRenderPass("toSwapchain",
+                         RenderPassBuilder{device}
+                             .setDepthAttachmentFormat(VulkanUtils::findDepthFormat(device))
+                             .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
+                             .build())
+          .build();
 
   auto queueFamilyIndices = Device::findQueueFamilies(this->device->getPhysicalDevice(), surface);
   vk::CommandPoolCreateInfo commandPoolCreateInfoCompute{
@@ -88,7 +92,9 @@ VulkanGridFluidRender::VulkanGridFluidRender(
       DescriptorBufferInfo{.buffer = buffersUniformMVP, .bufferSize = sizeof(UniformBufferObject)},
       DescriptorBufferInfo{.buffer = buffersUniformCameraPos, .bufferSize = sizeof(glm::vec3)},
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensity, 1},
-                           .bufferSize = bufferDensity->getSize()}};
+                           .bufferSize = bufferDensity->getSize()},
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferTags, 1},
+                           .bufferSize = bufferTags->getSize()}};
 
   createDescriptorPool();
 
@@ -181,15 +187,22 @@ void VulkanGridFluidRender::createIndexBuffer(const std::vector<Model> &models) 
 }
 
 void VulkanGridFluidRender::recordCommandBuffers(unsigned int imageIndex) {
-  std::array<vk::Buffer, 1> vertexBuffers{bufferVertex->getBuffer().get()};
-  std::array<vk::DeviceSize, 1> offsets{0};
-  auto &swapchainFramebuffers = framebuffersSwapchain->getFramebuffers();
   const auto &commandBufferGraphics = commandBuffers[imageIndex];
 
   vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse,
                                        .pInheritanceInfo = nullptr};
 
   commandBufferGraphics->begin(beginInfo);
+
+  recordRenderpass(imageIndex, commandBufferGraphics);
+
+  commandBufferGraphics->end();
+}
+void VulkanGridFluidRender::recordRenderpass(unsigned int imageIndex,
+                                             const vk::UniqueCommandBuffer &commandBuffer) {
+  const auto &swapchainFramebuffers = framebuffersSwapchain->getFramebuffers();
+  std::array<vk::Buffer, 1> vertexBuffers{bufferVertex->getBuffer().get()};
+  std::array<vk::DeviceSize, 1> offsets{0};
 
   std::vector<vk::ClearValue> clearValues(2);
   clearValues[0].setColor({std::array<float, 4>{1.0f, 1.0f, 1.0f, 1.0f}});
@@ -202,25 +215,22 @@ void VulkanGridFluidRender::recordCommandBuffers(unsigned int imageIndex) {
       .clearValueCount = static_cast<uint32_t>(clearValues.size()),
       .pClearValues = clearValues.data()};
 
-  commandBufferGraphics->beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
-  commandBufferGraphics->bindPipeline(vk::PipelineBindPoint::eGraphics,
-                                      pipeline->getPipeline().get());
-  commandBufferGraphics->bindVertexBuffers(0, 1, vertexBuffers.data(), offsets.data());
-  commandBufferGraphics->bindIndexBuffer(bufferIndex->getBuffer().get(), 0, vk::IndexType::eUint16);
-  commandBufferGraphics->pushConstants(pipeline->getPipelineLayout().get(),
-                                       vk::ShaderStageFlagBits::eVertex, 0,
-                                       sizeof(SimulationInfoGridFluid), &simulationInfoGridFluid);
+  commandBuffer->beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
+  commandBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline->getPipeline().get());
+  commandBuffer->bindVertexBuffers(0, 1, vertexBuffers.data(), offsets.data());
+  commandBuffer->bindIndexBuffer(bufferIndex->getBuffer().get(), 0, vk::IndexType::eUint16);
+  commandBuffer->pushConstants(pipeline->getPipelineLayout().get(),
+                               vk::ShaderStageFlagBits::eVertex, 0, sizeof(SimulationInfoGridFluid),
+                               &simulationInfoGridFluid);
 
-  commandBufferGraphics->bindDescriptorSets(
+  commandBuffer->bindDescriptorSets(
       vk::PipelineBindPoint::eGraphics, pipeline->getPipelineLayout().get(), 0, 1,
       &descriptorSet->getDescriptorSets()[imageIndex].get(), 0, nullptr);
 
-  commandBufferGraphics->drawIndexed(indicesSizes[0],
-                                     glm::compMul(config.getApp().simulationSPH.gridSize), 0, 0, 0);
-  imgui->addToCommandBuffer(commandBufferGraphics);
-  commandBufferGraphics->endRenderPass();
-
-  commandBufferGraphics->end();
+  commandBuffer->drawIndexed(indicesSizes[0], glm::compMul(config.getApp().simulationSPH.gridSize),
+                             0, 0, 0);
+  imgui->addToCommandBuffer(commandBuffer);
+  commandBuffer->endRenderPass();
 }
 void VulkanGridFluidRender::setImgui(std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> &inImgui) {
   VulkanGridFluidRender::imgui = inImgui;
@@ -230,22 +240,24 @@ void VulkanGridFluidRender::updateDensityBuffer(std::shared_ptr<Buffer> densityB
   descriptorSet->updateDescriptorSet(descriptorBufferInfos, bindingInfosRender);
 }
 void VulkanGridFluidRender::rebuildPipeline(bool clearBeforeDraw) {
-  pipeline = PipelineBuilder{config, device, swapchain}
-                 .setLayoutBindingInfo(bindingInfosRender)
-                 .setPipelineType(PipelineType::Graphics)
-                 .setVertexShaderPath(config.getVulkan().shaderFolder / "GridFluid/shader.vert")
-                 .setFragmentShaderPath(config.getVulkan().shaderFolder / "GridFluid/shader.frag")
-                 .addPushConstant(vk::ShaderStageFlagBits::eVertex, sizeof(SimulationInfoGridFluid))
-                 .setBlendEnabled(true)
-                 .addRenderPass("toSwapchain",
-                                RenderPassBuilder{device}
-                                    .setDepthAttachmentFormat(VulkanUtils::findDepthFormat(device))
-                                    .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
-                                    .setColorAttachmentLoadOp(clearBeforeDraw
-                                                                  ? vk::AttachmentLoadOp::eClear
-                                                                  : vk::AttachmentLoadOp::eLoad)
-                                    .build())
-                 .build();
+  pipeline =
+      PipelineBuilder{config, device, swapchain}
+          .setLayoutBindingInfo(bindingInfosRender)
+          .setPipelineType(PipelineType::Graphics)
+          .setVertexShaderPath(config.getVulkan().shaderFolder / "GridFluid/Render/shader.vert")
+          .setFragmentShaderPath(config.getVulkan().shaderFolder / "GridFluid/Render/shader.frag")
+          .addPushConstant(vk::ShaderStageFlagBits::eVertex, sizeof(SimulationInfoGridFluid))
+          .setBlendEnabled(true)
+          .setDepthTestEnabled(false)
+          .addRenderPass("toSwapchain",
+                         RenderPassBuilder{device}
+                             .setDepthAttachmentFormat(VulkanUtils::findDepthFormat(device))
+                             .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
+                             .setColorAttachmentLoadOp(clearBeforeDraw
+                                                           ? vk::AttachmentLoadOp::eClear
+                                                           : vk::AttachmentLoadOp::eLoad)
+                             .build())
+          .build();
 
   descriptorSet =
       std::make_shared<DescriptorSet>(device, swapchain->getSwapchainImageCount(),

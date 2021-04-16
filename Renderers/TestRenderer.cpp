@@ -9,9 +9,11 @@
 #include <numbers>
 #include <spdlog/spdlog.h>
 
-TestRenderer::TestRenderer(const Config &config)
-    : config(config), window(config.getVulkan().window.name, config.getVulkan().window.width,
-                             config.getVulkan().window.height),
+TestRenderer::TestRenderer(Config &config)
+    : config(config), camera(config.getApp().cameraPos, glm::vec3(0,1,0),
+                             config.getApp().yaw, config.getApp().pitch),
+      window(config.getVulkan().window.name, config.getVulkan().window.width,
+             config.getVulkan().window.height),
       vulkanCore(config, window, camera.Position),
       keyMovementSubscriber(
           window.subscribeToKeyEvents([this](KeyMessage message) { cameraKeyMovement(message); })),
@@ -82,15 +84,15 @@ std::vector<ParticleRecord> TestRenderer::createParticles() {
   for (int z = 0; z < sizeZ; ++z) {
     for (int y = 0; y < sizeY; ++y) {
       for (int x = 0; x < sizeX; ++x) {
-        data[(z * sizeY * sizeX) + (y * sizeX) + x].position =
-            0.01f + glm::vec4{x, y, z, 0.0f} * glm::vec4(particleSize, 0.0f);
+        data[(z * sizeY * sizeX) + (y * sizeX) + x].position = glm::vec4{0.01, 0.01f, 0.01, 0}
+            + (glm::vec4{x, y, z, 0.0f} * glm::vec4(particleSize, 0.0f) * 0.4f);
         data[(z * sizeY * sizeX) + (y * sizeX) + x].currentVelocity = glm::vec4{0.0f};
         data[(z * sizeY * sizeX) + (y * sizeX) + x].velocity = glm::vec4{0.0f};
         data[(z * sizeY * sizeX) + (y * sizeX) + x].massDensity = -1.0f;
         data[(z * sizeY * sizeX) + (y * sizeX) + x].pressure = -1.0f;
-        data[(z * sizeY * sizeX) + (y * sizeX) + x].temperature = 25.f;// TODO from config
-        data[(z * sizeY * sizeX) + (y * sizeX) + x].surfaceArea = 0.0f;// TODO from config
-        data[(z * sizeY * sizeX) + (y * sizeX) + x].weight = .49f;     // TODO from config
+        data[(z * sizeY * sizeX) + (y * sizeX) + x].temperature = 100.f;// TODO from config
+        data[(z * sizeY * sizeX) + (y * sizeX) + x].surfaceArea = 0.0f; // TODO from config
+        data[(z * sizeY * sizeX) + (y * sizeX) + x].weight = 0.4f;      // TODO from config
       }
     }
   }
@@ -101,6 +103,9 @@ TestRenderer::~TestRenderer() {
   mouseButtonSubscriber.unsubscribe();
   mouseMovementSubscriber.unsubscribe();
   keyMovementSubscriber.unsubscribe();
+
+  config.updateCameraPos(camera);
+  config.save();
 }
 SimulationInfoSPH TestRenderer::getSimulationInfoSPH() {
   const auto &simConfig = config.getApp().simulationSPH;

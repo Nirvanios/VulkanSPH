@@ -2,8 +2,8 @@
 
 #extension GL_EXT_debug_printf : enable
 
-#define DRAW_PARTICLE 0
-#define DRAW_OTHER 1
+#define DRAW_PARTICLE 1
+#define DRAW_GRID 2
 
 #define TEXTURE_VIZUALIZE_NONE 0
 #define TEXTURE_VIZUALIZE_MASSDENSITY 1
@@ -91,7 +91,8 @@ void main() {
           break;
       }
       break;
-    case DRAW_OTHER:
+    case DRAW_GRID:
+    default:
       gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);
       fragColor = vec4(inColor, 1.0f);
       break;

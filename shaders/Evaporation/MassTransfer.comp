@@ -89,6 +89,10 @@ layout(std430, binding = 3) buffer GridNew { vec2 gridDensityHeatBuffer[]; };
 
 layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 
+int neighboursBoundary[] = {
+    -VEC_TO_INDEX_BOUNDARY(vec3(1, 0, 0)), VEC_TO_INDEX_BOUNDARY(vec3(1, 0, 0)),
+    -VEC_TO_INDEX_BOUNDARY(vec3(0, 1, 0)), VEC_TO_INDEX_BOUNDARY(vec3(0, 1, 0)),
+    -VEC_TO_INDEX_BOUNDARY(vec3(0, 0, 1)), VEC_TO_INDEX_BOUNDARY(vec3(0, 0, 1))};
 int neighbours[] = {-VEC_TO_INDEX(vec3(1, 0, 0)), VEC_TO_INDEX(vec3(1, 0, 0)),
                     -VEC_TO_INDEX(vec3(0, 1, 0)), VEC_TO_INDEX(vec3(0, 1, 0)),
                     -VEC_TO_INDEX(vec3(0, 0, 1)), VEC_TO_INDEX(vec3(0, 0, 1))};
@@ -97,8 +101,8 @@ const ivec3 neighbours3D[] = {-(ivec3(1, 0, 0)), (ivec3(1, 0, 0)),  -(ivec3(0, 1
 float neighboursMassChange[6] = {0, 0, 0, 0, 0, 0};
 bool evaporateInto[6] = {false, false, false, false, false, false};
 
-float coefficientA = 1;
-float coefficientB = 1 * simulationInfoSPH.timeStep;
+float coefficientA = 100;
+float coefficientB = 0.0;
 
 void main() {
   uint myId = gl_GlobalInvocationID.x;
@@ -107,35 +111,39 @@ void main() {
 
     const ivec3 gridSizeWithBorders = simulationInfoGrid.gridSize.xyz + ivec3(2);
     const ivec3 myId3DGrid =
-        ivec3(myId % simulationInfoGrid.gridSize.x,
-              int(myId % (simulationInfoGrid.gridSize.x * simulationInfoGrid.gridSize.y)
+        ivec3(myGridID % simulationInfoGrid.gridSize.x,
+              int(myGridID % (simulationInfoGrid.gridSize.x * simulationInfoGrid.gridSize.y)
                   / simulationInfoGrid.gridSize.x),
-              int(myId / (simulationInfoGrid.gridSize.x * simulationInfoGrid.gridSize.y)));
+              int(myGridID / (simulationInfoGrid.gridSize.x * simulationInfoGrid.gridSize.y)));
     const uint myIdGrid = (myId3DGrid.x + 1) + (myId3DGrid.y + 1) * gridSizeWithBorders.x
         + (myId3DGrid.z + 1) * gridSizeWithBorders.x * gridSizeWithBorders.y;
 
     const bool isInterface =
         bool(bitfieldExtract(cellInfos[myGridID].tags, TAG_IS_INTERFACE_BIT, 1));
 
-    if (isInterface) {
+    if (isInterface && particleRecords[myId].weight > 0) {
       float neighboursMassChangeSum = 0.0f;
       for (int i = 0; i < 6; ++i) {
-        uint currentGridID = myIdGrid + neighbours[i];
+        uint currentGridID = myGridID + neighbours[i];
+        uint currentGridBoundaryID = myIdGrid + neighboursBoundary[i];
         const uint neighbourType =
             bitfieldExtract(cellInfos[currentGridID].tags, TAG_CELL_TYPE_BIT, 1);
         if (neighbourType == CELL_TYPE_AIR) evaporateInto[i] = true;
         float vaporPressure = simulationInfoGrid.specificGasConstant
-            * (gridDensityHeatBuffer[currentGridID].y - 273.15);
+            * (gridDensityHeatBuffer[currentGridBoundaryID].y - 273.15);
         float saturationVaporPressure = 611.2
             * exp(((17.62 * particleRecords[myId].temperature)
                    / (243.12 + particleRecords[myId].temperature)));
         neighboursMassChange[i] =
             max(particleRecords[myId].surfaceArea
                     * (coefficientA
-                       + coefficientB * length(gridVelocities[currentGridID].xyz)
+                       + coefficientB * length(gridVelocities[currentGridBoundaryID].xyz)
                            * (saturationVaporPressure - vaporPressure)),
                 0.0f)
             * simulationInfoSPH.timeStep;
+        //if (particleRecords[myId].surfaceArea <= 0)
+          //debugPrintfEXT("myId: %d, B: %f", myId, coefficientB * length(gridVelocities[currentGridBoundaryID].xyz));
+          debugPrintfEXT("myId: %d, surf %e", myId, particleRecords[myId].surfaceArea);
         neighboursMassChangeSum += neighboursMassChange[i];
       }
       float weightedParicleMass = simulationInfoSPH.particleMass * particleRecords[myId].weight;
@@ -143,15 +151,23 @@ void main() {
       neighboursMassChangeSum = 0.0;
       for (int i = 0; i < 6; ++i) {
         neighboursMassChange[i] *= evaporationWeight;
-        atomicAdd(gridDensityHeatBuffer[myGridID + neighbours[i]].x, neighboursMassChange[i]);
-        neighboursMassChangeSum += neighboursMassChange[i];
+        if (evaporateInto[i]) {
+          atomicAdd(gridDensityHeatBuffer[myIdGrid + neighboursBoundary[i]].x,
+                    neighboursMassChange[i]);
+
+          /*           debugPrintfEXT("Adding to %d (%d + %d) value %f", myIdGrid + neighboursBoundary[i],
+                         myIdGrid, neighboursBoundary[i], neighboursMassChange[i]); */
+          neighboursMassChangeSum += neighboursMassChange[i];
+        }
       }
 
-/*       debugPrintfEXT("myId: %d, weightedParicleMass: %f, neighboursMassChangeSum: %f", myId,
-                     weightedParicleMass, neighboursMassChangeSum); */
+      debugPrintfEXT("myId: %d, weightedParicleMass: %e, neighboursMassChangeSum: %e", myId,
+                     weightedParicleMass, neighboursMassChangeSum);
 
-      particleRecords[myId].weight *=
+            particleRecords[myId].weight *=
           ((weightedParicleMass - neighboursMassChangeSum) / weightedParicleMass);
+
+          debugPrintfEXT("myId: %d, newWeight: %e", myId, particleRecords[myId].weight);
     }
   }
 }

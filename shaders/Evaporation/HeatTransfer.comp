@@ -146,8 +146,8 @@ void main() {
       for (int i = 0; i < 6; ++i) {
         uint cellId = INDEX_TO_BOUNDARY_INDEX(particleRecords[myId].gridID + neighboursBoundary[i]);
         //if (myId == 1) debugPrintfEXT("myId: %d, cellId: %d, i: %d, isOnEdge :%d, densityGZ: %d, 3d: %v3d", myId, cellId, i, int(!isOnEdge(particleGridIndex3D + neighbours3D[i])), int(gridDensityHeatBufferOld[cellId].x > 0), particleGridIndex3D);
-        if (!isOnEdge(particleGridIndex3D + neighbours3D[i])) {
-      //debugPrintfEXT("myId: %d, i %d", myId, i);
+        if (!isOnEdge(particleGridIndex3D + neighbours3D[i]) && particleRecords[myId].weight > 0) {
+          //debugPrintfEXT("myId: %d, i %d", myId, i);
           particleHeatChange +=
               ((4 * simulationInfoSPH.heatConductivity * simulationInfoGrid.heatConductivity)
                / (simulationInfoGrid.heatConductivity + simulationInfoSPH.heatConductivity))
@@ -184,19 +184,20 @@ void main() {
                        myIdGrid, sortedID, currentGridID, i); */
         while (gridSPH[sortedID].value == currentGridID
                && sortedID < simulationInfoSPH.particleCount) {
-          vec4 relativePosition =
-              particleRecords[sortedID].position - simulationInfoGrid.gridOrigin;
-          ivec3 particleGridIndex3D =
-              ivec3(floor(relativePosition.xyz / simulationInfoGrid.cellSize));
-          vec3 alpha = (particleRecords[sortedID].position.xyz - particleGridIndex3D)
-              / simulationInfoGrid.cellSize;
+          if (particleRecords[sortedID].weight > 0) {
+            vec4 relativePosition =
+                particleRecords[sortedID].position - simulationInfoGrid.gridOrigin;
+            ivec3 particleGridIndex3D =
+                ivec3(floor(relativePosition.xyz / simulationInfoGrid.cellSize));
+            vec3 alpha = (particleRecords[sortedID].position.xyz - particleGridIndex3D)
+                / simulationInfoGrid.cellSize;
 
-          cellHeatChange +=
-              ((4 * simulationInfoSPH.heatConductivity * simulationInfoGrid.heatConductivity)
-               / (simulationInfoGrid.heatConductivity + simulationInfoSPH.heatConductivity))
-              * (particleRecords[sortedID].temperature - gridDensityHeatBufferOld[myIdGrid].y)
-              * (1 - alpha[int(i / 2)]) * particleRecords[sortedID].surfaceArea;
-
+            cellHeatChange +=
+                ((4 * simulationInfoSPH.heatConductivity * simulationInfoGrid.heatConductivity)
+                 / (simulationInfoGrid.heatConductivity + simulationInfoSPH.heatConductivity))
+                * (particleRecords[sortedID].temperature - gridDensityHeatBufferOld[myIdGrid].y)
+                * (1 - alpha[int(i / 2)]) * particleRecords[sortedID].surfaceArea;
+          }
           ++sortedID;
         }
       }

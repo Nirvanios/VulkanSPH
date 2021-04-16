@@ -109,7 +109,7 @@ void main() {
      * Mass-density center for Surface area
      */
 
-    const float particleRadius = simulationInfo.supportRadius * 0.5;
+    const float particleRadius = simulationInfo.supportRadius;
 
     vec3 center1 = vec3(0.0);
     float center2 = 0.0;
@@ -129,18 +129,24 @@ void main() {
           while (grid[sortedID].value == currentGridID && sortedID < simulationInfo.particleCount) {
 
             const int neighbourID = grid[sortedID].key;
-            if (myId != neighbourID) {
-              float neighbourWeightedMass = simulationInfo.particleMass * particleRecords[neighbourID].weight;
-              vec4 positionDiff =
-                  particleRecords[myId].position - particleRecords[neighbourID].position;
-              center1 += neighbourWeightedMass / particleRecords[neighbourID].massDensity
-                  * defaultKernel(positionDiff, length(positionDiff), simulationInfo.supportRadius)
-                  * particleRecords[neighbourID].position.xyz;
-              center2 += neighbourWeightedMass / particleRecords[neighbourID].massDensity
-                  * defaultKernel(positionDiff, length(positionDiff), simulationInfo.supportRadius);
-              weightingKernelFraction +=
-                  (neighbourWeightedMass / particleRecords[neighbourID].massDensity)
-                  * defaultKernel(positionDiff, length(positionDiff), simulationInfo.supportRadius);
+            if (particleRecords[neighbourID].weight > 0) {
+              if (myId != neighbourID) {
+                float neighbourWeightedMass =
+                    simulationInfo.particleMass * particleRecords[neighbourID].weight;
+                vec4 positionDiff =
+                    particleRecords[myId].position - particleRecords[neighbourID].position;
+                center1 += neighbourWeightedMass / particleRecords[neighbourID].massDensity
+                    * defaultKernel(positionDiff, length(positionDiff),
+                                    simulationInfo.supportRadius)
+                    * particleRecords[neighbourID].position.xyz;
+                center2 += neighbourWeightedMass / particleRecords[neighbourID].massDensity
+                    * defaultKernel(positionDiff, length(positionDiff),
+                                    simulationInfo.supportRadius);
+                weightingKernelFraction +=
+                    (neighbourWeightedMass / particleRecords[neighbourID].massDensity)
+                    * defaultKernel(positionDiff, length(positionDiff),
+                                    simulationInfo.supportRadius);
+              }
             }
             ++sortedID;
           }

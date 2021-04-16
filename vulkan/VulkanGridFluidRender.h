@@ -20,32 +20,35 @@ class VulkanGridFluidRender {
  public:
   VulkanGridFluidRender(Config config, const std::shared_ptr<Device> &device,
                         const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Swapchain> swapchain,
-                        const Model &model, const SimulationInfoGridFluid &inSimulationInfoGridFluid,
+                        const Model &model,
+                        const SimulationInfoGridFluid &inSimulationInfoGridFluid,
                         std::shared_ptr<Buffer> inBufferDensity,
                         std::vector<std::shared_ptr<Buffer>> buffersUniformMVP,
-                        std::vector<std::shared_ptr<Buffer>> buffersUniformCameraPos);
+                        std::vector<std::shared_ptr<Buffer>> buffersUniformCameraPos,
+                        std::shared_ptr<Buffer> inBufferTags);
   vk::UniqueSemaphore draw(const vk::UniqueSemaphore &inSemaphore, unsigned int imageIndex,
                            const vk::UniqueFence &fenceInFlight);
   void setImgui(std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> &inImgui);
   void updateDensityBuffer(std::shared_ptr<Buffer> densityBufferNew);
   void rebuildPipeline(bool clearBeforeDraw);
   void setFramebuffersSwapchain(const std::shared_ptr<Framebuffers> &framebuffer);
+  void recordRenderpass(unsigned int imageIndex, const vk::UniqueCommandBuffer &commandBuffer);
 
  private:
-  std::array<PipelineLayoutBindingInfo, 3> bindingInfosRender{
-      PipelineLayoutBindingInfo{
-          .binding = 0,
-          .descriptorType = vk::DescriptorType::eUniformBuffer,
-          .descriptorCount = 1,
-          .stageFlags = vk::ShaderStageFlagBits::eVertex,
-      },
-      PipelineLayoutBindingInfo{
-          .binding = 1,
-          .descriptorType = vk::DescriptorType::eUniformBuffer,
-          .descriptorCount = 1,
-          .stageFlags = vk::ShaderStageFlagBits::eFragment,
-      },
+  std::array<PipelineLayoutBindingInfo, 4> bindingInfosRender{
+      PipelineLayoutBindingInfo{.binding = 0,
+                                .descriptorType = vk::DescriptorType::eUniformBuffer,
+                                .descriptorCount = 1,
+                                .stageFlags = vk::ShaderStageFlagBits::eVertex},
+      PipelineLayoutBindingInfo{.binding = 1,
+                                .descriptorType = vk::DescriptorType::eUniformBuffer,
+                                .descriptorCount = 1,
+                                .stageFlags = vk::ShaderStageFlagBits::eFragment},
       PipelineLayoutBindingInfo{.binding = 2,
+                                .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                .descriptorCount = 1,
+                                .stageFlags = vk::ShaderStageFlagBits::eVertex},
+      PipelineLayoutBindingInfo{.binding = 3,
                                 .descriptorType = vk::DescriptorType::eStorageBuffer,
                                 .descriptorCount = 1,
                                 .stageFlags = vk::ShaderStageFlagBits::eVertex}};
@@ -73,6 +76,7 @@ class VulkanGridFluidRender {
   std::vector<std::shared_ptr<Buffer>> buffersUniformCameraPos;
 
   std::shared_ptr<Buffer> bufferDensity;
+  std::shared_ptr<Buffer> bufferTags;
 
   std::shared_ptr<Pipeline> pipeline;
 

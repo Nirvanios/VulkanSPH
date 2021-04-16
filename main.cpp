@@ -12,7 +12,7 @@ void setupLogger(bool debug = false) {
 }
 
 int main() {
-  const Config config("../config.toml");
+  Config config("../config.toml");
   setupLogger(config.getApp().DEBUG);
 
   TestRenderer testRenderer{config};

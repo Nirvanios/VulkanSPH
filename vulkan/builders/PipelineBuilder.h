@@ -33,6 +33,8 @@ class PipelineBuilder {
   PipelineBuilder &setAssemblyInfo(vk::PrimitiveTopology topology, bool usePrimitiveRestartIndex);
   PipelineBuilder &addRenderPass(const std::string& name, std::shared_ptr<RenderPass> renderPass);
   PipelineBuilder &setBlendEnabled(bool enabled);
+  PipelineBuilder &setDepthTestEnabled(bool enabled);
+
 
  private:
   Config config;
@@ -62,6 +64,7 @@ class PipelineBuilder {
       .primitiveRestartEnable = VK_FALSE};
 
   bool blendEnabled = false;
+  bool depthTestEnabled = true;
 };
 
 #endif//VULKANAPP_PIPELINEBUILDER_H

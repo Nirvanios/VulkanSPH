@@ -10,16 +10,16 @@
 #include "../vulkan/VulkanCore.h"
 class TestRenderer {
  public:
-  explicit TestRenderer(const Config &config);
+  explicit TestRenderer(Config &config);
   virtual ~TestRenderer();
   void run();
 
  private:
   bool leftMouseButtonPressed = false;
   double xMousePosition = 0.0, yMousePosition = 0.0;
-  const Config &config;
+  Config &config;
 
-  Camera camera{glm::vec3{0.0f, 0.0f, 2.0f}};
+  Camera camera;
   const std::string windowName = "TestRenderer";
   GlfwWindow window;
   VulkanCore vulkanCore;

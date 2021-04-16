@@ -82,25 +82,40 @@ void main() {
   //debugPrintfEXT("gridSize %v4d", simulationInfoGrid.gridSize);
 
   if (myId < cellCount) {
+    int currentSortedID = cellInfos[myId].indexes;
+    while (gridSPH[currentSortedID].value == myId
+           && currentSortedID < simulationInfoSPH.particleCount) {
+      const int currentParticleID = gridSPH[currentSortedID].key;
+      hasPair[currentParticleID].key = -1;
+      hasPair[currentParticleID].value = -1;
+      ++currentSortedID;
+    }
+  }
+
+  barrier();
+
+  if (myId < cellCount) {
 
     if (cellInfos[myId].indexes != -1) {
       int currentSortedID = cellInfos[myId].indexes;
 
       while (gridSPH[currentSortedID].value == myId
-             && currentSortedID < simulationInfoSPH.particleCount) {
-        const int currentParticleID = gridSPH[currentSortedID].key;
+             && currentSortedID < simulationInfoSPH.particleCount) {//walk all parts in cell
+        const int currentParticleID = gridSPH[currentSortedID].key; //get part id
         int neighbourSortedID = cellInfos[myId].indexes;
         //debugPrintfEXT("myId: %d, currentParticleID :%d", myId, currentParticleID);
         if (particleRecords[currentParticleID].weight < 0.5
-            && hasPair[currentParticleID].value == -1) {
+            && particleRecords[currentParticleID].weight > 0.0
+            && hasPair[currentParticleID].value
+                == -1) {//if low weight and no pair walk all other parts
           ++hasPair[currentParticleID].value;
           while (gridSPH[neighbourSortedID].value == myId
                  && neighbourSortedID < simulationInfoSPH.particleCount) {
-            const int neighbourParticleID = gridSPH[neighbourSortedID].key;
+            const int neighbourParticleID = gridSPH[neighbourSortedID].key;//get other part id
 
             if (neighbourParticleID != currentParticleID
-                && particleRecords[neighbourParticleID].weight < 0.8
-                && hasPair[neighbourParticleID].value == -1) {
+                && particleRecords[neighbourParticleID].weight > 0.0
+                && hasPair[neighbourParticleID].value == -1) {//if not same and no pair
               ++hasPair[neighbourParticleID].value;
               ++hasPair[currentParticleID].value;
               hasPair[neighbourParticleID].key = currentSortedID;
@@ -108,8 +123,10 @@ void main() {
             }
             ++neighbourSortedID;
           }
-          particleRecords[currentParticleID].weight = 0;
-          debugPrintfEXT("myId: %d, weight 0", myId);
+          if (hasPair[currentParticleID].value > 0) {
+            particleRecords[currentParticleID].weight = 0;
+            debugPrintfEXT("myId: %d, weight 0", myId);
+          }
         }
         ++currentSortedID;
       }
@@ -120,7 +137,8 @@ void main() {
         if (hasPair[currentSortedID].key != -1) {
           particleRecords[currentParticleID].weight +=
               weightsNew[currentParticleID] / hasPair[hasPair[currentParticleID].key].value;
-              debugPrintfEXT("myId: %d, newWeight: %f", myId, weightsNew[currentParticleID] / hasPair[hasPair[currentParticleID].key].value);
+          debugPrintfEXT("myId: %d, newWeight: %f", myId,
+                         particleRecords[currentParticleID].weight);
         }
         ++currentSortedID;
       }

@@ -112,7 +112,6 @@ vk::UniqueSemaphore VulkanSPH::run(const vk::UniqueSemaphore &semaphoreWait, SPH
       recordCommandBuffer(pipelineAdvect);
       submitInfoCompute.pSignalSemaphores = &semaphoreOut;
       queue.submit(submitInfoCompute, fence.get());
-
       this->device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
       this->device->getDevice()->resetFences(fence.get());
       break;
@@ -140,8 +139,6 @@ vk::UniqueSemaphore VulkanSPH::run(const vk::UniqueSemaphore &semaphoreWait, SPH
       this->device->getDevice()->resetFences(fence.get());
       break;
   }
-
-
 
 
   return vk::UniqueSemaphore(semaphoreOut, device->getDevice().get());

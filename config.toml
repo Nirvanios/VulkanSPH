@@ -1,32 +1,28 @@
 [App]
 DEBUG = true
 outputToFile = false
-
+pitch = -15.099977493286133
+yaw = -11.900189399719238
+cameraPos = [-6.9187860488891602,3.9882872104644775,3.6379108428955078]
 [App.simulationSPH]
 useNNS = true
+fluidVolume = 2.0
+particleCount = 8
 timeStep = 0.001
+heatCapacity = 4.1790000000000003
 gasStiffness = 10.0
+gridSize = [16,16,16]
 viscosityCoefficient = 3.5
-fluidVolume = 0.2
-fluidDensity = 998.29
-particleCount = 8 #24000 #2304 #64
-particleModelSize = [2,2,2] #[20,60,20] #[12, 16, 12] #[4, 4, 4]
-gridOrigin =  [0.0, 0.0, 0.0]
-gridSize = [3,3,3] #[40,40,40] #[8, 8, 8]
-particleModel = "/home/aka/CLionProjects/VulkanSPH/resources/sphere.obj"
+particleModelSize = [2,2,2]
+fluidDensity = 998.28999999999996
+gridOrigin = [0.0,0.0,0.0]
 heatConductivity = 0.62
-heatCapacity = 4.179
-
+particleModel = "/home/aka/CLionProjects/VulkanSPH/resources/sphere.obj"
 [App.simulationGridFluid]
 cellModel = "/home/aka/CLionProjects/VulkanSPH/resources/cube.obj"
 ambientTemperature = 25.0
 
 [Vulkan]
 pathToShaders = "/home/aka/CLionProjects/VulkanSPH/shaders/"
-
-[Vulkan.window]
-name = "VulkanApp"
-width = 1280
-height = 720
-
+window = {name="VulkanApp",width=1280,height=720}
 

@@ -89,6 +89,9 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
                          | vk::BufferUsageFlagBits::eStorageBuffer)
           .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
       device, commandPoolGraphics, queueGraphics);
+  auto cellInfos = std::vector<CellInfo>(glm::compMul(simulationInfoSPH.gridSize.xyz()),
+                                         CellInfo{.tags = 0, .indexes = -1});
+  bufferIndexes->fill(cellInfos);
 
   vulkanSPH = std::make_unique<VulkanSPH>(surface, device, config, swapchain, simulationInfoSPH,
                                           particles, bufferIndexes, bufferCellParticlePair);
@@ -102,7 +105,7 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
       config, device, surface, swapchain,
       Utilities::loadModelFromObj(config.getApp().simulationGridFluid.cellModel),
       simulationInfoGridFluid, vulkanGridFluid->getBufferValuesNew(), buffersUniformMVP,
-      buffersUniformCameraPos);
+      buffersUniformCameraPos, bufferIndexes);
   vulkanGridFluidRender->setFramebuffersSwapchain(framebuffersSwapchain);
 
   vulkanGridFluidSphCoupling = std::make_unique<VulkanGridFluidSPHCoupling>(
@@ -190,7 +193,7 @@ void VulkanCore::createCommandBuffers() {
   //recordCommandBuffers();
 }
 
-void VulkanCore::recordCommandBuffers(uint32_t imageIndex) {
+void VulkanCore::recordCommandBuffers(uint32_t imageIndex, Utilities::Flags<DrawType> stageRecord) {
   std::array<vk::Buffer, 1> vertexBuffers{bufferVertex->getBuffer().get()};
   std::array<vk::DeviceSize, 1> offsets{0};
   auto &swapchainFramebuffers = framebuffersSwapchain->getFramebuffers();
@@ -215,92 +218,113 @@ void VulkanCore::recordCommandBuffers(uint32_t imageIndex) {
       .clearValueCount = static_cast<uint32_t>(clearValues.size()),
       .pClearValues = clearValues.data()};
 
-  commandBufferGraphics->beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
-  commandBufferGraphics->bindPipeline(vk::PipelineBindPoint::eGraphics,
-                                      pipelineGraphics->getPipeline().get());
-  commandBufferGraphics->bindVertexBuffers(0, 1, vertexBuffers.data(), offsets.data());
-  commandBufferGraphics->bindIndexBuffer(bufferIndex->getBuffer().get(), 0, vk::IndexType::eUint16);
-  commandBufferGraphics->bindDescriptorSets(
-      vk::PipelineBindPoint::eGraphics, pipelineGraphics->getPipelineLayout().get(), 0, 1,
-      &descriptorSetGraphics->getDescriptorSets()[imageIndex].get(), 0, nullptr);
-  drawInfo.drawType = magic_enum::enum_integer(DrawType::Particles);
-  commandBufferGraphics->pushConstants(pipelineGraphics->getPipelineLayout().get(),
-                                       vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawInfo),
-                                       &drawInfo);
-
-  commandBufferGraphics->drawIndexed(indicesSizes[0], config.getApp().simulationSPH.particleCount,
-                                     0, 0, 0);
-
-  commandBufferGraphics->bindPipeline(vk::PipelineBindPoint::eGraphics,
-                                      pipelineGraphicsGrid->getPipeline().get());
-  drawInfo.drawType = magic_enum::enum_integer(DrawType::Grid);
-  commandBufferGraphics->bindIndexBuffer(bufferIndex->getBuffer().get(), indicesByteOffsets[1],
-                                         vk::IndexType::eUint16);
-  commandBufferGraphics->pushConstants(pipelineGraphicsGrid->getPipelineLayout().get(),
-                                       vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawInfo),
-                                       &drawInfo);
-  commandBufferGraphics->drawIndexed(indicesSizes[1], 1, 0, verticesCountOffset[1], 0);
-  imgui->addToCommandBuffer(commandBufferGraphics);
-  commandBufferGraphics->endRenderPass();
-
-  renderPassBeginInfo.renderPass = pipelineGraphics->getRenderPass("toTexture");
-  renderPassBeginInfo.framebuffer = textureFramebuffers[imageIndex].get();
-  drawInfo.visualization = magic_enum::enum_integer(textureVisualization);
+  //vulkanGridFluidRender->recordRenderpass(imageIndex, commandBufferGraphics);
 
   commandBufferGraphics->beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
-  commandBufferGraphics->bindPipeline(vk::PipelineBindPoint::eGraphics,
-                                      pipelineGraphics->getPipeline().get());
   commandBufferGraphics->bindVertexBuffers(0, 1, vertexBuffers.data(), offsets.data());
-  commandBufferGraphics->bindIndexBuffer(bufferIndex->getBuffer().get(), 0, vk::IndexType::eUint16);
-  commandBufferGraphics->bindDescriptorSets(
-      vk::PipelineBindPoint::eGraphics, pipelineGraphics->getPipelineLayout().get(), 0, 1,
-      &descriptorSetGraphics->getDescriptorSets()[imageIndex].get(), 0, nullptr);
 
-  drawInfo.drawType = magic_enum::enum_integer(DrawType::Particles);
-  commandBufferGraphics->pushConstants(pipelineGraphics->getPipelineLayout().get(),
-                                       vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawInfo),
-                                       &drawInfo);
+  if (stageRecord.has(DrawType::Particles)) {
+    drawInfo.drawType = magic_enum::enum_integer(DrawType::Particles);
 
-  commandBufferGraphics->drawIndexed(indicesSizes[0], config.getApp().simulationSPH.particleCount,
-                                     0, 0, 0);
+    commandBufferGraphics->bindPipeline(vk::PipelineBindPoint::eGraphics,
+                                        pipelineGraphics->getPipeline().get());
+    commandBufferGraphics->bindIndexBuffer(bufferIndex->getBuffer().get(), 0,
+                                           vk::IndexType::eUint16);
+    commandBufferGraphics->bindDescriptorSets(
+        vk::PipelineBindPoint::eGraphics, pipelineGraphics->getPipelineLayout().get(), 0, 1,
+        &descriptorSetGraphics->getDescriptorSets()[imageIndex].get(), 0, nullptr);
+    commandBufferGraphics->pushConstants(pipelineGraphics->getPipelineLayout().get(),
+                                         vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawInfo),
+                                         &drawInfo);
+
+    commandBufferGraphics->drawIndexed(indicesSizes[0], config.getApp().simulationSPH.particleCount,
+                                       0, 0, 0);
+  }
+
+  if (stageRecord.has(DrawType::Grid)) {
+    drawInfo.drawType = magic_enum::enum_integer(DrawType::Grid);
+    commandBufferGraphics->bindPipeline(vk::PipelineBindPoint::eGraphics,
+                                        pipelineGraphicsGrid->getPipeline().get());
+    commandBufferGraphics->bindIndexBuffer(bufferIndex->getBuffer().get(), indicesByteOffsets[1],
+                                           vk::IndexType::eUint16);
+    commandBufferGraphics->bindDescriptorSets(
+        vk::PipelineBindPoint::eGraphics, pipelineGraphics->getPipelineLayout().get(), 0, 1,
+        &descriptorSetGraphics->getDescriptorSets()[imageIndex].get(), 0, nullptr);
+    commandBufferGraphics->pushConstants(pipelineGraphicsGrid->getPipelineLayout().get(),
+                                         vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawInfo),
+                                         &drawInfo);
+    commandBufferGraphics->drawIndexed(indicesSizes[1], 1, 0, verticesCountOffset[1], 0);
+    imgui->addToCommandBuffer(commandBufferGraphics);
+  }
+
   commandBufferGraphics->endRenderPass();
 
-  imageColorTexture[imageIndex]->transitionImageLayout(
-      commandBufferGraphics,
-      simulationType == SimulationType::Combined ? vk::ImageLayout::eColorAttachmentOptimal
-                                                 : vk::ImageLayout::ePresentSrcKHR,
-      vk::ImageLayout::eGeneral, vk::AccessFlagBits::eMemoryWrite, vk::AccessFlagBits::eMemoryRead);
+  if (stageRecord.has(DrawType::ToTexture)) {
 
-  if (config.getApp().outputToFile) {
-    swapchain->getSwapchainImages()[imageIndex]->transitionImageLayout(
-        commandBufferGraphics, vk::ImageLayout::ePresentSrcKHR,
-        vk::ImageLayout::eTransferSrcOptimal, vk::AccessFlagBits::eMemoryRead,
-        vk::AccessFlagBits::eTransferRead);
+    renderPassBeginInfo.renderPass = pipelineGraphics->getRenderPass("toTexture");
+    renderPassBeginInfo.framebuffer = textureFramebuffers[imageIndex].get();
+    drawInfo.visualization = magic_enum::enum_integer(textureVisualization);
 
-    imageOutput->transitionImageLayout(commandBufferGraphics, vk::ImageLayout::eUndefined,
-                                       vk::ImageLayout::eTransferDstOptimal, {},
-                                       vk::AccessFlagBits::eTransferWrite);
+    commandBufferGraphics->beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
+    commandBufferGraphics->bindPipeline(vk::PipelineBindPoint::eGraphics,
+                                        pipelineGraphics->getPipeline().get());
+    commandBufferGraphics->bindVertexBuffers(0, 1, vertexBuffers.data(), offsets.data());
+    commandBufferGraphics->bindIndexBuffer(bufferIndex->getBuffer().get(), 0,
+                                           vk::IndexType::eUint16);
+    commandBufferGraphics->bindDescriptorSets(
+        vk::PipelineBindPoint::eGraphics, pipelineGraphics->getPipelineLayout().get(), 0, 1,
+        &descriptorSetGraphics->getDescriptorSets()[imageIndex].get(), 0, nullptr);
 
-    vk::ImageCopy imageCopyRegion{
-        .srcSubresource = {.aspectMask = vk::ImageAspectFlagBits::eColor, .layerCount = 1},
-        .dstSubresource = {.aspectMask = vk::ImageAspectFlagBits::eColor, .layerCount = 1},
-        .extent = {.width = static_cast<uint32_t>(swapchain->getExtentWidth()),
-                   .height = static_cast<uint32_t>(swapchain->getExtentHeight()),
-                   .depth = 1}};
+    drawInfo.drawType = magic_enum::enum_integer(DrawType::Particles);
+    commandBufferGraphics->pushConstants(pipelineGraphics->getPipelineLayout().get(),
+                                         vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawInfo),
+                                         &drawInfo);
 
-    commandBufferGraphics->copyImage(swapchain->getSwapchainImages()[imageIndex]->getRawImage(),
-                                     vk::ImageLayout::eTransferSrcOptimal,
-                                     imageOutput->getImage().get(),
-                                     vk::ImageLayout::eTransferDstOptimal, 1, &imageCopyRegion);
+    commandBufferGraphics->drawIndexed(indicesSizes[0], config.getApp().simulationSPH.particleCount,
+                                       0, 0, 0);
+    commandBufferGraphics->endRenderPass();
 
-    swapchain->getSwapchainImages()[imageIndex]->transitionImageLayout(
-        commandBufferGraphics, vk::ImageLayout::eTransferSrcOptimal,
-        vk::ImageLayout::ePresentSrcKHR, vk::AccessFlagBits::eTransferRead,
+    imageColorTexture[imageIndex]->transitionImageLayout(
+        commandBufferGraphics,
+        simulationType != SimulationType::SPH ? vk::ImageLayout::eColorAttachmentOptimal
+                                              : vk::ImageLayout::ePresentSrcKHR,
+        vk::ImageLayout::eGeneral, vk::AccessFlagBits::eMemoryWrite,
         vk::AccessFlagBits::eMemoryRead);
+  }
 
-    imageOutput->transitionImageLayout(
-        commandBufferGraphics, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eGeneral,
-        vk::AccessFlagBits ::eTransferWrite, vk::AccessFlagBits::eMemoryRead);
+  if (stageRecord.has(DrawType::ToFile)) {
+
+    if (config.getApp().outputToFile) {
+      swapchain->getSwapchainImages()[imageIndex]->transitionImageLayout(
+          commandBufferGraphics, vk::ImageLayout::ePresentSrcKHR,
+          vk::ImageLayout::eTransferSrcOptimal, vk::AccessFlagBits::eMemoryRead,
+          vk::AccessFlagBits::eTransferRead);
+
+      imageOutput->transitionImageLayout(commandBufferGraphics, vk::ImageLayout::eUndefined,
+                                         vk::ImageLayout::eTransferDstOptimal, {},
+                                         vk::AccessFlagBits::eTransferWrite);
+
+      vk::ImageCopy imageCopyRegion{
+          .srcSubresource = {.aspectMask = vk::ImageAspectFlagBits::eColor, .layerCount = 1},
+          .dstSubresource = {.aspectMask = vk::ImageAspectFlagBits::eColor, .layerCount = 1},
+          .extent = {.width = static_cast<uint32_t>(swapchain->getExtentWidth()),
+                     .height = static_cast<uint32_t>(swapchain->getExtentHeight()),
+                     .depth = 1}};
+
+      commandBufferGraphics->copyImage(swapchain->getSwapchainImages()[imageIndex]->getRawImage(),
+                                       vk::ImageLayout::eTransferSrcOptimal,
+                                       imageOutput->getImage().get(),
+                                       vk::ImageLayout::eTransferDstOptimal, 1, &imageCopyRegion);
+
+      swapchain->getSwapchainImages()[imageIndex]->transitionImageLayout(
+          commandBufferGraphics, vk::ImageLayout::eTransferSrcOptimal,
+          vk::ImageLayout::ePresentSrcKHR, vk::AccessFlagBits::eTransferRead,
+          vk::AccessFlagBits::eMemoryRead);
+
+      imageOutput->transitionImageLayout(
+          commandBufferGraphics, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eGeneral,
+          vk::AccessFlagBits ::eTransferWrite, vk::AccessFlagBits::eMemoryRead);
+    }
   }
   commandBufferGraphics->end();
 }
@@ -318,6 +342,8 @@ void VulkanCore::createSyncObjects() {
     semaphoreImageAvailable.emplace_back(device->getDevice()->createSemaphoreUnique({}));
     semaphoreRenderFinished.emplace_back(device->getDevice()->createSemaphoreUnique({}));
     semaphoreBetweenRender.emplace_back(device->getDevice()->createSemaphoreUnique({}));
+    semaphoreBeforeSPH.emplace_back(device->getDevice()->createSemaphoreUnique({}));
+    semaphoreBeforeGrid.emplace_back(device->getDevice()->createSemaphoreUnique({}));
     fencesInFlight.emplace_back(
         device->getDevice()->createFenceUnique({.flags = vk::FenceCreateFlagBits::eSignaled}));
   }
@@ -329,6 +355,19 @@ void VulkanCore::drawFrame() {
   //  std::array<vk::Semaphore, 1> semaphoresAfterRender{semaphoreRenderFinished[currentFrame].get()};
   std::array<vk::PipelineStageFlags, 1> waitStagesRender{
       vk::PipelineStageFlagBits::eColorAttachmentOutput};
+  std::vector<vk::Semaphore> semaphoreBeforeSim{};
+  switch (simulationType) {
+    case SimulationType::Grid:
+      semaphoreBeforeSim.emplace_back(semaphoreBeforeGrid[currentFrame].get());
+      break;
+    case SimulationType::SPH:
+      semaphoreBeforeSim.emplace_back(semaphoreBeforeSPH[currentFrame].get());
+      break;
+    case SimulationType::Combined:
+      semaphoreBeforeSim.emplace_back(semaphoreBeforeGrid[currentFrame].get());
+      semaphoreBeforeSim.emplace_back(semaphoreBeforeSPH[currentFrame].get());
+      break;
+  }
 
   std::array<vk::SwapchainKHR, 1> swapchains{swapchain->getSwapchain().get()};
   uint32_t imageindex;
@@ -342,8 +381,8 @@ void VulkanCore::drawFrame() {
     recreateSwapchain();
     return;
   }
+
   updateUniformBuffers(imageindex);
-  recordCommandBuffers(imageindex);
 
   if (fencesImagesInFlight[imageindex].has_value())
     device->getDevice()->waitForFences(fencesImagesInFlight[imageindex].value(), VK_TRUE,
@@ -352,16 +391,40 @@ void VulkanCore::drawFrame() {
 
   device->getDevice()->resetFences(fencesInFlight[currentFrame].get());
 
+  auto drawFlags = Utilities::Flags<DrawType>{std::vector<DrawType>{DrawType::Grid}};
+
+  if (simulate || step) {
+    ++simStep;
+    auto fence = device->getDevice()->createFenceUnique({});
+    vk::SubmitInfo submitInfoRenderBefore{
+        .waitSemaphoreCount = semaphoresAfterNextImage.size(),
+        .pWaitSemaphores = semaphoresAfterNextImage.data(),
+        .pWaitDstStageMask = waitStagesRender.data(),
+        .commandBufferCount = 1,
+        .pCommandBuffers = &commandBuffersGraphic[imageindex].get(),
+        .signalSemaphoreCount = static_cast<uint32_t>(semaphoreBeforeSim.size()),
+        .pSignalSemaphores = semaphoreBeforeSim.data()};
+    recordCommandBuffers(imageindex, drawFlags);
+    queueGraphics.submit(submitInfoRenderBefore, fence.get());
+    device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
+  }
+
   device->getDevice()->waitForFences(tmpfence.get(), VK_TRUE, UINT64_MAX);
+
+  drawFlags = simulationType == SimulationType::Grid
+      ? Utilities::Flags<DrawType>{std::vector<DrawType>{DrawType::Grid, DrawType::ToFile}}
+      : Utilities::Flags<DrawType>{std::vector<DrawType>{DrawType::Particles, DrawType::Grid,
+                                                         DrawType::ToTexture, DrawType::ToFile}};
+  recordCommandBuffers(imageindex, drawFlags);
 
   auto semaphoreSPHRenderIn =
       std::vector<vk::Semaphore>{semaphoreImageAvailable[currentFrame].get()};
-  auto semaphoreGridRenderIn = simulationType == SimulationType::Combined
+  auto semaphoreGridRenderIn = simulationType != SimulationType::SPH
       ? &semaphoreBetweenRender[currentFrame]
       : &semaphoreImageAvailable[currentFrame];
   if (simulate || step) {
     if (Utilities::isIn(simulationType, {SimulationType::SPH, SimulationType::Combined})) {
-      semaphoreAfterSort[currentFrame] = vulkanGridSPH->run(semaphoreImageAvailable[currentFrame]);
+      semaphoreAfterSort[currentFrame] = vulkanGridSPH->run(semaphoreBeforeSPH[currentFrame]);
 
       semaphoreAfterMassDensity[currentFrame] =
           vulkanSPH->run(semaphoreAfterSort[currentFrame], SPHStep::massDensity);
@@ -372,7 +435,8 @@ void VulkanCore::drawFrame() {
     }
     if (Utilities::isIn(simulationType, {SimulationType::Grid, SimulationType::Combined})) {
       {
-        semaphoreAfterSimulationGrid[currentFrame] = vulkanGridFluid->run();
+        semaphoreAfterSimulationGrid[currentFrame] =
+            vulkanGridFluid->run(semaphoreBeforeGrid[currentFrame]);
         device->getDevice()->waitForFences(vulkanGridFluid->getFenceAfterCompute().get(), VK_TRUE,
                                            UINT64_MAX);
         vulkanGridFluidRender->updateDensityBuffer(vulkanGridFluid->getBufferValuesNew());
@@ -385,7 +449,8 @@ void VulkanCore::drawFrame() {
     }
     switch (simulationType) {
       case SimulationType::Grid:
-        semaphoreGridRenderIn = &semaphoreAfterSimulationGrid[currentFrame];
+        semaphoreSPHRenderIn = {semaphoreAfterSimulationGrid[currentFrame].get()};
+        semaphoreGridRenderIn = &semaphoreBetweenRender[currentFrame];
         break;
       case SimulationType::SPH:
         semaphoreSPHRenderIn = {semaphoreAfterSimulationSPH[currentFrame].get()};
@@ -403,7 +468,7 @@ void VulkanCore::drawFrame() {
                                   .commandBufferCount = 1,
                                   .pCommandBuffers = &commandBuffersGraphic[imageindex].get(),
                                   .signalSemaphoreCount = 1,
-                                  .pSignalSemaphores = simulationType == SimulationType::Combined
+                                  .pSignalSemaphores = simulationType != SimulationType::SPH
                                       ? &semaphoreBetweenRender[currentFrame].get()
                                       : &semaphoreRenderFinished[currentFrame].get()};
   vk::PresentInfoKHR presentInfo{.waitSemaphoreCount = 1,
@@ -413,10 +478,9 @@ void VulkanCore::drawFrame() {
                                  .pImageIndices = &imageindex,
                                  .pResults = nullptr};
 
-  if (Utilities::isIn(simulationType, {SimulationType::SPH, SimulationType::Combined}))
-    queueGraphics.submit(
-        submitInfoRender,
-        simulationType == SimulationType::Combined ? nullptr : fencesInFlight[currentFrame].get());
+  queueGraphics.submit(submitInfoRender,
+                       simulationType != SimulationType::SPH ? nullptr
+                                                             : fencesInFlight[currentFrame].get());
   if (Utilities::isIn(simulationType, {SimulationType::Grid, SimulationType::Combined}))
     semaphoreRenderFinished[currentFrame] = vulkanGridFluidRender->draw(
         *semaphoreGridRenderIn, imageindex, fencesInFlight[currentFrame]);
@@ -633,13 +697,15 @@ void VulkanCore::initGui() {
   auto &infoWindow = imgui->createChild<ig::Window>("info_window", "Info");
   auto &labelFPS = infoWindow.createChild<ig::Text>("text_FPS", "");
   auto &labelFrameTime = infoWindow.createChild<ig::Text>("text_FrameTime", "");
+  auto &labelSimStep = infoWindow.createChild<ig::Text>("text_SimStep", "");
 
-  fpsCounter.setOnNewFrameCallback([this, &labelFrameTime, &labelFPS]() {
+  fpsCounter.setOnNewFrameCallback([this, &labelFrameTime, &labelFPS, &labelSimStep]() {
     labelFPS.setText(fmt::format("FPS: {:.1f} AVG: {:.1f}", fpsCounter.getCurrentFPS(),
                                  fpsCounter.getAverageFPS()));
     labelFrameTime.setText(fmt::format("Frame time: {:.1f}ms, AVG: {:.1f}ms",
                                        fpsCounter.getCurrentFrameTime(),
                                        fpsCounter.getAverageFrameTime()));
+    labelSimStep.setText(fmt::format("Simulation step: {}", simStep));
   });
   auto &controlWindow = imgui->createChild<ig::Window>("control_window", "Control");
   auto &a = controlWindow.createChild<ig::Group>("aaa", "aaaaa");
@@ -651,10 +717,10 @@ void VulkanCore::initGui() {
     simulate = not simulate;
     if (simulate) {
       controlButton.setLabel("Pause simulationSPH");
-      stepButton.setEnabled(pf::Enabled::Yes);
+      stepButton.setEnabled(pf::Enabled::No);
     } else {
       controlButton.setLabel("Start simulationSPH");
-      stepButton.setEnabled(pf::Enabled::No);
+      stepButton.setEnabled(pf::Enabled::Yes);
     }
   });
   stepButton.addClickListener([this]() { step = true; });
@@ -733,21 +799,16 @@ void VulkanCore::rebuildRenderPipelines() {
 
   switch (simulationType) {
     case SimulationType::SPH:
-    case SimulationType::Grid:
       renderPassSPH.setColorAttachementFinalLayout(vk::ImageLayout::ePresentSrcKHR);
-      pipelineBuilder.addRenderPass("toSwapchain", renderPassSPH.build())
-          .addRenderPass("toTexture", renderPassSPH.build());
-      pipelineGraphics = pipelineBuilder.build();
-
-      vulkanGridFluidRender->rebuildPipeline(true);
       break;
+    case SimulationType::Grid:
     case SimulationType::Combined:
       renderPassSPH.setColorAttachementFinalLayout(vk::ImageLayout::eColorAttachmentOptimal);
-      pipelineBuilder.addRenderPass("toSwapchain", renderPassSPH.build())
-          .addRenderPass("toTexture", renderPassSPH.build());
-      pipelineGraphics = pipelineBuilder.build();
-
-      vulkanGridFluidRender->rebuildPipeline(false);
       break;
   }
+  pipelineBuilder.addRenderPass("toSwapchain", renderPassSPH.build())
+      .addRenderPass("toTexture", renderPassSPH.build());
+  pipelineGraphics = pipelineBuilder.build();
+
+  vulkanGridFluidRender->rebuildPipeline(false);
 }

@@ -32,7 +32,8 @@ class Image {
   [[nodiscard]] const vk::UniqueHandle<vk::Image, vk::DispatchLoaderStatic> &getImage() const;
   [[nodiscard]] const vk::Image &getRawImage() const;
   [[nodiscard]] vk::Extent3D getExtent() const;
-  vk::ImageLayout getLayout() const;
+  [[nodiscard]] vk::ImageLayout getLayout() const;
+  const vk::ImageAspectFlags &getImageAspect() const;
 
   [[nodiscard]] std::vector<std::byte> read(const std::shared_ptr<Device> &device) {
     if (not imageMemory.has_value()) {

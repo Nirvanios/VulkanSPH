@@ -50,7 +50,6 @@ class VulkanCore {
                   const SimulationInfoGridFluid &simulationInfoGridFluid);
   void run();
 
-
  private:
   std::array<PipelineLayoutBindingInfo, 3> bindingInfosRender{
       PipelineLayoutBindingInfo{
@@ -101,8 +100,10 @@ class VulkanCore {
   vk::UniqueCommandPool commandPoolGraphics;
   std::vector<vk::UniqueCommandBuffer> commandBuffersGraphic;
 
-  std::vector<vk::UniqueSemaphore> semaphoreImageAvailable, semaphoreRenderFinished, semaphoreBetweenRender,
-      semaphoreAfterSimulationSPH, semaphoreAfterTag,semaphoreAfterSimulationGrid, semaphoreAfterSort, semaphoreAfterMassDensity, semaphoreAfterForces;
+  std::vector<vk::UniqueSemaphore> semaphoreImageAvailable, semaphoreRenderFinished,
+      semaphoreBetweenRender, semaphoreAfterSimulationSPH, semaphoreAfterTag,
+      semaphoreAfterSimulationGrid, semaphoreAfterSort, semaphoreAfterMassDensity,
+      semaphoreAfterForces, semaphoreBeforeGrid, semaphoreBeforeSPH;
   std::vector<vk::UniqueFence> fencesInFlight;
   std::vector<std::optional<vk::Fence>> fencesImagesInFlight;
 
@@ -134,7 +135,6 @@ class VulkanCore {
   std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> imgui;
   SimulationType simulationType = SimulationType::SPH;
 
-
   std::unique_ptr<VulkanSPH> vulkanSPH;
   std::unique_ptr<VulkanGridSPH> vulkanGridSPH;
   std::unique_ptr<VulkanGridFluid> vulkanGridFluid;
@@ -155,7 +155,7 @@ class VulkanCore {
 
   void createCommandPool();
   void createCommandBuffers();
-  void recordCommandBuffers(uint32_t imageIndex);
+  void recordCommandBuffers(uint32_t imageIndex, Utilities::Flags<DrawType> stageRecord);
   void createDescriptorPool();
 
   void createDepthResources();
@@ -169,6 +169,7 @@ class VulkanCore {
   void createTextureImages();
 
   void rebuildRenderPipelines();
+  int simStep = 0;
 };
 
 #endif//VULKANAPP_VULKANCORE_H

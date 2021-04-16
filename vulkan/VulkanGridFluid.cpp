@@ -7,7 +7,7 @@
 #include <magic_enum.hpp>
 #include <utility>
 
-vk::UniqueSemaphore VulkanGridFluid::run() {
+vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &inSemaphore) {
   auto specificInfo = GaussSeidelFlags();
 
   currentSemaphore = 0;
@@ -17,12 +17,13 @@ vk::UniqueSemaphore VulkanGridFluid::run() {
   auto outSemaphore = device->getDevice()->createSemaphore({});
 
   /**Add velocities sources*/
-  submit(Stages::addSourceVector, fence.get(), std::nullopt, std::nullopt, SubmitSemaphoreType::In);
+  submit(Stages::addSourceVector, fence.get(), inSemaphore.get(), std::nullopt, SubmitSemaphoreType::In);
+  waitFence();
 
   /**Diffuse velocities*/
-  swapBuffers(bufferVelocitiesNew, bufferVelocitiesOld);
+  //swapBuffers(bufferVelocitiesNew, bufferVelocitiesOld);
 
-  for (auto i = 0; i < 20; ++i) {
+  for (auto i = 0; i < 0; ++i) {
     specificInfo.setStageType(GaussSeidelStageType::diffuse).setColor(GaussSeidelColorPhase::black);
     simulationInfo.specificInfo = static_cast<unsigned int>(specificInfo);
     submit(Stages::diffuseVector, fence.get());
@@ -40,6 +41,8 @@ vk::UniqueSemaphore VulkanGridFluid::run() {
 
   /**Project*/
   for (auto i = 0; i < 1; ++i) { project(); }
+  //auto vel = bufferVelocitiesNew->read<glm::vec4>();
+
   /**Advect velocities*/
   swapBuffers(bufferVelocitiesNew, bufferVelocitiesOld);
   submit(Stages::advectVector, fence.get());
@@ -51,6 +54,9 @@ vk::UniqueSemaphore VulkanGridFluid::run() {
   /**Project*/
   for (auto i = 0; i < 1; ++i) { project(); }
   waitFence();
+
+  //vel = bufferVelocitiesNew->read<glm::vec4>();
+
 
   /**Add Density Sources*/
   submit(Stages::addSourceScalar, fence.get());
@@ -273,19 +279,29 @@ VulkanGridFluid::VulkanGridFluid(const Config &config,
 
 void VulkanGridFluid::createBuffers() {
   auto cellCountBorder = glm::compMul(simulationInfo.gridSize.xyz() + glm::ivec3(2));
-  auto initialDensity = std::vector<glm::vec2>(cellCountBorder, glm::vec2(300.0, 100.0));
+  auto initialDensity = std::vector<glm::vec2>(cellCountBorder, glm::vec2(0.0, 50.0));
   auto sources = std::vector<glm::vec2>(simulationInfo.cellCount, glm::vec2(0));
   [[maybe_unused]] auto positionSources =
       ((simulationInfo.gridSize.z / 2) * simulationInfo.gridSize.x * simulationInfo.gridSize.y)
       + (simulationInfo.gridSize.x / 2)
-      + (simulationInfo.gridSize.x * (simulationInfo.gridSize.y - 1));
-  //sources[positionSources] = 0.1;
+      + (simulationInfo.gridSize.x * (20));
+/*  sources[positionSources] = {1.0, 0.0};
+  sources[positionSources-1] = {1.0, 0.0};
+  sources[positionSources+1] = {1.0, 0.0};*/
   [[maybe_unused]] auto positionDensity =
       (((simulationInfo.gridSize.z + 2) / 2) * (simulationInfo.gridSize.x + 2)
        * (simulationInfo.gridSize.y + 2))
       + ((simulationInfo.gridSize.x + 2) / 2)
-      + ((simulationInfo.gridSize.x + 2) * simulationInfo.gridSize.y);
+      + ((simulationInfo.gridSize.x + 2) * 20);
   //initialDensity[positionDensity] = glm::vec2(0.0f, 0.0f);
+/*  initialDensity[positionDensity-1] = {1.0, 100.0};
+  initialDensity[positionDensity+1] = {1.0, 100.0};
+  initialDensity[positionDensity] = {1.0, 100.0};*/
+
+/*  initialDensity[positionDensity].x = 1.0;
+  initialDensity[positionDensity + 1].x = 1.0;*/
+  
+
 
   auto bufferBuilder = BufferBuilder()
                            .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
@@ -304,15 +320,15 @@ void VulkanGridFluid::createBuffers() {
                                this->device, commandPool, queue);
   bufferValuesSources->fill(sources);
 
-  auto initialVelocities = std::vector<glm::vec4>(cellCountBorder, glm::vec4(0, -0.010, 0, 0));
-  initialVelocities[positionDensity - (simulationInfo.gridSize.x + 2)].y = -0.010;
+  auto initialVelocities = std::vector<glm::vec4>(cellCountBorder, glm::vec4(0, 0, 0, 0));
+  //initialVelocities[positionDensity - (simulationInfo.gridSize.x + 2)].y = -0.010;
   bufferVelocitiesNew = std::make_shared<Buffer>(
       bufferBuilder.setSize(sizeof(glm::vec4) * cellCountBorder), this->device, commandPool, queue);
   bufferVelocitiesNew->fill(initialVelocities);
 
   bufferVelocitiesOld = std::make_shared<Buffer>(
       bufferBuilder.setSize(sizeof(glm::vec4) * cellCountBorder), this->device, commandPool, queue);
-  bufferVelocitiesOld->fill(std::vector<glm::vec4>(cellCountBorder, glm::vec4(0, -10, 0, 0)));
+  bufferVelocitiesOld->fill(std::vector<glm::vec4>(cellCountBorder, glm::vec4(0, 0, 0, 0)));
 
   bufferVelocitySources =
       std::make_shared<Buffer>(bufferBuilder.setSize(sizeof(glm::vec4) * simulationInfo.cellCount),
@@ -387,7 +403,8 @@ void VulkanGridFluid::fillDescriptorBufferInfo() {
                                                         descriptorBufferInfoVelocitiesNew};
   descriptorBufferInfosCompute[Stages::boundaryHandleScalar] = {descriptorBufferInfoValuesNew};
   descriptorBufferInfosCompute[Stages::addSourceVector] = {descriptorBufferInfoVelocitiesNew,
-                                                           descriptorBufferInfoVelocitiesSources};
+                                                           descriptorBufferInfoVelocitiesSources,
+                                                           descriptorBufferInfoValuesNew};
   descriptorBufferInfosCompute[Stages::diffuseVector] = {descriptorBufferInfoVelocitiesNew,
                                                          descriptorBufferInfoVelocitiesOld};
   descriptorBufferInfosCompute[Stages::divergenceVector] = {descriptorBufferInfoVelocitiesNew,

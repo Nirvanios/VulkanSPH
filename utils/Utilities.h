@@ -11,6 +11,7 @@
 #include <string>
 #include <tiny_obj_loader.h>
 #include <vector>
+#include <filesystem>
 
 namespace Utilities {
 
@@ -19,10 +20,8 @@ concept Pointer = std::is_pointer_v<T>;
 
 template<typename T>
 concept RawDataProvider = requires(T t) {
-  { t.data() }
-  ->Pointer;
-  { t.size() }
-  ->std::convertible_to<std::size_t>;
+  { t.data() } -> Pointer;
+  { t.size() } -> std::convertible_to<std::size_t>;
 };
 
 template<Pointer T>
@@ -42,6 +41,16 @@ inline std::string readFile(const std::string &filename) {
   file.close();
 
   return buffer;
+}
+
+inline void writeFile(const std::filesystem::path &filename, const std::string_view data) {
+  std::ofstream file(filename, std::ios::ate | std::ios::binary);
+
+  if (!file.is_open()) { throw std::runtime_error("failed to open file!"); }
+
+  file.write(data.data(), data.size());
+
+  file.close();
 }
 
 inline Model loadModelFromObj(const std::string &modelPath,
@@ -120,10 +129,50 @@ struct IdGenerator {
   std::size_t id = 0;
 };
 
-template <typename T>
-int getNextPow2Number(T number){
+template<typename T>
+int getNextPow2Number(T number) {
   return std::pow(2, std::ceil(std::log2(number)));
 }
+
+template<typename T>
+requires std::is_enum_v<T>
+class Flags {
+  using underlying_type_t = typename std::underlying_type<T>::type;
+
+ private:
+  underlying_type_t flags = 0;
+
+ public:
+  Flags(const std::vector<T> &flagBits) {
+    for (const auto &item : flagBits) { *this | item; }
+  }
+  Flags(){};
+  bool has(T flagBit) const { return (flags & magic_enum::enum_integer(flagBit)) != 0; };
+  bool has(const std::vector<T> &flagBit) const {
+    for (const auto &item : flagBit)
+      if ((flags & magic_enum::enum_integer(flagBit)) != 0) { return true; }
+    return false;
+  };
+
+  Flags operator&(const Flags &other) {
+    flags &= other.flags;
+    return *this;
+  }
+  Flags operator&(const T &other) {
+    flags &= magic_enum::enum_integer(other);
+    return *this;
+  }
+
+  Flags operator|(const Flags &other) {
+    flags |= other.flags;
+    return *this;
+  }
+  Flags operator|(const T &other) {
+    flags |= magic_enum::enum_integer(other);
+    return *this;
+  }
+};
+
 }// namespace Utilities
 
 #endif//VULKANTEST_UTILITIES_H

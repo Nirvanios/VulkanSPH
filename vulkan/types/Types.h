@@ -9,9 +9,9 @@
 #include "glm/gtx/hash.hpp"
 #include <bitset>
 #include <fmt/format.h>
+#include <magic_enum.hpp>
 #include <spdlog/fmt/ostr.h>
 #include <vulkan/vulkan.hpp>
-#include <magic_enum.hpp>
 
 struct KeyValue {
   int key = 0;  //Particle ID
@@ -26,7 +26,7 @@ struct KeyValue {
 
 struct Vertex {
   glm::vec3 pos;
-  glm::vec3 color{1.0,0.0,0.0};
+  glm::vec3 color{1.0, 0.0, 0.0};
   glm::vec3 normal{1.0f};
 
   static vk::VertexInputBindingDescription getBindingDescription() {
@@ -137,48 +137,59 @@ struct alignas(16) SimulationInfoGridFluid {
   float specificGasConstant;
 };
 
-struct GridInfo{
+struct GridInfo {
   glm::ivec4 gridSize;
   glm::vec4 gridOrigin;
   float cellSize;
   unsigned int particleCount;
 };
 
-struct CellInfo{
+struct CellInfo {
   unsigned int tags;
   int indexes;
 };
 
-struct DrawInfo{
+struct DrawInfo {
   int drawType;
   int visualization;
   float supportRadius;
 };
 
-struct SimulationInfo{
+struct SimulationInfo {
   SimulationInfoSPH simulationInfoSPH;
   SimulationInfoGridFluid simulationInfoGridFluid;
 };
 
-enum class BufferType { floatType = 0, vec4Type = 1};
+enum class BufferType { floatType = 0, vec4Type = 1 };
 
 enum class GaussSeidelColorPhase { red = 0, black = 1 };
 
 enum class GaussSeidelStageType { diffuse = 0, project = 1 };
 
-enum class SimulationType {SPH = 0, Grid = 1, Combined = 2};
+enum class SimulationType { SPH = 0, Grid = 1, Combined = 2 };
 
-enum class SubmitSemaphoreType {None = 0, In = 1, Out = 2, InOut = 3};
+enum class SubmitSemaphoreType { None = 0, In = 1, Out = 2, InOut = 3 };
 
-class GaussSeidelFlags{
+class GaussSeidelFlags {
  public:
-  GaussSeidelFlags &setColor(GaussSeidelColorPhase color) {flags.set(0, magic_enum::enum_integer(color)); return *this;}
-  GaussSeidelFlags &setStageType(GaussSeidelStageType stageType){flags.set(1, magic_enum::enum_integer(stageType)); return *this;};
+  GaussSeidelFlags &setColor(GaussSeidelColorPhase color) {
+    flags.set(0, magic_enum::enum_integer(color));
+    return *this;
+  }
+  GaussSeidelFlags &setStageType(GaussSeidelStageType stageType) {
+    flags.set(1, magic_enum::enum_integer(stageType));
+    return *this;
+  };
 
-  GaussSeidelColorPhase getColor(){return magic_enum::enum_value<GaussSeidelColorPhase>(flags.test(0));};
-  GaussSeidelStageType getStage(){return magic_enum::enum_value<GaussSeidelStageType>(flags.test(1));};
+  GaussSeidelColorPhase getColor() {
+    return magic_enum::enum_value<GaussSeidelColorPhase>(flags.test(0));
+  };
+  GaussSeidelStageType getStage() {
+    return magic_enum::enum_value<GaussSeidelStageType>(flags.test(1));
+  };
 
-  explicit operator unsigned int() const {return static_cast<unsigned int>(flags.to_ulong());};
+  explicit operator unsigned int() const { return static_cast<unsigned int>(flags.to_ulong()); };
+
  private:
   std::bitset<2> flags{};
 };

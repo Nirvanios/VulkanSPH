@@ -5,7 +5,7 @@
 #ifndef VULKANAPP_ENUMS_H
 #define VULKANAPP_ENUMS_H
 
-enum class DrawType { Particles, Grid};
+enum class DrawType { Particles = 1 << 0, Grid = 1 << 1, ToTexture = 1 << 2, ToFile = 1 << 3};
 
 enum class Visualization { None, Density, PressureForce, Velocity};
 

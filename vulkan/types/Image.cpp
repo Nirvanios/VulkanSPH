@@ -145,4 +145,7 @@ vk::Extent3D Image::getExtent() const {
                       .height = static_cast<uint32_t>(height),
                       .depth = static_cast<uint32_t>(depth)};
 }
+
 vk::ImageLayout Image::getLayout() const { return layout; }
+
+const vk::ImageAspectFlags &Image::getImageAspect() const { return imageAspect; }

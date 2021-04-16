@@ -113,7 +113,8 @@ VulkanGridFluidSPHCoupling::run(const std::vector<vk::Semaphore> &semaphoreWait)
   waitFence();
 
   submit(Stages::WriteNewParticleTemps, fence.get());
-  swapBuffers(bufferGridValuesNew, bufferGridValuesOld);
+  waitFence();
+  //swapBuffers(bufferGridValuesNew, bufferGridValuesOld);
 
   submit(Stages::MassTransfer, fence.get());
   waitFence();

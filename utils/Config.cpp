@@ -7,8 +7,10 @@
 #include <iostream>
 #include <toml.hpp>
 
-Config::Config(const std::string &configFile) {
-  const auto data = toml::parse(configFile);
+#include "Utilities.h"
+
+Config::Config(const std::string &configFile) : file(configFile) {
+  const auto data = toml::parse(file);
   const auto &tomlApp = toml::find(data, "App");
   const auto &tomlSimulationSPH = toml::find(tomlApp, "simulationSPH");
   const auto &tomlSimulationGridFluid = toml::find(tomlApp, "simulationGridFluid");
@@ -17,6 +19,9 @@ Config::Config(const std::string &configFile) {
 
   app.DEBUG = toml::find<bool>(tomlApp, "DEBUG");
   app.outputToFile = toml::find<bool>(tomlApp, "outputToFile");
+  app.cameraPos = glm::make_vec3(toml::find<std::vector<float>>(tomlApp, "cameraPos").data());
+  app.yaw = toml::find<float>(tomlApp, "yaw");
+  app.pitch = toml::find<float>(tomlApp, "pitch");
 
   app.simulationSPH.particleModel = toml::find<std::string>(tomlSimulationSPH, "particleModel");
   app.simulationSPH.particleCount = toml::find<int>(tomlSimulationSPH, "particleCount");
@@ -31,19 +36,36 @@ Config::Config(const std::string &configFile) {
   app.simulationSPH.gasStiffness = toml::find<float>(tomlSimulationSPH, "gasStiffness");
   app.simulationSPH.heatCapacity = toml::find<float>(tomlSimulationSPH, "heatCapacity");
   app.simulationSPH.heatConductivity = toml::find<float>(tomlSimulationSPH, "heatConductivity");
-  app.simulationSPH.viscosityCoefficient = toml::find<float>(tomlSimulationSPH, "viscosityCoefficient");
+  app.simulationSPH.viscosityCoefficient =
+      toml::find<float>(tomlSimulationSPH, "viscosityCoefficient");
   app.simulationSPH.timeStep = toml::find<float>(tomlSimulationSPH, "timeStep");
   app.simulationSPH.useNNS = toml::find<bool>(tomlSimulationSPH, "useNNS");
 
   app.simulationGridFluid.cellModel = toml::find<std::string>(tomlSimulationGridFluid, "cellModel");
-  app.simulationGridFluid.ambientTemperature = toml::find<float>(tomlSimulationGridFluid, "ambientTemperature");
+  app.simulationGridFluid.ambientTemperature =
+      toml::find<float>(tomlSimulationGridFluid, "ambientTemperature");
 
   Vulkan.shaderFolder = toml::find<std::string>(tomlVulkan, "pathToShaders");
 
   Vulkan.window.height = toml::find<int>(tomlWindow, "height");
   Vulkan.window.width = toml::find<int>(tomlWindow, "width");
   Vulkan.window.name = toml::find<std::string>(tomlWindow, "name");
-
 }
 const AppConfig &Config::getApp() const { return app; }
 const VulkanConfig &Config::getVulkan() const { return Vulkan; }
+
+void Config::updateCameraPos(const Camera &camera){
+    app.cameraPos = camera.Position;
+    app.yaw = camera.Yaw;
+    app.pitch = camera.Pitch;
+}
+
+void Config::save() {
+  auto data = toml::parse(file);
+  auto &tomlApp = toml::find(data, "App");
+
+  tomlApp.as_table().at("cameraPos").as_array() = {app.cameraPos.x, app.cameraPos.y, app.cameraPos.z};
+  tomlApp.as_table().at("yaw").as_floating() = app.yaw;
+  tomlApp.as_table().at("pitch").as_floating() = app.pitch;
+  Utilities::writeFile(file, toml::format(data));
+}

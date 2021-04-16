@@ -45,6 +45,9 @@ struct SimulationGridFluidConfig {
 struct AppConfig {
   bool DEBUG;
   bool outputToFile;
+  glm::vec3 cameraPos;
+  float yaw;
+  float pitch;
   SimulationSPHConfig simulationSPH;
   SimulationGridFluidConfig simulationGridFluid;
 };

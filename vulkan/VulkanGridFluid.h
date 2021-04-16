@@ -12,7 +12,7 @@ class VulkanGridFluid {
   VulkanGridFluid(const Config &config, const SimulationInfoGridFluid &simulationInfo,
                   std::shared_ptr<Device> inDevice, const vk::UniqueSurfaceKHR &surface,
                   std::shared_ptr<Swapchain> swapchain);
-  vk::UniqueSemaphore run();// TODO wait semaphore
+  vk::UniqueSemaphore run(const vk::UniqueSemaphore &inSemaphore);// TODO wait semaphore
   [[nodiscard]] const std::shared_ptr<Buffer> &getBufferValuesNew() const;
   [[nodiscard]] const std::shared_ptr<Buffer> &getBufferValuesOld() const;
   [[nodiscard]] const vk::UniqueFence &getFenceAfterCompute() const;
@@ -122,6 +122,10 @@ class VulkanGridFluid {
                                   .descriptorCount = 1,
                                   .stageFlags = vk::ShaderStageFlagBits::eCompute},
         PipelineLayoutBindingInfo{.binding = 1,
+                                  .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                  .descriptorCount = 1,
+                                  .stageFlags = vk::ShaderStageFlagBits::eCompute},
+        PipelineLayoutBindingInfo{.binding = 2,
                                   .descriptorType = vk::DescriptorType::eStorageBuffer,
                                   .descriptorCount = 1,
                                   .stageFlags = vk::ShaderStageFlagBits::eCompute}}},

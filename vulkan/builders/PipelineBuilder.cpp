@@ -78,7 +78,7 @@ PipelineBuilder::createGraphicsPipeline(const vk::UniqueDescriptorSetLayout &des
       .depthClampEnable = VK_FALSE,
       .rasterizerDiscardEnable = VK_FALSE,
       .polygonMode = vk::PolygonMode::eFill,
-      .cullMode = vk::CullModeFlagBits::eNone,
+      .cullMode = vk::CullModeFlagBits::eBack,
       .frontFace = vk::FrontFace::eCounterClockwise,
       .depthBiasEnable = VK_FALSE,
       .depthBiasConstantFactor = 0.0f,
@@ -99,8 +99,8 @@ PipelineBuilder::createGraphicsPipeline(const vk::UniqueDescriptorSetLayout &des
       .srcColorBlendFactor = vk::BlendFactor::eSrcAlpha,
       .dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
       .colorBlendOp = vk::BlendOp::eAdd,
-      .srcAlphaBlendFactor = vk::BlendFactor::eOne,
-      .dstAlphaBlendFactor = vk::BlendFactor::eZero,
+      .srcAlphaBlendFactor = vk::BlendFactor::eSrcAlpha,
+      .dstAlphaBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
       .alphaBlendOp = vk::BlendOp::eAdd,
       .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG
           | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA};
@@ -129,7 +129,7 @@ PipelineBuilder::createGraphicsPipeline(const vk::UniqueDescriptorSetLayout &des
   auto pipelineLayout = device->getDevice()->createPipelineLayoutUnique(pipelineLayoutCreateInfo);
 
   vk::PipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo{
-      .depthTestEnable = VK_TRUE,
+      .depthTestEnable = depthTestEnabled,
       .depthWriteEnable = VK_TRUE,
       .depthCompareOp = vk::CompareOp::eLess,
       .depthBoundsTestEnable = VK_FALSE,
@@ -257,5 +257,9 @@ PipelineBuilder &PipelineBuilder::addRenderPass(const std::string& name, std::sh
 }
 PipelineBuilder &PipelineBuilder::setBlendEnabled(bool enabled) {
   blendEnabled = enabled;
+  return *this;
+}
+PipelineBuilder &PipelineBuilder::setDepthTestEnabled(bool enabled) {
+  depthTestEnabled = enabled;
   return *this;
 }

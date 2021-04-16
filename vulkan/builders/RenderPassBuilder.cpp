@@ -51,7 +51,7 @@ RenderPassBuilder::RenderPassBuilder(std::shared_ptr<Device> devicePtr) : device
       vk::AttachmentDescription{.format = vk::Format::eUndefined,
                                 .samples = vk::SampleCountFlagBits::e1,
                                 .loadOp = vk::AttachmentLoadOp::eClear,
-                                .storeOp = vk::AttachmentStoreOp::eDontCare,
+                                .storeOp = vk::AttachmentStoreOp::eStore,
                                 .stencilLoadOp = vk::AttachmentLoadOp::eDontCare,
                                 .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
                                 .initialLayout = vk::ImageLayout::eUndefined,
