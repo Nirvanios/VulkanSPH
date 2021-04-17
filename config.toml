@@ -7,13 +7,13 @@ cameraPos = [-6.9187860488891602,3.9882872104644775,3.6379108428955078]
 [App.simulationSPH]
 useNNS = true
 fluidVolume = 2.0
-particleCount = 8
+particleCount = 27
 timeStep = 0.001
 heatCapacity = 4.1790000000000003
 gasStiffness = 10.0
 gridSize = [16,16,16]
 viscosityCoefficient = 3.5
-particleModelSize = [2,2,2]
+particleModelSize = [3,3,3]
 fluidDensity = 998.28999999999996
 gridOrigin = [0.0,0.0,0.0]
 heatConductivity = 0.62

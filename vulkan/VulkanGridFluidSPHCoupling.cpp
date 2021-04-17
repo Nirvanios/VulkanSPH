@@ -122,6 +122,10 @@ VulkanGridFluidSPHCoupling::run(const std::vector<vk::Semaphore> &semaphoreWait)
   submit(Stages::WeightDistribution, fence.get(), std::nullopt, outSemaphore);
   waitFence();
 
+
+
+
+
   [[maybe_unused]] auto ind = bufferIndexes->read<CellInfo>();
   [[maybe_unused]] auto tempsCells = bufferGridValuesNew->read<glm::vec2>();
   [[maybe_unused]] auto tempsCellsOld = bufferGridValuesOld->read<glm::vec2>();

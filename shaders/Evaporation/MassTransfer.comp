@@ -101,7 +101,7 @@ const ivec3 neighbours3D[] = {-(ivec3(1, 0, 0)), (ivec3(1, 0, 0)),  -(ivec3(0, 1
 float neighboursMassChange[6] = {0, 0, 0, 0, 0, 0};
 bool evaporateInto[6] = {false, false, false, false, false, false};
 
-float coefficientA = 100;
+float coefficientA = 0.001;
 float coefficientB = 0.0;
 
 void main() {
@@ -121,6 +121,8 @@ void main() {
     const bool isInterface =
         bool(bitfieldExtract(cellInfos[myGridID].tags, TAG_IS_INTERFACE_BIT, 1));
 
+    int cellDistributionCount = 0;
+
     if (isInterface && particleRecords[myId].weight > 0) {
       float neighboursMassChangeSum = 0.0f;
       for (int i = 0; i < 6; ++i) {
@@ -137,23 +139,32 @@ void main() {
         neighboursMassChange[i] =
             max(particleRecords[myId].surfaceArea
                     * (coefficientA
-                       + coefficientB * length(gridVelocities[currentGridBoundaryID].xyz)
-                           * (saturationVaporPressure - vaporPressure)),
+                       + coefficientB * length(gridVelocities[currentGridBoundaryID].xyz))
+                           * (saturationVaporPressure - vaporPressure),
                 0.0f)
             * simulationInfoSPH.timeStep;
         //if (particleRecords[myId].surfaceArea <= 0)
           //debugPrintfEXT("myId: %d, B: %f", myId, coefficientB * length(gridVelocities[currentGridBoundaryID].xyz));
           debugPrintfEXT("myId: %d, surf %e", myId, particleRecords[myId].surfaceArea);
         neighboursMassChangeSum += neighboursMassChange[i];
+        ++cellDistributionCount;
       }
+      
       float weightedParicleMass = simulationInfoSPH.particleMass * particleRecords[myId].weight;
+      float newWeight = particleRecords[myId].weight * ((weightedParicleMass - neighboursMassChangeSum) / weightedParicleMass);
+      float massRebalance = 0.0;
+      if(newWeight < 1e-6){
+        massRebalance = (simulationInfoSPH.particleMass * newWeight) / cellDistributionCount;
+        newWeight = 0.0;
+      }
+
       float evaporationWeight = min((weightedParicleMass) / neighboursMassChangeSum, 1.0f);
       neighboursMassChangeSum = 0.0;
       for (int i = 0; i < 6; ++i) {
         neighboursMassChange[i] *= evaporationWeight;
         if (evaporateInto[i]) {
           atomicAdd(gridDensityHeatBuffer[myIdGrid + neighboursBoundary[i]].x,
-                    neighboursMassChange[i]);
+                    neighboursMassChange[i] + massRebalance);
 
           /*           debugPrintfEXT("Adding to %d (%d + %d) value %f", myIdGrid + neighboursBoundary[i],
                          myIdGrid, neighboursBoundary[i], neighboursMassChange[i]); */
@@ -164,10 +175,9 @@ void main() {
       debugPrintfEXT("myId: %d, weightedParicleMass: %e, neighboursMassChangeSum: %e", myId,
                      weightedParicleMass, neighboursMassChangeSum);
 
-            particleRecords[myId].weight *=
-          ((weightedParicleMass - neighboursMassChangeSum) / weightedParicleMass);
+            particleRecords[myId].weight = newWeight;
 
-          debugPrintfEXT("myId: %d, newWeight: %e", myId, particleRecords[myId].weight);
+          /* debugPrintfEXT("myId: %d, newWeight: %e", myId, particleRecords[myId].weight); */
     }
   }
 }

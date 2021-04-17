@@ -116,16 +116,19 @@ void main() {
             if (neighbourParticleID != currentParticleID
                 && particleRecords[neighbourParticleID].weight > 0.0
                 && hasPair[neighbourParticleID].value == -1) {//if not same and no pair
+            //debugPrintfEXT("myId: %d, neighbourID %d", currentParticleID, neighbourParticleID);
+
+
               ++hasPair[neighbourParticleID].value;
               ++hasPair[currentParticleID].value;
-              hasPair[neighbourParticleID].key = currentSortedID;
+              hasPair[neighbourParticleID].key = currentParticleID;
               weightsNew[neighbourParticleID] = particleRecords[currentParticleID].weight;
             }
             ++neighbourSortedID;
           }
           if (hasPair[currentParticleID].value > 0) {
             particleRecords[currentParticleID].weight = 0;
-            debugPrintfEXT("myId: %d, weight 0", myId);
+            //debugPrintfEXT("myId: %d, weight 0", currentParticleID);
           }
         }
         ++currentSortedID;
@@ -134,11 +137,15 @@ void main() {
       while (gridSPH[currentSortedID].value == myId
              && currentSortedID < simulationInfoSPH.particleCount) {
         const int currentParticleID = gridSPH[currentSortedID].key;
-        if (hasPair[currentSortedID].key != -1) {
+        if (hasPair[currentParticleID].key != -1) {
+          /* debugPrintfEXT(
+              "myId: %d, oldWeight: %e newWeight: %e, 1: %e, 2: %d", currentParticleID,
+              particleRecords[currentParticleID].weight,
+              particleRecords[currentParticleID].weight
+                  + (weightsNew[currentParticleID] / hasPair[hasPair[currentParticleID].key].value),
+              weightsNew[currentParticleID], hasPair[hasPair[currentParticleID].key].value); */
           particleRecords[currentParticleID].weight +=
               weightsNew[currentParticleID] / hasPair[hasPair[currentParticleID].key].value;
-          debugPrintfEXT("myId: %d, newWeight: %f", myId,
-                         particleRecords[currentParticleID].weight);
         }
         ++currentSortedID;
       }
