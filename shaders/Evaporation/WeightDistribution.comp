@@ -115,6 +115,7 @@ void main() {
 
             if (neighbourParticleID != currentParticleID
                 && particleRecords[neighbourParticleID].weight > 0.0
+                && particleRecords[neighbourParticleID].weight < 1.0
                 && hasPair[neighbourParticleID].value == -1) {//if not same and no pair
             //debugPrintfEXT("myId: %d, neighbourID %d", currentParticleID, neighbourParticleID);
 
