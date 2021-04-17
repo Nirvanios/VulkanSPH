@@ -145,7 +145,7 @@ void main() {
             * simulationInfoSPH.timeStep;
         //if (particleRecords[myId].surfaceArea <= 0)
           //debugPrintfEXT("myId: %d, B: %f", myId, coefficientB * length(gridVelocities[currentGridBoundaryID].xyz));
-          debugPrintfEXT("myId: %d, surf %e", myId, particleRecords[myId].surfaceArea);
+          //debugPrintfEXT("myId: %d, surf %e", myId, particleRecords[myId].surfaceArea);
         neighboursMassChangeSum += neighboursMassChange[i];
         ++cellDistributionCount;
       }
@@ -172,8 +172,8 @@ void main() {
         }
       }
 
-      debugPrintfEXT("myId: %d, weightedParicleMass: %e, neighboursMassChangeSum: %e", myId,
-                     weightedParicleMass, neighboursMassChangeSum);
+/*       debugPrintfEXT("myId: %d, weightedParicleMass: %e, neighboursMassChangeSum: %e", myId,
+                     weightedParicleMass, neighboursMassChangeSum); */
 
             particleRecords[myId].weight = newWeight;
 

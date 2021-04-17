@@ -187,16 +187,23 @@ void main() {
                       * (defaultKernel(positionDiff, length(positionDiff),
                                        simulationInfo.supportRadius)
                          / particleRecords[neighbourID].weightingKernelFraction);
-/*                   debugPrintfEXT("myId: %d, neighbourID :%d, tent1: %e, tent2: %e, contourSDF: %e",
-                                 myId, neighbourID, (1 / particleRadius),
-                                 (1
-                                  + (contourSDF(particleRecords[neighbourID].position.xyz,
-                                                particleRecords[neighbourID].massDensityCenter.xyz,
-                                                particleRadius)
-                                     / particleRadius)),
-                                 contourSDF(particleRecords[neighbourID].position.xyz,
-                                            particleRecords[neighbourID].massDensityCenter.xyz,
-                                            particleRadius)); */
+                  if (isnan(surfaceArea)) {
+                    debugPrintfEXT(
+                        "myId: %d, neighbourID :%d, linearTentKernel: %e, contourSDF: %e, 1: %e, 2: %e", myId,
+                        neighbourID,
+                        linearTentKernel(
+                            particleRadius,
+                            contourSDF(particleRecords[neighbourID].position.xyz,
+                                       particleRecords[neighbourID].massDensityCenter.xyz,
+                                       particleRadius)),
+                        contourSDF(particleRecords[neighbourID].position.xyz,
+                                   particleRecords[neighbourID].massDensityCenter.xyz,
+                                   particleRadius),
+                        (neighbourWeightedMass / particleRecords[neighbourID].massDensity),
+                        (defaultKernel(positionDiff, length(positionDiff),
+                                       simulationInfo.supportRadius)
+                         / particleRecords[neighbourID].weightingKernelFraction));
+                  }
 
                   ++neighbourCount;
                 }
@@ -249,12 +256,12 @@ void main() {
     particleRecords[myId].force = internalForces + externalForces;
     particleRecords[myId].temperature +=
         (temperature * simulationInfo.timeStep) / simulationInfo.heatCapacity;
-        if(isnan(particleRecords[myId].temperature)){
-          debugPrintfEXT("myId: %d, TEMPERATURE IS NaN!!!!!", myId);
-        }
-        if(isinf(particleRecords[myId].temperature)){
-          debugPrintfEXT("myId: %d, TEMPERATURE IS inf!!!!!", myId);
-        }
+    if (isnan(particleRecords[myId].temperature)) {
+      debugPrintfEXT("myId: %d, TEMPERATURE IS NaN!!!!!", myId);
+    }
+    if (isinf(particleRecords[myId].temperature)) {
+      debugPrintfEXT("myId: %d, TEMPERATURE IS inf!!!!!", myId);
+    }
     //debugPrintfEXT("myId: %d, dTmp: %e, lastTmp: %e", myId, (temperature * simulationInfo.timeStep) / simulationInfo.heatCapacity, particleRecords[myId].temperature);
   }
 }

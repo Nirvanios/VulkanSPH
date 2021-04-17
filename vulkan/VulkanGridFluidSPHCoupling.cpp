@@ -111,6 +111,13 @@ VulkanGridFluidSPHCoupling::run(const std::vector<vk::Semaphore> &semaphoreWait)
 
   submit(Stages::TransferHeatToParticles, fence.get());
   waitFence();
+  [[maybe_unused]] auto oldparticles = bufferParticles->read<ParticleRecord>();
+  [[maybe_unused]] auto tempsParticle = bufferParticleTempsNew->read<float>();
+/*  for (const auto &item : tempsParticle){
+    if(std::isnan(item) || std::isinf(item)){
+      break;
+    }
+  }*/
 
   submit(Stages::WriteNewParticleTemps, fence.get());
   waitFence();
@@ -126,12 +133,20 @@ VulkanGridFluidSPHCoupling::run(const std::vector<vk::Semaphore> &semaphoreWait)
 
 
 
-  [[maybe_unused]] auto ind = bufferIndexes->read<CellInfo>();
-  [[maybe_unused]] auto tempsCells = bufferGridValuesNew->read<glm::vec2>();
-  [[maybe_unused]] auto tempsCellsOld = bufferGridValuesOld->read<glm::vec2>();
+  //[[maybe_unused]] auto ind = bufferIndexes->read<CellInfo>();
+  //[[maybe_unused]] auto tempsCells = bufferGridValuesNew->read<glm::vec2>();
+  //[[maybe_unused]] auto tempsCellsOld = bufferGridValuesOld->read<glm::vec2>();
   [[maybe_unused]] auto particles = bufferParticles->read<ParticleRecord>();
-  [[maybe_unused]] auto tempsParticle = bufferParticleTempsNew->read<float>();
-  [[maybe_unused]] auto hasPair = bufferHasPair->read<KeyValue>();
+  //[[maybe_unused]] auto tempsParticle = bufferParticleTempsNew->read<float>();
+  //[[maybe_unused]] auto hasPair = bufferHasPair->read<KeyValue>();
+
+  auto i = 0;
+  for (const auto &item : particles){
+    if((std::isnan(item.temperature) || std::isinf(item.temperature)) && item.weight > 0){
+      break;
+    }
+    ++i;
+  }
 
   return vk::UniqueSemaphore(outSemaphore, device->getDevice().get());
 }

@@ -128,6 +128,7 @@ void main() {
           }
           if (hasPair[currentParticleID].value > 0) {
             particleRecords[currentParticleID].weight = 0;
+            particleRecords[currentParticleID].temperature = 0;
             //debugPrintfEXT("myId: %d, weight 0", currentParticleID);
           }
         }
