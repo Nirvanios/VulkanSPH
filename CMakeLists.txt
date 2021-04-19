@@ -100,14 +100,14 @@ CPMAddPackage(
         GIT_TAG v2.0.0rc7
 )
 CPMAddPackage(
-        NAME pf_imgui
-        GITHUB_REPOSITORY PetrFlajsingr/pf_imgui
-        GIT_TAG v0.1
-)
-CPMAddPackage(
-        NAME m  agic_enum
+        NAME magic_enum
         GITHUB_REPOSITORY Neargye/magic_enum
         GIT_TAG v0.7.2
+)
+CPMAddPackage(
+        NAME pf_imgui
+        GITHUB_REPOSITORY PetrFlajsingr/pf_imgui
+        GIT_TAG v0.3.3
 )
 
 include_directories("Third Party/")
@@ -151,5 +151,5 @@ target_link_libraries(VulkanApp PUBLIC
         ${Vulkan_LIBRARIES} glfw spdlog::spdlog fmt::fmt stb::stb
         shaderc_combined glslang toml11 range-v3 tinyobjloader ${AVCODEC_LIBRARY} avutil avformat swscale
         pf_imgui::pf_imgui pf_common::pf_common magic_enum)
-add_backward(VulkanApp)
+#add_backward(VulkanApp)
 target_compile_options(VulkanApp PRIVATE ${flags})

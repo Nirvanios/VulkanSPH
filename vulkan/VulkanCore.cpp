@@ -694,7 +694,7 @@ void VulkanCore::initGui() {
       device, instance, pipelineGraphics->getRenderPass(""), surface, swapchain,
       window.getWindow().get(), ImGuiConfigFlags{}, toml::table{});
 
-  auto &infoWindow = imgui->createChild<ig::Window>("info_window", "Info");
+  auto &infoWindow = imgui->createWindow("info_window", "Info");
   auto &labelFPS = infoWindow.createChild<ig::Text>("text_FPS", "");
   auto &labelFrameTime = infoWindow.createChild<ig::Text>("text_FrameTime", "");
   auto &labelSimStep = infoWindow.createChild<ig::Text>("text_SimStep", "");
@@ -707,11 +707,12 @@ void VulkanCore::initGui() {
                                        fpsCounter.getAverageFrameTime()));
     labelSimStep.setText(fmt::format("Simulation step: {}", simStep));
   });
-  auto &controlWindow = imgui->createChild<ig::Window>("control_window", "Control");
-  auto &a = controlWindow.createChild<ig::Group>("aaa", "aaaaa");
+  auto &controlWindow = imgui->createWindow("control_window", "Control");
+  auto &controlGroup = controlWindow.createChild<ig::Group>("aaa", "aaaaa");
 
-  auto &controlButton = a.createChild<ig::Button>("button_control", "Start simulationSPH");
-  auto &stepButton = a.createChild<ig::Button>("button_step", "Step simulationSPH");
+  auto &controlButton =
+      controlGroup.createChild<ig::Button>("button_control", "Start simulationSPH");
+  auto &stepButton = controlGroup.createChild<ig::Button>("button_step", "Step simulationSPH");
   stepButton.setEnabled(pf::Enabled::Yes);
   controlButton.addClickListener([this, &controlButton, &stepButton]() {
     simulate = not simulate;
@@ -726,7 +727,7 @@ void VulkanCore::initGui() {
   stepButton.addClickListener([this]() { step = true; });
 
   controlWindow
-      .createChild<ig::ComboBox>("combobox_SimulationSelect", "Simulation:", "SPH",
+      .createChild<ig::ComboBox<std::string>>("combobox_SimulationSelect", "Simulation:", "SPH",
                                  [] {
                                    auto names = magic_enum::enum_names<SimulationType>();
                                    return std::vector<std::string>{names.begin(), names.end()};
@@ -738,9 +739,9 @@ void VulkanCore::initGui() {
       });
 
   auto &debugVisualizationWindow =
-      imgui->createChild<ig::Window>("window_visualization", "Visualization");
+      imgui->createWindow("window_visualization", "Visualization");
   debugVisualizationWindow
-      .createChild<ig::ComboBox>("combobox_visualization", "Show", "None",
+      .createChild<ig::ComboBox<std::string>>("combobox_visualization", "Show", "None",
                                  [] {
                                    auto names = magic_enum::enum_names<Visualization>();
                                    return std::vector<std::string>{names.begin(), names.end()};

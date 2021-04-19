@@ -23,7 +23,7 @@ pf::ui::ig::ImGuiGlfwVulkan::ImGuiGlfwVulkan(std::shared_ptr<Device> inDevice,
                                              std::shared_ptr<Swapchain> inSwapChain,
                                              GLFWwindow *handle, ImGuiConfigFlags flags,
                                              toml::table config)
-    : Element("imgui"), ImGuiInterface(flags, std::move(config)), device(std::move(inDevice)),
+    : ImGuiInterface(flags, std::move(config)), device(std::move(inDevice)),
       swapChain(std::move(inSwapChain)) {
   const auto physicalDevice = device->getPhysicalDevice();
   const auto imageCount = swapChain->getSwapchainImageCount();
@@ -66,8 +66,8 @@ void pf::ui::ig::ImGuiGlfwVulkan::renderImpl() {
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
   if (hasMenuBar()) { menuBar->render(); }
-  std::ranges::for_each(getChildren(), [](auto &child) { child.get().render(); });
-  renderFileDialogs();
+  std::ranges::for_each(getWindows(), [](auto &window) { window.render(); });
+  renderDialogs();
   ImGui::Render();
 }
 void pf::ui::ig::ImGuiGlfwVulkan::setupDescriptorPool() {
