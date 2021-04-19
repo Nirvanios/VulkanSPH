@@ -1,4 +1,4 @@
-#version 450
+#version 460
 
 #extension GL_EXT_debug_printf : enable
 
@@ -117,8 +117,7 @@ void main() {
                 && particleRecords[neighbourParticleID].weight > 0.0
                 && particleRecords[neighbourParticleID].weight < 1.0
                 && hasPair[neighbourParticleID].value == -1) {//if not same and no pair
-            //debugPrintfEXT("myId: %d, neighbourID %d", currentParticleID, neighbourParticleID);
-
+              //debugPrintfEXT("myId: %d, neighbourID %d", currentParticleID, neighbourParticleID);
 
               ++hasPair[neighbourParticleID].value;
               ++hasPair[currentParticleID].value;

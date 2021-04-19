@@ -1,4 +1,4 @@
-#version 450
+#version 460
 
 #extension GL_EXT_debug_printf : enable
 
@@ -31,7 +31,7 @@ layout(std430, binding = 0) buffer velocityBuffer { TYPENAME_T velocityField[]; 
 layout(std430, binding = 1) buffer forceBuffer { TYPENAME_T forceField[]; };
 
 #if defined(TYPE_VEC4)
-  layout(std430, binding = 2) buffer gridDensityHeatBuffer { vec2 densityHeatBuffer[]; };
+layout(std430, binding = 2) buffer gridDensityHeatBuffer { vec2 densityHeatBuffer[]; };
 #endif
 
 layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
@@ -48,8 +48,10 @@ void main() {
 
   if (all(lessThan(myId3D, simulationInfo.gridSize.xyz))) {
     velocityField[myId] += forceField[gl_GlobalInvocationID.x];
-    #if defined(TYPE_VEC4)
-      velocityField[myId] += ((alpha * densityHeatBuffer[myId].x + beta * (densityHeatBuffer[myId].y - ambientTemperature)) * vec4(0,1,0,0));
-    #endif
+#if defined(TYPE_VEC4)
+    velocityField[myId] += ((alpha * densityHeatBuffer[myId].x
+                             + beta * (densityHeatBuffer[myId].y - ambientTemperature))
+                            * vec4(0, 1, 0, 0));
+#endif
   }
 }

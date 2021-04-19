@@ -1,4 +1,4 @@
-#version 450
+#version 460
 
 #extension GL_EXT_debug_printf : enable
 
@@ -65,9 +65,11 @@ vec3 hsv2rgb(vec3 c) {
 void main() {
   switch (drawType.drawType) {
     case DRAW_PARTICLE:
-      const float particleSizeModifier = drawType.supportRadius * 0.25 * particleRecords[gl_InstanceIndex].weight;
+      const float particleSizeModifier =
+          drawType.supportRadius * 0.25 * particleRecords[gl_InstanceIndex].weight;
       gl_Position = ubo.proj * ubo.view * ubo.model
-          * (vec4(inPosition * particleSizeModifier, 1.0) + particleRecords[gl_InstanceIndex].position + particleSizeModifier);
+          * (vec4(inPosition * particleSizeModifier, 1.0)
+             + particleRecords[gl_InstanceIndex].position + particleSizeModifier);
       switch (drawType.visualizationType) {
         case TEXTURE_VIZUALIZE_NONE: fragColor = vec4(inColor, 1.0f); break;
         case TEXTURE_VIZUALIZE_PRESSUREFORCE:

@@ -1,4 +1,4 @@
-#version 450
+#version 460
 
 #extension GL_EXT_debug_printf : enable
 #extension GL_EXT_shader_atomic_float : enable
@@ -140,20 +140,21 @@ void main() {
             max(particleRecords[myId].surfaceArea
                     * (coefficientA
                        + coefficientB * length(gridVelocities[currentGridBoundaryID].xyz))
-                           * (saturationVaporPressure - vaporPressure),
+                    * (saturationVaporPressure - vaporPressure),
                 0.0f)
             * simulationInfoSPH.timeStep;
         //if (particleRecords[myId].surfaceArea <= 0)
-          //debugPrintfEXT("myId: %d, B: %f", myId, coefficientB * length(gridVelocities[currentGridBoundaryID].xyz));
-          //debugPrintfEXT("myId: %d, surf %e", myId, particleRecords[myId].surfaceArea);
+        //debugPrintfEXT("myId: %d, B: %f", myId, coefficientB * length(gridVelocities[currentGridBoundaryID].xyz));
+        //debugPrintfEXT("myId: %d, surf %e", myId, particleRecords[myId].surfaceArea);
         neighboursMassChangeSum += neighboursMassChange[i];
         ++cellDistributionCount;
       }
-      
+
       float weightedParicleMass = simulationInfoSPH.particleMass * particleRecords[myId].weight;
-      float newWeight = particleRecords[myId].weight * ((weightedParicleMass - neighboursMassChangeSum) / weightedParicleMass);
+      float newWeight = particleRecords[myId].weight
+          * ((weightedParicleMass - neighboursMassChangeSum) / weightedParicleMass);
       float massRebalance = 0.0;
-      if(newWeight < 1e-6){
+      if (newWeight < 1e-6) {
         massRebalance = (simulationInfoSPH.particleMass * newWeight) / cellDistributionCount;
         newWeight = 0.0;
       }
@@ -172,12 +173,12 @@ void main() {
         }
       }
 
-/*       debugPrintfEXT("myId: %d, weightedParicleMass: %e, neighboursMassChangeSum: %e", myId,
+      /*       debugPrintfEXT("myId: %d, weightedParicleMass: %e, neighboursMassChangeSum: %e", myId,
                      weightedParicleMass, neighboursMassChangeSum); */
 
-            particleRecords[myId].weight = newWeight;
+      particleRecords[myId].weight = newWeight;
 
-          /* debugPrintfEXT("myId: %d, newWeight: %e", myId, particleRecords[myId].weight); */
+      /* debugPrintfEXT("myId: %d, newWeight: %e", myId, particleRecords[myId].weight); */
     }
   }
 }

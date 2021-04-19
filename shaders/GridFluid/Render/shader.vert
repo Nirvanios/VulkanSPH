@@ -1,4 +1,4 @@
-#version 450
+#version 460
 
 #extension GL_EXT_debug_printf : enable
 
@@ -76,11 +76,11 @@ void main() {
   const ivec3 myId3D = getPosition(gl_InstanceIndex);
   const uint myId = (myId3D.x + 1) + (myId3D.y + 1) * gridSizeWithBorders.x
       + (myId3D.z + 1) * gridSizeWithBorders.x * gridSizeWithBorders.y;
-  
 
   gl_Position = ubo.proj * ubo.view * ubo.model
       * (vec4(inPosition * 0.5 * simulationInfo.cellSize, 1.0)
-         + vec4(myId3D * simulationInfo.cellSize, 0) + vec4(vec3(0.5 * simulationInfo.cellSize), 0));
+         + vec4(myId3D * simulationInfo.cellSize, 0)
+         + vec4(vec3(0.5 * simulationInfo.cellSize), 0));
   gl_Position *= int(density[myId].x != 0);
   fragColor = vec4(inColor, (density[myId].x) * 0.0 /* * int(cellType == CELL_TYPE_AIR) */);
   outPosition = gl_Position.xyz;

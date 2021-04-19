@@ -1,4 +1,4 @@
-#version 450
+#version 460
 
 #extension GL_EXT_debug_printf : enable
 
@@ -37,7 +37,7 @@ float linearInterpolation(float value1, float value2, float bias) {
 }
 
 TYPENAME_T trilinearInterpolation(TYPENAME_T pairsXYZ[2][2][2], vec3 bias) {
-  if (any(lessThan(bias, vec3(-0.0))) || any(greaterThan(bias, vec3(1.0)))){ //Assert
+  if (any(lessThan(bias, vec3(-0.0))) || any(greaterThan(bias, vec3(1.0)))) {//Assert
     //debugPrintfEXT("Bad bias, expect unexpected!!! *%v3f*", bias);
     clamp(bias, vec3(0.0), vec3(1.0));
   }
