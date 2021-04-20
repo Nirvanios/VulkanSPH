@@ -115,6 +115,10 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
       vulkanGridFluid->getBufferValuesNew(), bufferCellParticlePair,
       vulkanGridFluid->getBufferVelocitiesNew());
 
+  vulkanSphMarchingCubes = std::make_unique<VulkanSPHMarchingCubes>(
+      config, simulationInfoSPH, device, surface, swapchain, vulkanSPH->getBufferParticles(),
+      bufferIndexes, bufferCellParticlePair);
+
   auto tmpBuffer = std::vector{vulkanSPH->getBufferParticles()};
   std::array<DescriptorBufferInfo, 3> descriptorBufferInfosGraphic{
       DescriptorBufferInfo{.buffer = buffersUniformMVP, .bufferSize = sizeof(UniformBufferObject)},
@@ -344,6 +348,7 @@ void VulkanCore::createSyncObjects() {
     semaphoreBetweenRender.emplace_back(device->getDevice()->createSemaphoreUnique({}));
     semaphoreBeforeSPH.emplace_back(device->getDevice()->createSemaphoreUnique({}));
     semaphoreBeforeGrid.emplace_back(device->getDevice()->createSemaphoreUnique({}));
+    semaphoreAfterMC.emplace_back(device->getDevice()->createSemaphoreUnique({}));
     fencesInFlight.emplace_back(
         device->getDevice()->createFenceUnique({.flags = vk::FenceCreateFlagBits::eSignaled}));
   }
@@ -428,8 +433,9 @@ void VulkanCore::drawFrame() {
 
       semaphoreAfterMassDensity[currentFrame] =
           vulkanSPH->run(semaphoreAfterSort[currentFrame], SPHStep::massDensity);
+      semaphoreAfterMC[currentFrame] = vulkanSphMarchingCubes->run(semaphoreAfterMassDensity[currentFrame]);
       semaphoreAfterForces[currentFrame] =
-          vulkanSPH->run(semaphoreAfterMassDensity[currentFrame], SPHStep::force);
+          vulkanSPH->run(semaphoreAfterMC[currentFrame], SPHStep::force);
       semaphoreAfterSimulationSPH[currentFrame] =
           vulkanSPH->run(semaphoreAfterForces[currentFrame], SPHStep::advect);
     }
@@ -727,25 +733,26 @@ void VulkanCore::initGui() {
   stepButton.addClickListener([this]() { step = true; });
 
   controlWindow
-      .createChild<ig::ComboBox<std::string>>("combobox_SimulationSelect", "Simulation:", "SPH",
-                                 [] {
-                                   auto names = magic_enum::enum_names<SimulationType>();
-                                   return std::vector<std::string>{names.begin(), names.end()};
-                                 }())
+      .createChild<ig::ComboBox<std::string>>(
+          "combobox_SimulationSelect", "Simulation:", "SPH",
+          [] {
+            auto names = magic_enum::enum_names<SimulationType>();
+            return std::vector<std::string>{names.begin(), names.end()};
+          }())
       .addValueListener([this](auto value) {
         auto selected = magic_enum::enum_cast<SimulationType>(value);
         simulationType = selected.has_value() ? selected.value() : SimulationType::SPH;
         rebuildRenderPipelines();
       });
 
-  auto &debugVisualizationWindow =
-      imgui->createWindow("window_visualization", "Visualization");
+  auto &debugVisualizationWindow = imgui->createWindow("window_visualization", "Visualization");
   debugVisualizationWindow
-      .createChild<ig::ComboBox<std::string>>("combobox_visualization", "Show", "None",
-                                 [] {
-                                   auto names = magic_enum::enum_names<Visualization>();
-                                   return std::vector<std::string>{names.begin(), names.end()};
-                                 }())
+      .createChild<ig::ComboBox<std::string>>(
+          "combobox_visualization", "Show", "None",
+          [] {
+            auto names = magic_enum::enum_names<Visualization>();
+            return std::vector<std::string>{names.begin(), names.end()};
+          }())
       .addValueListener([this](auto value) {
         auto selected = magic_enum::enum_cast<Visualization>(value);
         textureVisualization = selected.has_value() ? selected.value() : Visualization::None;

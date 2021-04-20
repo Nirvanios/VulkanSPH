@@ -14,11 +14,13 @@
 class VulkanSPHMarchingCubes {
 
  public:
-  VulkanSPHMarchingCubes(const Config &config, const SimulationInfoGridFluid &simulationInfo,
+  VulkanSPHMarchingCubes(const Config &config, const SimulationInfoSPH &simulationInfo,
                          std::shared_ptr<Device> inDevice, const vk::UniqueSurfaceKHR &surface,
-                         std::shared_ptr<Swapchain> swapchain);
+                         std::shared_ptr<Swapchain> swapchain,
+                         std::shared_ptr<Buffer> inBufferParticles,
+                         std::shared_ptr<Buffer> inBufferIndexes,
+                         std::shared_ptr<Buffer> inBufferSortedPairs);
   vk::UniqueSemaphore run(const vk::UniqueSemaphore &inSemaphore);
-
 
  private:
   enum class Stages { ComputeColors };
@@ -35,7 +37,7 @@ class VulkanSPHMarchingCubes {
   void waitFence();
 
   const Config &config;
-  SimulationInfoGridFluid simulationInfo;
+  SimulationInfoSPH simulationInfo;
 
   std::shared_ptr<Device> device;
 
@@ -53,6 +55,9 @@ class VulkanSPHMarchingCubes {
   vk::UniqueFence fence;
 
   std::shared_ptr<Buffer> bufferGridColors;
+  std::shared_ptr<Buffer> bufferParticles;
+  std::shared_ptr<Buffer> bufferGrid;
+  std::shared_ptr<Buffer> bufferIndexes;
 
   std::map<Stages, std::shared_ptr<Pipeline>> pipelines;
 
@@ -63,10 +68,19 @@ class VulkanSPHMarchingCubes {
        {PipelineLayoutBindingInfo{.binding = 0,
                                   .descriptorType = vk::DescriptorType::eStorageBuffer,
                                   .descriptorCount = 1,
+                                  .stageFlags = vk::ShaderStageFlagBits::eCompute},
+        PipelineLayoutBindingInfo{.binding = 1,
+                                  .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                  .descriptorCount = 1,
+                                  .stageFlags = vk::ShaderStageFlagBits::eCompute},
+        PipelineLayoutBindingInfo{.binding = 2,
+                                  .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                  .descriptorCount = 1,
+                                  .stageFlags = vk::ShaderStageFlagBits::eCompute},
+        PipelineLayoutBindingInfo{.binding = 3,
+                                  .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                  .descriptorCount = 1,
                                   .stageFlags = vk::ShaderStageFlagBits::eCompute}}}};
-
-  void createBuffers();
-  void fillDescriptorBufferInfo();
 };
 
 #endif//VULKANAPP_VULKANSPHMARCHINGCUBES_H

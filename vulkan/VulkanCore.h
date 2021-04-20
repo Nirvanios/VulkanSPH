@@ -22,6 +22,7 @@
 #include "VulkanGridFluidSPHCoupling.h"
 #include "VulkanGridSPH.h"
 #include "VulkanSPH.h"
+#include "VulkanSPHMarchingCubes.h"
 #include "VulkanSort.h"
 #include "builders/PipelineBuilder.h"
 #include "enums.h"
@@ -103,7 +104,7 @@ class VulkanCore {
   std::vector<vk::UniqueSemaphore> semaphoreImageAvailable, semaphoreRenderFinished,
       semaphoreBetweenRender, semaphoreAfterSimulationSPH, semaphoreAfterTag,
       semaphoreAfterSimulationGrid, semaphoreAfterSort, semaphoreAfterMassDensity,
-      semaphoreAfterForces, semaphoreBeforeGrid, semaphoreBeforeSPH;
+      semaphoreAfterForces, semaphoreBeforeGrid, semaphoreBeforeSPH, semaphoreAfterMC;
   std::vector<vk::UniqueFence> fencesInFlight;
   std::vector<std::optional<vk::Fence>> fencesImagesInFlight;
 
@@ -140,6 +141,7 @@ class VulkanCore {
   std::unique_ptr<VulkanGridFluid> vulkanGridFluid;
   std::unique_ptr<VulkanGridFluidRender> vulkanGridFluidRender;
   std::unique_ptr<VulkanGridFluidSPHCoupling> vulkanGridFluidSphCoupling;
+  std::unique_ptr<VulkanSPHMarchingCubes> vulkanSphMarchingCubes;
 
   void mainLoop();
   void cleanup();

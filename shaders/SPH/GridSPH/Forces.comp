@@ -189,8 +189,7 @@ void main() {
                          / particleRecords[neighbourID].weightingKernelFraction);
                   if (isnan(surfaceArea)) {
                     debugPrintfEXT(
-                        "myId: %d, neighbourID :%d, linearTentKernel: %e, contourSDF: %e, 1: %e, "
-                        "2: %e",
+                        "myId: %d, neighbourID :%d, linearTentKernel: %e, contourSDF: %e, 1: %e, 2: %e",
                         myId, neighbourID,
                         linearTentKernel(
                             particleRadius,

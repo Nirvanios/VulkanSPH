@@ -9,12 +9,14 @@
 #include "../utils/Exceptions.h"
 #include "glm/gtx/component_wise.hpp"
 
-VulkanSPHMarchingCubes::VulkanSPHMarchingCubes(const Config &config,
-                                               const SimulationInfoGridFluid &simulationInfo,
-                                               std::shared_ptr<Device> inDevice,
-                                               const vk::UniqueSurfaceKHR &surface,
-                                               std::shared_ptr<Swapchain> swapchain)
-    : config(config), simulationInfo(simulationInfo), device(std::move(inDevice)) {
+VulkanSPHMarchingCubes::VulkanSPHMarchingCubes(
+    const Config &config, const SimulationInfoSPH &simulationInfo,
+    std::shared_ptr<Device> inDevice, const vk::UniqueSurfaceKHR &surface,
+    std::shared_ptr<Swapchain> swapchain, std::shared_ptr<Buffer> inBufferParticles,
+    std::shared_ptr<Buffer> inBufferIndexes, std::shared_ptr<Buffer> inBufferSortedPairs)
+    : config(config), simulationInfo(simulationInfo), device(std::move(inDevice)),
+      bufferParticles(inBufferParticles), bufferGrid(inBufferSortedPairs),
+      bufferIndexes(inBufferIndexes) {
 
   auto queueFamilyIndices = Device::findQueueFamilies(this->device->getPhysicalDevice(), surface);
   vk::CommandPoolCreateInfo commandPoolCreateInfoCompute{
@@ -29,13 +31,8 @@ VulkanSPHMarchingCubes::VulkanSPHMarchingCubes(const Config &config,
 
   fillDescriptorBufferInfo();
 
-  [[maybe_unused]] auto computePipelineBuilder =
-      PipelineBuilder{this->config, this->device, swapchain}
-          .setPipelineType(PipelineType::Compute)
-          .addPushConstant(vk::ShaderStageFlagBits::eCompute, sizeof(SimulationInfoGridFluid));
-
   std::array<vk::DescriptorPoolSize, 1> poolSize{
-      vk::DescriptorPoolSize{.type = vk::DescriptorType::eStorageBuffer, .descriptorCount = 1}};
+      vk::DescriptorPoolSize{.type = vk::DescriptorType::eStorageBuffer, .descriptorCount = 4}};
   vk::DescriptorPoolCreateInfo poolCreateInfo{
       .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
       .maxSets =
@@ -51,9 +48,14 @@ VulkanSPHMarchingCubes::VulkanSPHMarchingCubes(const Config &config,
   descriptorPool = this->device->getDevice()->createDescriptorPoolUnique(poolCreateInfo);
 
   std::map<Stages, std::string> fileNames{
-      {Stages::ComputeColors, "colorsGrid.comp"},
+      {Stages::ComputeColors, "ColorCompute.comp"},
   };
   auto shaderPathTemplate = config.getVulkan().shaderFolder / "SPH/Render/{}";
+  [[maybe_unused]] auto computePipelineBuilder =
+      PipelineBuilder{this->config, this->device, swapchain}
+          .setPipelineType(PipelineType::Compute)
+          .addPushConstant(vk::ShaderStageFlagBits::eCompute, sizeof(SimulationInfoSPH));
+
   for (const auto &stage : magic_enum::enum_values<Stages>()) {
     auto pipelineBuilder =
         computePipelineBuilder.setLayoutBindingInfo(bindingInfosCompute[stage])
@@ -83,15 +85,26 @@ void VulkanSPHMarchingCubes::createBuffers() {
                                           | vk::BufferUsageFlagBits::eStorageBuffer)
                            .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-  bufferGridColors = std::make_shared<Buffer>(bufferBuilder.setSize(sizeof(glm::vec2) * bufferSize),
+  bufferGridColors = std::make_shared<Buffer>(bufferBuilder.setSize(sizeof(float) * bufferSize),
                                               this->device, commandPool, queue);
 }
 void VulkanSPHMarchingCubes::fillDescriptorBufferInfo() {
   const auto descriptorBufferInfoGridColors =
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferGridColors, 1},
                            .bufferSize = bufferGridColors->getSize()};
+  const auto descriptorBufferInfoParticles =
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferParticles, 1},
+                           .bufferSize = bufferParticles->getSize()};
+  const auto descriptorBufferInfoGrid =
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferGrid, 1},
+                           .bufferSize = bufferGrid->getSize()};
+  const auto descriptorBufferInfoIndexes =
+      DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferIndexes, 1},
+                           .bufferSize = bufferIndexes->getSize()};
 
-  descriptorBufferInfosCompute[Stages::ComputeColors] = {descriptorBufferInfoGridColors};
+  descriptorBufferInfosCompute[Stages::ComputeColors] = {
+      descriptorBufferInfoParticles, descriptorBufferInfoGrid, descriptorBufferInfoIndexes,
+      descriptorBufferInfoGridColors};
 }
 void VulkanSPHMarchingCubes::recordCommandBuffer(VulkanSPHMarchingCubes::Stages pipelineStage) {
   if (Utilities::isIn(pipelineStage, {Stages::ComputeColors})) {
@@ -107,17 +120,16 @@ void VulkanSPHMarchingCubes::recordCommandBuffer(VulkanSPHMarchingCubes::Stages 
     commandBuffer->bindDescriptorSets(
         vk::PipelineBindPoint::eCompute, pipeline->getPipelineLayout().get(), 0, 1,
         &descriptorSets[pipelineStage]->getDescriptorSets()[0].get(), 0, nullptr);
+    commandBuffer->pushConstants(pipeline->getPipelineLayout().get(),
+                                 vk::ShaderStageFlagBits::eCompute, 0, sizeof(SimulationInfoSPH),
+                                 &simulationInfo);
 
-    auto dispatchCount = gridSizeColor;
+    auto dispatchCount = glm::ivec3(glm::ceil(glm::compMul(gridSizeColor.xyz()) / 32.0), 1, 1);;
     commandBuffer->dispatch(dispatchCount.x, dispatchCount.y, dispatchCount.z);
     commandBuffer->end();
   }
 }
-void VulkanSPHMarchingCubes::swapBuffers(std::shared_ptr<Buffer> &buffer1,
-                                         std::shared_ptr<Buffer> &buffer2) {
 
-  throw NotImplementedException();
-}
 void VulkanSPHMarchingCubes::updateDescriptorSets() {
   std::for_each(pipelines.begin(), pipelines.end(), [&](auto &in) {
     const auto &[stage, _] = in;
@@ -129,25 +141,24 @@ void VulkanSPHMarchingCubes::waitFence() {
   device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
   device->getDevice()->resetFences(fence.get());
 }
-void VulkanSPHMarchingCubes::submit(VulkanSPHMarchingCubes::Stages pipelineStage, const vk::Fence &submitFence,
+void VulkanSPHMarchingCubes::submit(VulkanSPHMarchingCubes::Stages pipelineStage,
+                                    const vk::Fence &submitFence,
                                     const std::optional<vk::Semaphore> &inSemaphore,
                                     const std::optional<vk::Semaphore> &outSemaphore,
-                                    SubmitSemaphoreType submitSemaphoreType) {
-
+                                    [[maybe_unused]] SubmitSemaphoreType submitSemaphoreType) {
 
   std::array<vk::PipelineStageFlags, 1> waitStages{vk::PipelineStageFlagBits::eComputeShader};
   recordCommandBuffer(pipelineStage);
   vk::SubmitInfo submitInfoCompute{
-      .waitSemaphoreCount = static_cast<uint32_t>(
-          submitSemaphoreType == SubmitSemaphoreType::In && !inSemaphore.has_value() ? 0 : 1),
+      .waitSemaphoreCount = static_cast<uint32_t>(1),
       .pWaitSemaphores =
-      inSemaphore.has_value() ? &inSemaphore.value() : &semaphores[currentSemaphore - 1].get(),
+          inSemaphore.has_value() ? &inSemaphore.value() : &semaphores[currentSemaphore - 1].get(),
       .pWaitDstStageMask = waitStages.data(),
       .commandBufferCount = 1,
       .pCommandBuffers = &commandBuffer.get(),
       .signalSemaphoreCount = 1,
       .pSignalSemaphores =
-      outSemaphore.has_value() ? &outSemaphore.value() : &semaphores[currentSemaphore].get()};
+          outSemaphore.has_value() ? &outSemaphore.value() : &semaphores[currentSemaphore].get()};
   queue.submit(submitInfoCompute, submitFence);
 
   currentSemaphore++;
@@ -161,7 +172,10 @@ vk::UniqueSemaphore VulkanSPHMarchingCubes::run(const vk::UniqueSemaphore &inSem
   auto outSemaphore = device->getDevice()->createSemaphore({});
 
   /**Add velocities sources*/
-  submit(Stages::ComputeColors, fence.get(), inSemaphore.get(), outSemaphore, SubmitSemaphoreType::InOut);
+  submit(Stages::ComputeColors, fence.get(), inSemaphore.get(), outSemaphore,
+         SubmitSemaphoreType::InOut);
+
+  [[maybe_unused]] auto colors = bufferGridColors->read<float>();
 
   return vk::UniqueSemaphore(outSemaphore, device->getDevice().get());
 }

@@ -1,4 +1,24 @@
-#version 120
+#version 460
+
+#extension GL_EXT_debug_printf : enable
+
+#define gridSize simulationInfo.gridSizeXYZcountW.xyz
+#define fieldSize (simulationInfo.gridSizeXYZcountW.xyz + 1)
+#define cellCount simulationInfo.gridSizeXYZcountW.w
+
+#define TO_INDEX(a, b, c) (uint(a + gridSize.x * (b + gridSize.y * c)))
+
+#define VEC_TO_INDEX(a) (TO_INDEX(a.x, a.y, a.z))
+
+float M_PI = 3.1415;
+
+float defaultKernel(in vec4 position, in float positionNorm, in float supportRadius) {
+  if (positionNorm >= 0.0f && positionNorm <= supportRadius)
+    return (315 / (64 * M_PI * pow(supportRadius, 9)))
+        * pow(pow(supportRadius, 2) - pow(positionNorm, 2), 3);
+  else
+    return 0.0f;
+}
 
 layout(push_constant) uniform Info {
   ivec4 gridSizeXYZcountW;
@@ -36,8 +56,6 @@ struct ParticleRecord {
 
 #define WALL_DAMPING 0.3f
 
-layout(std430, binding = 0) buffer positionBuffer { ParticleRecord particleRecords[]; };
-
 struct KeyValue {
   int key;  //Particle ID
   int value;//Cell ID
@@ -48,11 +66,65 @@ struct CellInfo {
   int indexes;
 };
 
+layout(std430, binding = 0) buffer positionBuffer { ParticleRecord particleRecords[]; };
 layout(std430, binding = 1) buffer Grid { KeyValue grid[]; };
 layout(std430, binding = 2) buffer Indexes { CellInfo cellInfos[]; };
+layout(std430, binding = 3) buffer Colors { float colorField[]; };
 
 layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 
 void main() {
+  const uint myId = gl_GlobalInvocationID.x;
+  ivec3 myGridID3D =
+      ivec3(myId % fieldSize.x, (myId % (fieldSize.x * fieldSize.y) / fieldSize.x) , myId / (fieldSize.x * fieldSize.y));
 
+  const float particleRadius = simulationInfo.supportRadius;
+
+  float color = 0.0f;
+
+  vec4 myPosition = vec4(myGridID3D * simulationInfo.supportRadius, 0);
+
+  for (int z = -1; z < 1; ++z) {
+    for (int y = -1; y < 1; ++y) {
+      for (int x = -1; x < 1; ++x) {
+        ivec3 currentGridID3D = myGridID3D + ivec3(x, y, z);
+        if(myId == 25) debugPrintfEXT("myId: %d, myGridID3D: %v3d, currentGridID3D: %v3d", myId, myGridID3D, currentGridID3D);
+        if (all(lessThan(myGridID3D, gridSize))
+            && all(greaterThanEqual(currentGridID3D, ivec3(0)))) {
+          uint currentGridID = VEC_TO_INDEX(currentGridID3D);
+          int sortedID = cellInfos[currentGridID].indexes;
+
+          if (sortedID == -1) { continue; }
+
+          //debugPrintfEXT("myId: %u, currentGridID: %d, currentGridID3D: %v3d", myId, currentGridID, currentGridID3D);
+
+          while (grid[sortedID].value == currentGridID && sortedID < simulationInfo.particleCount) {
+
+            const int neighbourID = grid[sortedID].key;
+            if (particleRecords[neighbourID].weight > 0) {
+
+              vec4 positionDiff = myPosition - particleRecords[neighbourID].position;
+              if (length(positionDiff) < simulationInfo.supportRadius) {
+
+                float neighbourWeightedMass =
+                    simulationInfo.particleMass * particleRecords[neighbourID].weight;
+
+                color += (neighbourWeightedMass / particleRecords[neighbourID].massDensity)
+                    * defaultKernel(positionDiff, length(positionDiff),
+                                    simulationInfo.supportRadius);
+                /*                 if (myId == 0) {
+                  debugPrintfEXT("myId: %d, particleID: %d, color: %e", myId, neighbourID,
+                                 (neighbourWeightedMass / particleRecords[neighbourID].massDensity)
+                                     * defaultKernel(positionDiff, length(positionDiff),
+                                                     simulationInfo.supportRadius));
+                } */
+              }
+            }
+            ++sortedID;
+          }
+        }
+      }
+    }
+  }
+  colorField[myId] = color;
 }
