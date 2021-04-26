@@ -42,6 +42,10 @@ struct SimulationGridFluidConfig {
   float ambientTemperature;
 };
 
+struct MarchingCubes{
+  int detail;
+};
+
 struct AppConfig {
   bool DEBUG;
   bool outputToFile;
@@ -50,6 +54,7 @@ struct AppConfig {
   float pitch;
   SimulationSPHConfig simulationSPH;
   SimulationGridFluidConfig simulationGridFluid;
+  MarchingCubes marchingCubes;
 };
 
 #endif//VULKANAPP_CONFIGSTRUCTS_H

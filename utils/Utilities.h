@@ -6,12 +6,12 @@
 #define VULKANTEST_UTILITIES_H
 
 #include "../vulkan/types/Types.h"
+#include <filesystem>
 #include <fstream>
 #include <set>
 #include <string>
 #include <tiny_obj_loader.h>
 #include <vector>
-#include <filesystem>
 
 namespace Utilities {
 
@@ -27,10 +27,19 @@ concept RawDataProvider = requires(T t) {
 template<Pointer T>
 using ptr_val = decltype(*std::declval<T>());
 
-inline std::string readFile(const std::string &filename) {
+inline std::string readFile(const std::filesystem::path &filename) {
+  if (!exists(filename)) {
+    throw std::runtime_error(fmt::format("File does not exist! {}", filename));
+  }
+  if (!is_regular_file(filename)) {
+    throw std::runtime_error(fmt::format("Provided path is not a file! {}", filename));
+  }
+
   std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
-  if (!file.is_open()) { throw std::runtime_error("failed to open file!"); }
+  if (!file.is_open()) {
+    throw std::runtime_error(fmt::format("Could not open exist! {}", filename));
+  }
 
   size_t fileSize = static_cast<size_t>(file.tellg());
   std::string buffer(fileSize, ' ');

@@ -6,6 +6,7 @@
 #define VULKANAPP_VULKANGRIDFLUIDSPHCOUPLING_H
 
 #include "../utils/Config.h"
+#include "enums.h"
 #include "types/Buffer.h"
 #include "types/DescriptorSet.h"
 #include "types/Device.h"
@@ -20,8 +21,8 @@ class VulkanGridFluidSPHCoupling {
       std::shared_ptr<Buffer> inBufferParticles, std::shared_ptr<Buffer> inBufferGridValuesOld,
       std::shared_ptr<Buffer> inBufferGridValuesNew, std::shared_ptr<Buffer> inBufferGridSPH,
       std::shared_ptr<Buffer> inBufferGridVelocities);
-  vk::UniqueSemaphore run(const vk::Semaphore &semaphoreWait);
-  vk::UniqueSemaphore run(const std::vector<vk::Semaphore> &semaphoreWait);
+  vk::UniqueSemaphore run(const vk::Semaphore &semaphoreWait, CouplingStep couplingStep);
+  vk::UniqueSemaphore run(const std::vector<vk::Semaphore> &semaphoreWait, CouplingStep couplingStep);
   [[nodiscard]] const vk::UniqueFence &getFenceAfterCompute() const;
 
  private:

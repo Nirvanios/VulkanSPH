@@ -27,9 +27,10 @@ class PipelineBuilder {
   PipelineBuilder &setPipelineType(PipelineType type);
   PipelineBuilder &setVertexShaderPath(const std::string &path);
   PipelineBuilder &setFragmentShaderPath(const std::string &path);
+  PipelineBuilder &setGeometryShaderPath(const std::string &path);
   PipelineBuilder &setComputeShaderPath(const std::string &path);
   PipelineBuilder &addShaderMacro(const std::string &name, const std::string &code = "");
-  PipelineBuilder &addPushConstant(vk::ShaderStageFlagBits stage, size_t pushConstantSize);
+  PipelineBuilder &addPushConstant(vk::ShaderStageFlags stage, size_t pushConstantSize);
   PipelineBuilder &setAssemblyInfo(vk::PrimitiveTopology topology, bool usePrimitiveRestartIndex);
   PipelineBuilder &addRenderPass(const std::string& name, std::shared_ptr<RenderPass> renderPass);
   PipelineBuilder &setBlendEnabled(bool enabled);
@@ -55,6 +56,7 @@ class PipelineBuilder {
   std::vector<vk::PushConstantRange> pushConstantRanges;
   PipelineType pipelineType;
   std::string vertexFile;
+  std::string geometryFile;
   std::string fragmentFile;
   std::string computeFile;
   std::vector<VulkanUtils::ShaderMacro> macros;

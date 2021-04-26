@@ -6,7 +6,6 @@
 #define VULKANAPP_DEVICE_H
 
 #include "Instance.h"
-#include <vulkan/vulkan.hpp>
 
 class Device {
  private:

@@ -78,7 +78,7 @@ void Device::createLogicalDevice() {
                                               .pQueuePriorities = &priority};
     queueCreateInfos.emplace_back(queueCreateInfo);
   }
-  vk::PhysicalDeviceFeatures deviceFeatures{.samplerAnisotropy = VK_TRUE};
+  vk::PhysicalDeviceFeatures deviceFeatures{.geometryShader = VK_TRUE, .samplerAnisotropy = VK_TRUE};
   vk::DeviceCreateInfo createInfo{
       .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
       .pQueueCreateInfos = queueCreateInfos.data(),

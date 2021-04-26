@@ -11,4 +11,6 @@ enum class Visualization { None, Density, PressureForce, Velocity};
 
 enum class SPHStep { advect, massDensity, force};
 
+enum class CouplingStep { tag, transfer};
+
 #endif//VULKANAPP_ENUMS_H

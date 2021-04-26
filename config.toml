@@ -4,6 +4,7 @@ outputToFile = false
 pitch = -15.099977493286133
 yaw = -11.900189399719238
 cameraPos = [-6.9187860488891602,3.9882872104644775,3.6379108428955078]
+MarchingCubes = {detail=20}
 [App.simulationSPH]
 useNNS = true
 fluidVolume = 2.0

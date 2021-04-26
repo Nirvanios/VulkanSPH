@@ -95,7 +95,7 @@ VulkanGridFluidSPHCoupling::VulkanGridFluidSPHCoupling(
 }
 
 vk::UniqueSemaphore
-VulkanGridFluidSPHCoupling::run(const std::vector<vk::Semaphore> &semaphoreWait) {
+VulkanGridFluidSPHCoupling::run(const std::vector<vk::Semaphore> &semaphoreWait, CouplingStep couplingStep) {
 
   currentSemaphore = 0;
 
@@ -103,56 +103,42 @@ VulkanGridFluidSPHCoupling::run(const std::vector<vk::Semaphore> &semaphoreWait)
 
   auto outSemaphore = device->getDevice()->createSemaphore({});
 
-  submit(Stages::Tag, fence.get(), semaphoreWait);
-  waitFence();
-
-  submit(Stages::TransferHeatToCells, fence.get());
-  waitFence();
-
-  submit(Stages::TransferHeatToParticles, fence.get());
-  waitFence();
-  [[maybe_unused]] auto oldparticles = bufferParticles->read<ParticleRecord>();
-  [[maybe_unused]] auto tempsParticle = bufferParticleTempsNew->read<float>();
-/*  for (const auto &item : tempsParticle){
-    if(std::isnan(item) || std::isinf(item)){
+  switch (couplingStep) {
+    case CouplingStep::tag:
+      submit(Stages::Tag, fence.get(), semaphoreWait, outSemaphore);
+      waitFence();
       break;
-    }
-  }*/
+    case CouplingStep::transfer:
+      submit(Stages::TransferHeatToCells, fence.get(), semaphoreWait);
+      waitFence();
 
-  submit(Stages::WriteNewParticleTemps, fence.get());
-  waitFence();
-  //swapBuffers(bufferGridValuesNew, bufferGridValuesOld);
+      submit(Stages::TransferHeatToParticles, fence.get());
+      waitFence();
 
-  submit(Stages::MassTransfer, fence.get());
-  waitFence();
+      submit(Stages::WriteNewParticleTemps, fence.get());
+      waitFence();
 
-  submit(Stages::WeightDistribution, fence.get(), std::nullopt, outSemaphore);
-  waitFence();
+      submit(Stages::MassTransfer, fence.get());
+      waitFence();
 
+      submit(Stages::WeightDistribution, fence.get(), std::nullopt, outSemaphore);
+      waitFence();
 
+      //[[maybe_unused]] auto ind = bufferIndexes->read<CellInfo>();
+      //[[maybe_unused]] auto tempsCells = bufferGridValuesNew->read<glm::vec2>();
+      //[[maybe_unused]] auto tempsCellsOld = bufferGridValuesOld->read<glm::vec2>();
+      [[maybe_unused]] auto particles = bufferParticles->read<ParticleRecord>();
+      //[[maybe_unused]] auto tempsParticle = bufferParticleTempsNew->read<float>();
+      //[[maybe_unused]] auto hasPair = bufferHasPair->read<KeyValue>();
 
-
-
-  //[[maybe_unused]] auto ind = bufferIndexes->read<CellInfo>();
-  //[[maybe_unused]] auto tempsCells = bufferGridValuesNew->read<glm::vec2>();
-  //[[maybe_unused]] auto tempsCellsOld = bufferGridValuesOld->read<glm::vec2>();
-  [[maybe_unused]] auto particles = bufferParticles->read<ParticleRecord>();
-  //[[maybe_unused]] auto tempsParticle = bufferParticleTempsNew->read<float>();
-  //[[maybe_unused]] auto hasPair = bufferHasPair->read<KeyValue>();
-
-  auto i = 0;
-  for (const auto &item : particles){
-    if((std::isnan(item.temperature) || std::isinf(item.temperature)) && item.weight > 0){
       break;
-    }
-    ++i;
   }
 
   return vk::UniqueSemaphore(outSemaphore, device->getDevice().get());
 }
 
-vk::UniqueSemaphore VulkanGridFluidSPHCoupling::run(const vk::Semaphore &semaphoreWait) {
-  return run(std::vector<vk::Semaphore>{semaphoreWait});
+vk::UniqueSemaphore VulkanGridFluidSPHCoupling::run(const vk::Semaphore &semaphoreWait, CouplingStep couplingStep) {
+  return run(std::vector<vk::Semaphore>{semaphoreWait}, couplingStep);
 }
 
 const vk::UniqueFence &VulkanGridFluidSPHCoupling::getFenceAfterCompute() const { return fence; }

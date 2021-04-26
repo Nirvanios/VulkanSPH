@@ -46,9 +46,9 @@ layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inColor;
 layout(location = 2) in vec3 inNormal;
 
-layout(location = 3) out vec4 fragColor;
-layout(location = 4) out vec3 outNormal;
-layout(location = 5) out vec3 outPosition;
+layout(location = 0) out vec4 fragColor;
+layout(location = 1) out vec3 outNormal;
+layout(location = 2) out vec3 outPosition;
 
 float map2hue(float value, float max, float min) {
   if (value > max) return 0.0;

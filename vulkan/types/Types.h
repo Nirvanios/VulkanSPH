@@ -144,6 +144,13 @@ struct GridInfo {
   unsigned int particleCount;
 };
 
+struct GridInfoMC {
+  glm::ivec4 gridSize;
+  glm::vec4 gridOrigin;
+  float cellSize;
+  int detail;
+};
+
 struct CellInfo {
   unsigned int tags;
   int indexes;
@@ -155,9 +162,15 @@ struct DrawInfo {
   float supportRadius;
 };
 
+
 struct SimulationInfo {
   SimulationInfoSPH simulationInfoSPH;
   SimulationInfoGridFluid simulationInfoGridFluid;
+};
+
+struct MarchingCubesInfo{
+  SimulationInfoSPH simulationInfoSph;
+  GridInfoMC gridInfoMC;
 };
 
 enum class BufferType { floatType = 0, vec4Type = 1 };
@@ -167,6 +180,8 @@ enum class GaussSeidelColorPhase { red = 0, black = 1 };
 enum class GaussSeidelStageType { diffuse = 0, project = 1 };
 
 enum class SimulationType { SPH = 0, Grid = 1, Combined = 2 };
+
+enum class RenderType { MarchingCubes = 0, Particles = 1 };
 
 enum class SubmitSemaphoreType { None = 0, In = 1, Out = 2, InOut = 3 };
 

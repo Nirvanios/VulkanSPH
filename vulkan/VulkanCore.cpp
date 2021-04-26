@@ -18,7 +18,11 @@
 #include "enums.h"
 #include <glm/gtx/component_wise.hpp>
 #include <magic_enum.hpp>
-#include <pf_imgui/elements.h>
+#include <pf_imgui/elements/Button.h>
+#include <pf_imgui/elements/ComboBox.h>
+#include <pf_imgui/elements/Group.h>
+#include <pf_imgui/elements/Image.h>
+
 #include <plf_nanotimer.h>
 
 #include "../Third Party/imgui/imgui_impl_vulkan.h"
@@ -116,8 +120,11 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
       vulkanGridFluid->getBufferVelocitiesNew());
 
   vulkanSphMarchingCubes = std::make_unique<VulkanSPHMarchingCubes>(
-      config, simulationInfoSPH, device, surface, swapchain, vulkanSPH->getBufferParticles(),
-      bufferIndexes, bufferCellParticlePair);
+      config, simulationInfoSPH, vulkanGridSPH->getGridInfo(), device, surface, swapchain,
+      vulkanSPH->getBufferParticles(), bufferIndexes, bufferCellParticlePair, buffersUniformMVP,
+      buffersUniformCameraPos);
+  vulkanSphMarchingCubes->setFramebuffersSwapchain(framebuffersSwapchain);
+  vulkanSphMarchingCubes->setImgui(imgui);
 
   auto tmpBuffer = std::vector{vulkanSPH->getBufferParticles()};
   std::array<DescriptorBufferInfo, 3> descriptorBufferInfosGraphic{
@@ -337,6 +344,7 @@ void VulkanCore::createSyncObjects() {
   fencesImagesInFlight.resize(swapchain->getSwapchainImageCount());
   semaphoreAfterSimulationSPH.resize(swapchain->getSwapchainImageCount());
   semaphoreAfterTag.resize(swapchain->getSwapchainImageCount());
+  semaphoreAfterCoupling.resize(swapchain->getSwapchainImageCount());
   semaphoreAfterMassDensity.resize(swapchain->getSwapchainImageCount());
   semaphoreAfterForces.resize(swapchain->getSwapchainImageCount());
   semaphoreAfterSimulationGrid.resize(swapchain->getSwapchainImageCount());
@@ -348,7 +356,7 @@ void VulkanCore::createSyncObjects() {
     semaphoreBetweenRender.emplace_back(device->getDevice()->createSemaphoreUnique({}));
     semaphoreBeforeSPH.emplace_back(device->getDevice()->createSemaphoreUnique({}));
     semaphoreBeforeGrid.emplace_back(device->getDevice()->createSemaphoreUnique({}));
-    semaphoreAfterMC.emplace_back(device->getDevice()->createSemaphoreUnique({}));
+    semaphoreBeforeMC.emplace_back(device->getDevice()->createSemaphoreUnique({}));
     fencesInFlight.emplace_back(
         device->getDevice()->createFenceUnique({.flags = vk::FenceCreateFlagBits::eSignaled}));
   }
@@ -422,8 +430,7 @@ void VulkanCore::drawFrame() {
                                                          DrawType::ToTexture, DrawType::ToFile}};
   recordCommandBuffers(imageindex, drawFlags);
 
-  auto semaphoreSPHRenderIn =
-      std::vector<vk::Semaphore>{semaphoreImageAvailable[currentFrame].get()};
+  auto semaphoreSPHRenderIn = &semaphoreImageAvailable[currentFrame];
   auto semaphoreGridRenderIn = simulationType != SimulationType::SPH
       ? &semaphoreBetweenRender[currentFrame]
       : &semaphoreImageAvailable[currentFrame];
@@ -433,9 +440,8 @@ void VulkanCore::drawFrame() {
 
       semaphoreAfterMassDensity[currentFrame] =
           vulkanSPH->run(semaphoreAfterSort[currentFrame], SPHStep::massDensity);
-      semaphoreAfterMC[currentFrame] = vulkanSphMarchingCubes->run(semaphoreAfterMassDensity[currentFrame]);
       semaphoreAfterForces[currentFrame] =
-          vulkanSPH->run(semaphoreAfterMC[currentFrame], SPHStep::force);
+          vulkanSPH->run(semaphoreAfterMassDensity[currentFrame], SPHStep::force);
       semaphoreAfterSimulationSPH[currentFrame] =
           vulkanSPH->run(semaphoreAfterForces[currentFrame], SPHStep::advect);
     }
@@ -450,43 +456,68 @@ void VulkanCore::drawFrame() {
       if (simulationType == SimulationType::Combined) {
         semaphoreAfterTag[currentFrame] =
             vulkanGridFluidSphCoupling->run({semaphoreAfterSimulationSPH[currentFrame].get(),
-                                             semaphoreAfterSimulationGrid[currentFrame].get()});
+                                             semaphoreAfterSimulationGrid[currentFrame].get()},
+                                            CouplingStep::tag);
+        semaphoreAfterCoupling[currentFrame] = vulkanGridFluidSphCoupling->run(
+            semaphoreAfterTag[currentFrame].get(), CouplingStep::transfer);
       }
     }
     switch (simulationType) {
       case SimulationType::Grid:
-        semaphoreSPHRenderIn = {semaphoreAfterSimulationGrid[currentFrame].get()};
+        semaphoreSPHRenderIn = &semaphoreAfterSimulationGrid[currentFrame];
         semaphoreGridRenderIn = &semaphoreBetweenRender[currentFrame];
         break;
       case SimulationType::SPH:
-        semaphoreSPHRenderIn = {semaphoreAfterSimulationSPH[currentFrame].get()};
+        semaphoreSPHRenderIn = &semaphoreAfterSimulationSPH[currentFrame];
         break;
       case SimulationType::Combined:
-        semaphoreSPHRenderIn = {semaphoreAfterTag[currentFrame].get()};
+        semaphoreSPHRenderIn = &semaphoreAfterCoupling[currentFrame];
         semaphoreGridRenderIn = &semaphoreBetweenRender[currentFrame];
         break;
     }
   }
-  vk::SubmitInfo submitInfoRender{.waitSemaphoreCount =
-                                      static_cast<uint32_t>(semaphoreSPHRenderIn.size()),
-                                  .pWaitSemaphores = semaphoreSPHRenderIn.data(),
-                                  .pWaitDstStageMask = waitStagesRender.data(),
-                                  .commandBufferCount = 1,
-                                  .pCommandBuffers = &commandBuffersGraphic[imageindex].get(),
-                                  .signalSemaphoreCount = 1,
-                                  .pSignalSemaphores = simulationType != SimulationType::SPH
-                                      ? &semaphoreBetweenRender[currentFrame].get()
-                                      : &semaphoreRenderFinished[currentFrame].get()};
-  vk::PresentInfoKHR presentInfo{.waitSemaphoreCount = 1,
-                                 .pWaitSemaphores = &semaphoreRenderFinished[currentFrame].get(),
-                                 .swapchainCount = 1,
-                                 .pSwapchains = swapchains.data(),
-                                 .pImageIndices = &imageindex,
-                                 .pResults = nullptr};
+  else if(initSPH){
+    initSPH = false;
+    semaphoreAfterSort[currentFrame] = vulkanGridSPH->run(semaphoreImageAvailable[currentFrame]);
+    semaphoreAfterMassDensity[currentFrame] =
+        vulkanSPH->run(semaphoreAfterSort[currentFrame], SPHStep::massDensity);
+    semaphoreSPHRenderIn = &semaphoreAfterMassDensity[currentFrame];
+  }
+  if (Utilities::isIn(simulationType, {SimulationType::SPH, SimulationType::Combined})) {
 
-  queueGraphics.submit(submitInfoRender,
-                       simulationType != SimulationType::SPH ? nullptr
-                                                             : fencesInFlight[currentFrame].get());
+    vk::SubmitInfo submitInfoRender{.waitSemaphoreCount = 1,
+                                    .pWaitSemaphores = &semaphoreSPHRenderIn->get(),
+                                    .pWaitDstStageMask = waitStagesRender.data(),
+                                    .commandBufferCount = 1,
+                                    .pCommandBuffers = &commandBuffersGraphic[imageindex].get(),
+                                    .signalSemaphoreCount = 1,
+                                    .pSignalSemaphores = simulationType != SimulationType::SPH
+                                        ? &semaphoreBetweenRender[currentFrame].get()
+                                        : &semaphoreRenderFinished[currentFrame].get()};
+
+    if (renderType == RenderType::Particles) {
+      queueGraphics.submit(
+          submitInfoRender,
+          simulationType != SimulationType::SPH ? nullptr : fencesInFlight[currentFrame].get());
+    } else if (renderType == RenderType::MarchingCubes) {
+      if (simulationType == SimulationType::SPH && (simulate || step || computeColors)) {
+        semaphoreAfterTag[currentFrame] =
+            vulkanGridFluidSphCoupling->run({semaphoreSPHRenderIn->get()}, CouplingStep::tag);
+        semaphoreBeforeMC[currentFrame] =
+            vulkanSphMarchingCubes->run(semaphoreAfterTag[currentFrame]);
+        semaphoreRenderFinished[currentFrame] = vulkanSphMarchingCubes->draw(
+            semaphoreBeforeMC[currentFrame], imageindex, fencesInFlight[currentFrame]);
+      } else if(simulate || step || computeColors){
+        semaphoreBeforeMC[currentFrame] = vulkanSphMarchingCubes->run(*semaphoreSPHRenderIn);
+        semaphoreRenderFinished[currentFrame] = vulkanSphMarchingCubes->draw(
+            semaphoreBeforeMC[currentFrame], imageindex, fencesInFlight[currentFrame]);
+      } else {
+        semaphoreRenderFinished[currentFrame] = vulkanSphMarchingCubes->draw(
+            *semaphoreSPHRenderIn, imageindex, fencesInFlight[currentFrame]);
+      }
+      computeColors = false;
+    }
+  }
   if (Utilities::isIn(simulationType, {SimulationType::Grid, SimulationType::Combined}))
     semaphoreRenderFinished[currentFrame] = vulkanGridFluidRender->draw(
         *semaphoreGridRenderIn, imageindex, fencesInFlight[currentFrame]);
@@ -502,6 +533,13 @@ void VulkanCore::drawFrame() {
     auto output = imageOutput->read(device);
     videoDiskSaver.insertFrameBlocking(output, PixelFormat::RGBA);
   }
+
+  vk::PresentInfoKHR presentInfo{.waitSemaphoreCount = 1,
+                                 .pWaitSemaphores = &semaphoreRenderFinished[currentFrame].get(),
+                                 .swapchainCount = 1,
+                                 .pSwapchains = swapchains.data(),
+                                 .pImageIndices = &imageindex,
+                                 .pResults = nullptr};
 
   try {
     queuePresent.presentKHR(presentInfo);
@@ -743,6 +781,18 @@ void VulkanCore::initGui() {
         auto selected = magic_enum::enum_cast<SimulationType>(value);
         simulationType = selected.has_value() ? selected.value() : SimulationType::SPH;
         rebuildRenderPipelines();
+      });
+  controlWindow
+      .createChild<ig::ComboBox<std::string>>(
+          "combobox_RenderSelect", "Render:", "Particles",
+          [] {
+            auto names = magic_enum::enum_names<RenderType>();
+            return std::vector<std::string>{names.begin(), names.end()};
+          }())
+      .addValueListener([this](auto value) {
+        auto selected = magic_enum::enum_cast<RenderType>(value);
+        renderType = selected.has_value() ? selected.value() : RenderType::Particles;
+        computeColors = renderType == RenderType::MarchingCubes;
       });
 
   auto &debugVisualizationWindow = imgui->createWindow("window_visualization", "Visualization");

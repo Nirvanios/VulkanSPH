@@ -263,7 +263,7 @@ void main() {
       debugPrintfEXT("myId: %d, TEMPERATURE IS inf!!!!!", myId);
     }
     //if(colorField < -10)
-    debugPrintfEXT("myId: %d, colorField: %e", myId, colorField);
+    //debugPrintfEXT("myId: %d, colorField: %e", myId, colorField);
     //debugPrintfEXT("myId: %d, dTmp: %e, lastTmp: %e", myId, (temperature * simulationInfo.timeStep) / simulationInfo.heatCapacity, particleRecords[myId].temperature);
   }
 }

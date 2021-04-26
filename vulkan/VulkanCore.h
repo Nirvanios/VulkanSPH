@@ -81,6 +81,8 @@ class VulkanCore {
   uint steps = 0;
   bool simulate = false;
   bool step = false;
+  bool initSPH = true;
+  bool computeColors = false;
   Visualization textureVisualization;
 
   std::function<glm::mat4()> viewMatrixGetter = []() { return glm::mat4(1.0f); };
@@ -104,7 +106,7 @@ class VulkanCore {
   std::vector<vk::UniqueSemaphore> semaphoreImageAvailable, semaphoreRenderFinished,
       semaphoreBetweenRender, semaphoreAfterSimulationSPH, semaphoreAfterTag,
       semaphoreAfterSimulationGrid, semaphoreAfterSort, semaphoreAfterMassDensity,
-      semaphoreAfterForces, semaphoreBeforeGrid, semaphoreBeforeSPH, semaphoreAfterMC;
+      semaphoreAfterForces, semaphoreBeforeGrid, semaphoreBeforeSPH, semaphoreBeforeMC, semaphoreAfterCoupling;
   std::vector<vk::UniqueFence> fencesInFlight;
   std::vector<std::optional<vk::Fence>> fencesImagesInFlight;
 
@@ -135,6 +137,7 @@ class VulkanCore {
   FPSCounter fpsCounter;
   std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> imgui;
   SimulationType simulationType = SimulationType::SPH;
+  RenderType renderType = RenderType::Particles;
 
   std::unique_ptr<VulkanSPH> vulkanSPH;
   std::unique_ptr<VulkanGridSPH> vulkanGridSPH;

@@ -15,11 +15,12 @@ std::shared_ptr<Pipeline> PipelineBuilder::build() {
     //auto renderpass = createRenderPass();
     spdlog::debug("Created renderpass.");
     auto descriptorSetLayout = createDescriptorSetLayout();
-    auto [pipelineLayout, pipeline] = createGraphicsPipeline(descriptorSetLayout, renderPasses.begin()->second->getRenderPass());
+    auto [pipelineLayout, pipeline] =
+        createGraphicsPipeline(descriptorSetLayout, renderPasses.begin()->second->getRenderPass());
     spdlog::debug("Created graphics pipeline.");
 
-    return std::make_shared<Pipeline>(renderPasses, std::move(pipelineLayout),
-                                      std::move(pipeline), std::move(descriptorSetLayout));
+    return std::make_shared<Pipeline>(renderPasses, std::move(pipelineLayout), std::move(pipeline),
+                                      std::move(descriptorSetLayout));
   } else {
     auto descriptorSetLayout = createDescriptorSetLayout();
     auto [pipelineLayout, pipeline] = createComputePipeline(descriptorSetLayout);
@@ -33,27 +34,36 @@ std::shared_ptr<Pipeline> PipelineBuilder::build() {
 std::pair<vk::UniquePipelineLayout, vk::UniquePipeline>
 PipelineBuilder::createGraphicsPipeline(const vk::UniqueDescriptorSetLayout &descriptorSetLayout,
                                         const vk::UniqueRenderPass &renderPass) {
-  auto vertShaderModule = createShaderModule(
-      VulkanUtils::compileShader(vertexFile, shaderc_shader_kind::shaderc_vertex_shader,
-                                 Utilities::readFile(vertexFile), macros));
-  auto fragShaderModule = createShaderModule(
-      VulkanUtils::compileShader(vertexFile, shaderc_shader_kind::shaderc_fragment_shader,
-                                 Utilities::readFile(fragmentFile), macros));
   auto bindingDescription = Vertex::getBindingDescription();
   auto attributeDescriptions = Vertex::getAttributeDescriptions();
 
-  vk::PipelineShaderStageCreateInfo vertexStageCreateInfo{.stage = vk::ShaderStageFlagBits::eVertex,
-                                                          .module = vertShaderModule.get(),
-                                                          .pName = "main"};
+  std::vector<vk::PipelineShaderStageCreateInfo> shaderStages{};
 
-  vk::PipelineShaderStageCreateInfo fragmentStageCreateInfo{.stage =
-                                                                vk::ShaderStageFlagBits::eFragment,
-                                                            .module = fragShaderModule.get(),
-                                                            .pName = "main"};
+  auto vertShaderModule = createShaderModule(
+      VulkanUtils::compileShader(vertexFile, shaderc_shader_kind::shaderc_vertex_shader,
+                                 Utilities::readFile(vertexFile), macros));
+  shaderStages.emplace_back(
+      vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eVertex,
+                                        .module = vertShaderModule.get(),
+                                        .pName = "main"});
 
-  std::array<vk::PipelineShaderStageCreateInfo, 2> shaderStages{vertexStageCreateInfo,
-                                                                fragmentStageCreateInfo};
-
+  auto fragShaderModule = createShaderModule(
+      VulkanUtils::compileShader(fragmentFile, shaderc_shader_kind::shaderc_fragment_shader,
+                                 Utilities::readFile(fragmentFile), macros));
+  shaderStages.emplace_back(
+      vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eFragment,
+                                        .module = fragShaderModule.get(),
+                                        .pName = "main"});
+  vk::UniqueShaderModule geometryShaderModule;
+  if (!geometryFile.empty()) {
+    geometryShaderModule = createShaderModule(
+        VulkanUtils::compileShader(geometryFile, shaderc_shader_kind::shaderc_geometry_shader,
+                                   Utilities::readFile(geometryFile), macros));
+    shaderStages.emplace_back(
+        vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eGeometry,
+                                          .module = geometryShaderModule.get(),
+                                          .pName = "main"});
+  }
   vk::PipelineVertexInputStateCreateInfo vertexInputCreateInfo{
       .vertexBindingDescriptionCount = 1,
       .pVertexBindingDescriptions = &bindingDescription,
@@ -136,7 +146,7 @@ PipelineBuilder::createGraphicsPipeline(const vk::UniqueDescriptorSetLayout &des
       .stencilTestEnable = VK_FALSE};
 
   vk::GraphicsPipelineCreateInfo pipelineCreateInfo{
-      .stageCount = 2,
+      .stageCount = static_cast<uint32_t>(shaderStages.size()),
       .pStages = shaderStages.data(),
       .pVertexInputState = &vertexInputCreateInfo,
       .pInputAssemblyState = &inputAssemblyStateCreateInfo,
@@ -224,6 +234,10 @@ PipelineBuilder &PipelineBuilder::setVertexShaderPath(const std::string &path) {
   vertexFile = path;
   return *this;
 }
+PipelineBuilder &PipelineBuilder::setGeometryShaderPath(const std::string &path) {
+  geometryFile = path;
+  return *this;
+}
 PipelineBuilder &PipelineBuilder::setFragmentShaderPath(const std::string &path) {
   fragmentFile = path;
   return *this;
@@ -232,7 +246,7 @@ PipelineBuilder &PipelineBuilder::setComputeShaderPath(const std::string &path) 
   computeFile = path;
   return *this;
 }
-PipelineBuilder &PipelineBuilder::addPushConstant(vk::ShaderStageFlagBits stage,
+PipelineBuilder &PipelineBuilder::addPushConstant(vk::ShaderStageFlags stage,
                                                   size_t pushConstantSize) {
   pushConstantRanges.emplace_back(
       vk::PushConstantRange{.stageFlags = stage,
@@ -251,7 +265,8 @@ PipelineBuilder &PipelineBuilder::setAssemblyInfo(vk::PrimitiveTopology topology
   return *this;
 }
 
-PipelineBuilder &PipelineBuilder::addRenderPass(const std::string& name, std::shared_ptr<RenderPass> renderPass) {
+PipelineBuilder &PipelineBuilder::addRenderPass(const std::string &name,
+                                                std::shared_ptr<RenderPass> renderPass) {
   renderPasses[name] = std::move(renderPass);
   return *this;
 }

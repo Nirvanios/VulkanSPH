@@ -14,6 +14,7 @@ Config::Config(const std::string &configFile) : file(configFile) {
   const auto &tomlApp = toml::find(data, "App");
   const auto &tomlSimulationSPH = toml::find(tomlApp, "simulationSPH");
   const auto &tomlSimulationGridFluid = toml::find(tomlApp, "simulationGridFluid");
+  const auto &tomlMarchingCubes = toml::find(tomlApp, "MarchingCubes");
   const auto &tomlVulkan = toml::find(data, "Vulkan");
   const auto &tomlWindow = toml::find(tomlVulkan, "window");
 
@@ -44,6 +45,8 @@ Config::Config(const std::string &configFile) : file(configFile) {
   app.simulationGridFluid.cellModel = toml::find<std::string>(tomlSimulationGridFluid, "cellModel");
   app.simulationGridFluid.ambientTemperature =
       toml::find<float>(tomlSimulationGridFluid, "ambientTemperature");
+
+  app.marchingCubes.detail = toml::find<int>(tomlMarchingCubes, "detail");
 
   Vulkan.shaderFolder = toml::find<std::string>(tomlVulkan, "pathToShaders");
 
