@@ -27,10 +27,10 @@ class VulkanSPHMarchingCubes {
                          std::vector<std::shared_ptr<Buffer>> inBuffersUniformMVP,
                          std::vector<std::shared_ptr<Buffer>> inBuffersUniformCameraPos);
   vk::UniqueSemaphore run(const vk::UniqueSemaphore &inSemaphore);
-  vk::UniqueSemaphore draw(const vk::UniqueSemaphore &inSemaphore, unsigned int imageIndex,
-                           const vk::UniqueFence &fenceInFlight);
+  vk::UniqueSemaphore draw(const vk::UniqueSemaphore &inSemaphore, unsigned int imageIndex);
   void setFramebuffersSwapchain(const std::shared_ptr<Framebuffers> &framebuffer);
   void setImgui(std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> inImgui);
+  void rebuildPipeline(bool clearBeforeDraw);
 
  private:
   enum class Stages { ComputeColors, Render };

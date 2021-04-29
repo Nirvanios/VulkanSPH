@@ -57,8 +57,8 @@ VulkanSPHMarchingCubes::VulkanSPHMarchingCubes(
   fillDescriptorBufferInfo();
 
   std::array<vk::DescriptorPoolSize, 2> poolSize{
-      vk::DescriptorPoolSize{.type = vk::DescriptorType::eStorageBuffer, .descriptorCount = 4},
-      vk::DescriptorPoolSize{.type = vk::DescriptorType::eUniformBuffer, .descriptorCount = 1}};
+      vk::DescriptorPoolSize{.type = vk::DescriptorType::eStorageBuffer, .descriptorCount = 11},
+      vk::DescriptorPoolSize{.type = vk::DescriptorType::eUniformBuffer, .descriptorCount = 3}};
   vk::DescriptorPoolCreateInfo poolCreateInfo{
       .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
       .maxSets =
@@ -109,11 +109,13 @@ VulkanSPHMarchingCubes::VulkanSPHMarchingCubes(
           .setAssemblyInfo(vk::PrimitiveTopology::ePointList, false)
           .setBlendEnabled(false)
           .setDepthTestEnabled(true)
-          .addRenderPass("toSwapchain",
-                         RenderPassBuilder{device}
-                             .setDepthAttachmentFormat(VulkanUtils::findDepthFormat(device))
-                             .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
-                             .build())
+          .addRenderPass(
+              "toSwapchain",
+              RenderPassBuilder{device}
+                  .setColorAttachementFinalLayout(vk::ImageLayout::eColorAttachmentOptimal)
+                  .setDepthAttachmentFormat(VulkanUtils::findDepthFormat(device))
+                  .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
+                  .build())
           .build();
   descriptorSets[Stages::Render] = std::make_shared<DescriptorSet>(
       this->device, swapchain->getSwapchainImageCount(),
@@ -155,7 +157,8 @@ void VulkanSPHMarchingCubes::createBuffers() {
                               | vk::BufferUsageFlagBits::eVertexBuffer);
   bufferVertex = std::make_shared<Buffer>(bufferBuilder.setSize(sizeof(Vertex) * bufferSize),
                                           this->device, commandPoolCompute, queueCompute);
-  bufferVertex->fill(std::array<Vertex, 1>{});
+  bufferVertex->fill(std::array<Vertex, 1>{
+      Vertex{.pos = glm::vec4{0}, .color = glm::vec3{0.5, 0.8, 1.0}, .normal = glm::vec4{0}}});
 }
 void VulkanSPHMarchingCubes::fillDescriptorBufferInfo() {
   const auto descriptorBufferInfoGridColors =
@@ -321,14 +324,13 @@ vk::UniqueSemaphore VulkanSPHMarchingCubes::run(const vk::UniqueSemaphore &inSem
 
   waitFence();
 
-  [[maybe_unused]] auto colors = bufferGridColors->read<float>();
-  [[maybe_unused]] auto parts = bufferParticles->read<ParticleRecord>();
+/*  [[maybe_unused]] auto colors = bufferGridColors->read<float>();
+  [[maybe_unused]] auto parts = bufferParticles->read<ParticleRecord>();*/
 
   return vk::UniqueSemaphore(outSemaphore, device->getDevice().get());
 }
 vk::UniqueSemaphore VulkanSPHMarchingCubes::draw(const vk::UniqueSemaphore &inSemaphore,
-                                                 unsigned int imageIndex,
-                                                 const vk::UniqueFence &fenceInFlight) {
+                                                 unsigned int imageIndex) {
   auto tmpfence = device->getDevice()->createFenceUnique({});
 
   vk::Semaphore semaphoreAfterRender = device->getDevice()->createSemaphore({});
@@ -346,7 +348,7 @@ vk::UniqueSemaphore VulkanSPHMarchingCubes::draw(const vk::UniqueSemaphore &inSe
                                   .signalSemaphoreCount = 1,
                                   .pSignalSemaphores = &semaphoreAfterRender};
 
-  queueRender.submit(submitInfoRender, fenceInFlight.get());
+  queueRender.submit(submitInfoRender);
 
   currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
@@ -354,4 +356,39 @@ vk::UniqueSemaphore VulkanSPHMarchingCubes::draw(const vk::UniqueSemaphore &inSe
 }
 void VulkanSPHMarchingCubes::setImgui(std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> inImgui) {
   imgui = std::move(inImgui);
+}
+
+void VulkanSPHMarchingCubes::rebuildPipeline(bool clearBeforeDraw) {
+  pipelines[Stages::Render] =
+      PipelineBuilder{config, device, swapchain}
+          .setLayoutBindingInfo(bindingInfos[Stages::Render])
+          .setPipelineType(PipelineType::Graphics)
+          .setVertexShaderPath(
+              fmt::format(shaderPathTemplate, renderShaderFiles[RenderStages::Vertex]))
+          .setFragmentShaderPath(
+              fmt::format(shaderPathTemplate, renderShaderFiles[RenderStages::Fragment]))
+          .setGeometryShaderPath(
+              fmt::format(shaderPathTemplate, renderShaderFiles[RenderStages::Geometry]))
+          .addPushConstant(vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eGeometry,
+                           sizeof(MarchingCubesInfo))
+          .setAssemblyInfo(vk::PrimitiveTopology::ePointList, false)
+          .setBlendEnabled(false)
+          .setDepthTestEnabled(true)
+          .addRenderPass(
+              "toSwapchain",
+              RenderPassBuilder{device}
+                  .setColorAttachementFinalLayout(vk::ImageLayout::eColorAttachmentOptimal)
+                  .setDepthAttachmentFormat(VulkanUtils::findDepthFormat(device))
+                  .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
+                  .setColorAttachmentLoadOp(clearBeforeDraw ? vk::AttachmentLoadOp::eClear
+                                                            : vk::AttachmentLoadOp::eLoad)
+                  .build())
+
+          .build();
+
+  descriptorSets[Stages::Render] = std::make_shared<DescriptorSet>(
+      device, swapchain->getSwapchainImageCount(),
+      pipelines[Stages::Render]->getDescriptorSetLayout(), descriptorPool);
+  descriptorSets[Stages::Render]->updateDescriptorSet(descriptorBufferInfosCompute[Stages::Render],
+                                                      bindingInfos[Stages::Render]);
 }

@@ -157,7 +157,7 @@ void main() {
 
   const uint myIdsph = VEC_TO_INDEX_SPH(myId3Dsph);
 
-/*   if (myIdsph >= 0) {
+  /*   if (myIdsph >= 0) {
     const bool isInterface =
         bool(bitfieldExtract(cellInfos[myIdsph].tags, TAG_IS_INTERFACE_BIT, 1));
 
@@ -175,6 +175,8 @@ void main() {
   const uint polyCount = polygonCountLUT[density];
   //if(polyCount > 0) debugPrintfEXT("myIdmc: %u, polyCount: %u", myIdmc, polyCount);
 
+  const vec3 scale = (gridInfoMC.gridSize.xyz - 1) / vec3(gridInfoMC.gridSize.xyz);
+
   for (uint i = 0; i < polyCount; ++i) {
 
     const uint polyIndex = 3 * i;
@@ -186,10 +188,16 @@ void main() {
       const float v0 = colorField[vertexOriginId + verticesIDs[edgeVertices.x]] - threshold;
       const float v1 = colorField[vertexOriginId + verticesIDs[edgeVertices.y]] - threshold;
       const float edgeInterpolation = -v0 / (v1 - v0);
-      const vec4 polygon = vec4(inPosition[0] + (edgeInterpolation * halfEdge * gridInfoMC.cellSize)
-                                    + (fullEdge * gridInfoMC.cellSize),
-                                1);
-      worldPolygon[j % 3] = ubo.proj * ubo.view * ubo.model * polygon;
+      const vec4 polygon =
+          vec4(inPosition[0]*scale + (edgeInterpolation * halfEdge * gridInfoMC.cellSize * scale)
+                   + (fullEdge * gridInfoMC.cellSize *scale),
+               1);
+      const vec4 polygon2 =
+          vec4(inPosition[0] + (edgeInterpolation * halfEdge * gridInfoMC.cellSize)
+                   + (fullEdge * gridInfoMC.cellSize),
+               1);
+      worldPolygon[j % 3] = ubo.proj * ubo.view * ubo.model
+          * ((polygon + vec4(vec3(0.5 * gridInfoMC.cellSize * scale), 0)));
 
       /*       if (myIdmc == idToCheck) debugPrintfEXT("myIdmc: %u, edge: %d", myIdmc, edge);
       if (myIdmc == idToCheck)
@@ -209,7 +217,7 @@ void main() {
 
       vec3 positiveGradient = vec3(0);
       vec3 negativeGradient = vec3(0);
-      vec4 myPosition = polygon;
+      vec4 myPosition = polygon2;
 
       for (int z = -1; z < 2; ++z) {
         for (int y = -1; y < 2; ++y) {

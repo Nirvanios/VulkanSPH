@@ -14,7 +14,7 @@ TestRenderer::TestRenderer(Config &config)
                              config.getApp().yaw, config.getApp().pitch),
       window(config.getVulkan().window.name, config.getVulkan().window.width,
              config.getVulkan().window.height),
-      vulkanCore(config, window, camera.Position),
+      vulkanCore(config, window, camera.Position, camera.Yaw, camera.Pitch),
       keyMovementSubscriber(
           window.subscribeToKeyEvents([this](KeyMessage message) { cameraKeyMovement(message); })),
       mouseMovementSubscriber(window.subscribeToMouseMovementEvents(

@@ -26,16 +26,16 @@ class VulkanGridFluidRender {
                         std::vector<std::shared_ptr<Buffer>> buffersUniformMVP,
                         std::vector<std::shared_ptr<Buffer>> buffersUniformCameraPos,
                         std::shared_ptr<Buffer> inBufferTags);
-  vk::UniqueSemaphore draw(const vk::UniqueSemaphore &inSemaphore, unsigned int imageIndex,
-                           const vk::UniqueFence &fenceInFlight);
+  vk::UniqueSemaphore draw(const vk::UniqueSemaphore &inSemaphore, unsigned int imageIndex);
   void setImgui(std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> &inImgui);
   void updateDensityBuffer(std::shared_ptr<Buffer> densityBufferNew);
   void rebuildPipeline(bool clearBeforeDraw);
   void setFramebuffersSwapchain(const std::shared_ptr<Framebuffers> &framebuffer);
   void recordRenderpass(unsigned int imageIndex, const vk::UniqueCommandBuffer &commandBuffer);
+  void updateUniformBuffer(unsigned int imageIndex, float yaw, float pitch);
 
  private:
-  std::array<PipelineLayoutBindingInfo, 4> bindingInfosRender{
+  std::array<PipelineLayoutBindingInfo, 5> bindingInfosRender{
       PipelineLayoutBindingInfo{.binding = 0,
                                 .descriptorType = vk::DescriptorType::eUniformBuffer,
                                 .descriptorCount = 1,
@@ -50,6 +50,10 @@ class VulkanGridFluidRender {
                                 .stageFlags = vk::ShaderStageFlagBits::eVertex},
       PipelineLayoutBindingInfo{.binding = 3,
                                 .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                .descriptorCount = 1,
+                                .stageFlags = vk::ShaderStageFlagBits::eVertex},
+      PipelineLayoutBindingInfo{.binding = 4,
+                                .descriptorType = vk::DescriptorType::eUniformBuffer,
                                 .descriptorCount = 1,
                                 .stageFlags = vk::ShaderStageFlagBits::eVertex}};
 
@@ -74,6 +78,7 @@ class VulkanGridFluidRender {
 
   std::vector<std::shared_ptr<Buffer>> buffersUniformMVP;
   std::vector<std::shared_ptr<Buffer>> buffersUniformCameraPos;
+  std::vector<std::shared_ptr<Buffer>> buffersUniformAngles;
 
   std::shared_ptr<Buffer> bufferDensity;
   std::shared_ptr<Buffer> bufferTags;
@@ -99,6 +104,7 @@ class VulkanGridFluidRender {
 
   void createVertexBuffer(const std::vector<Model> &models);
   void createIndexBuffer(const std::vector<Model> &models);
+  void createUniformBuffers();
   void recordCommandBuffers(unsigned int imageIndex);
   void createDescriptorPool();
   void createDepthResources();

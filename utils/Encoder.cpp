@@ -80,7 +80,7 @@ void Encoder::initEncoder(int width, int height, unsigned int framerate, const s
     codecContext->codec_id = codec->id;
     codecContext->width = width;
     codecContext->height = height;
-    codecContext->bit_rate = 16000*framerate;
+    codecContext->bit_rate = 32000*framerate;
     codecContext->time_base = outputStream->time_base = {.num = 1, .den = static_cast<int>(framerate)};
     codecContext->gop_size = 12;
     codecContext->max_b_frames = 1;

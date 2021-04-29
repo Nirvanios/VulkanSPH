@@ -40,7 +40,7 @@
 class VulkanCore {
 
  public:
-  explicit VulkanCore(const Config &config, GlfwWindow &window, const glm::vec3 &cameraPos);
+  explicit VulkanCore(const Config &config, GlfwWindow &window, const glm::vec3 &cameraPos, const float &yaw, const float &pitch);
   ~VulkanCore();
   void setViewMatrixGetter(std::function<glm::mat4()> getter);
   [[nodiscard]] bool isFramebufferResized() const;
@@ -87,8 +87,14 @@ class VulkanCore {
 
   std::function<glm::mat4()> viewMatrixGetter = []() { return glm::mat4(1.0f); };
   const glm::vec3 &cameraPos;
+  const float &yaw;
+  const float &pitch;
   SimulationInfoSPH simulationInfo;
   VideoDiskSaver videoDiskSaver;
+  std::future<void> previousFrame;
+  int capturedFrameCount = 0;
+  bool outputToFile = false;
+  std::function<void()> onFrameSaveCallback = []{};
 
   std::shared_ptr<Instance> instance;
   std::shared_ptr<Device> device;
@@ -106,7 +112,8 @@ class VulkanCore {
   std::vector<vk::UniqueSemaphore> semaphoreImageAvailable, semaphoreRenderFinished,
       semaphoreBetweenRender, semaphoreAfterSimulationSPH, semaphoreAfterTag,
       semaphoreAfterSimulationGrid, semaphoreAfterSort, semaphoreAfterMassDensity,
-      semaphoreAfterForces, semaphoreBeforeGrid, semaphoreBeforeSPH, semaphoreBeforeMC, semaphoreAfterCoupling;
+      semaphoreAfterForces, semaphoreBeforeGrid, semaphoreBeforeSPH, semaphoreBeforeMC,
+      semaphoreAfterMC, semaphoreAfterCoupling;
   std::vector<vk::UniqueFence> fencesInFlight;
   std::vector<std::optional<vk::Fence>> fencesImagesInFlight;
 
@@ -127,7 +134,6 @@ class VulkanCore {
   std::vector<std::shared_ptr<Image>> imageColorTexture;
   std::shared_ptr<Image> imageDepthTexture;
   std::shared_ptr<Image> imageOutput;
-  std::shared_ptr<Image> stagingImage;
 
   std::shared_ptr<TextureSampler> textureSampler;
 

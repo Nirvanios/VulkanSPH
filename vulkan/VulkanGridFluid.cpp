@@ -17,13 +17,14 @@ vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &inSemaphore)
   auto outSemaphore = device->getDevice()->createSemaphore({});
 
   /**Add velocities sources*/
-  submit(Stages::addSourceVector, fence.get(), inSemaphore.get(), std::nullopt, SubmitSemaphoreType::In);
+  submit(Stages::addSourceVector, fence.get(), inSemaphore.get(), std::nullopt,
+         SubmitSemaphoreType::In);
   waitFence();
 
   /**Diffuse velocities*/
   //swapBuffers(bufferVelocitiesNew, bufferVelocitiesOld);
 
-  for (auto i = 0; i < 0; ++i) {
+  for (auto i = 0; i < 1; ++i) {
     specificInfo.setStageType(GaussSeidelStageType::diffuse).setColor(GaussSeidelColorPhase::black);
     simulationInfo.specificInfo = static_cast<unsigned int>(specificInfo);
     submit(Stages::diffuseVector, fence.get());
@@ -56,7 +57,6 @@ vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &inSemaphore)
   waitFence();
 
   //vel = bufferVelocitiesNew->read<glm::vec4>();
-
 
   /**Add Density Sources*/
   submit(Stages::addSourceScalar, fence.get());
@@ -283,25 +283,22 @@ void VulkanGridFluid::createBuffers() {
   auto sources = std::vector<glm::vec2>(simulationInfo.cellCount, glm::vec2(0));
   [[maybe_unused]] auto positionSources =
       ((simulationInfo.gridSize.z / 2) * simulationInfo.gridSize.x * simulationInfo.gridSize.y)
-      + (simulationInfo.gridSize.x / 2)
-      + (simulationInfo.gridSize.x * (20));
-/*  sources[positionSources] = {1.0, 0.0};
+      + (simulationInfo.gridSize.x / 2) + (simulationInfo.gridSize.x * (20));
+  /*  sources[positionSources] = {1.0, 0.0};
   sources[positionSources-1] = {1.0, 0.0};
   sources[positionSources+1] = {1.0, 0.0};*/
   [[maybe_unused]] auto positionDensity =
       (((simulationInfo.gridSize.z + 2) / 2) * (simulationInfo.gridSize.x + 2)
        * (simulationInfo.gridSize.y + 2))
-      + ((simulationInfo.gridSize.x + 2) / 2)
-      + ((simulationInfo.gridSize.x + 2) * 20);
+      + ((simulationInfo.gridSize.x + 2) / 2) + ((simulationInfo.gridSize.x + 2) * 1);
   //initialDensity[positionDensity] = glm::vec2(0.0f, 0.0f);
-/*  initialDensity[positionDensity-1] = {1.0, 100.0};
+  /*  initialDensity[positionDensity-1] = {1.0, 100.0};
   initialDensity[positionDensity+1] = {1.0, 100.0};
   initialDensity[positionDensity] = {1.0, 100.0};*/
 
-/*  initialDensity[positionDensity].x = 1.0;
-  initialDensity[positionDensity + 1].x = 1.0;*/
-  
-
+  /*  initialDensity[positionDensity].x = 1.0;*/
+  //initialDensity[(22*22)+44+1].x = 1.0;
+  //initialDensity[44].x = 1.0;
 
   auto bufferBuilder = BufferBuilder()
                            .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
@@ -314,6 +311,8 @@ void VulkanGridFluid::createBuffers() {
   bufferValuesOld = std::make_shared<Buffer>(
       bufferBuilder.setSize(sizeof(glm::vec2) * cellCountBorder), this->device, commandPool, queue);
   bufferValuesOld->fill(initialDensity);
+
+  //sources[43].x = 1.f;
 
   bufferValuesSources =
       std::make_shared<Buffer>(bufferBuilder.setSize(sizeof(glm::vec2) * simulationInfo.cellCount),

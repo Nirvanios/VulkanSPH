@@ -162,6 +162,7 @@ class Flags {
       if ((flags & magic_enum::enum_integer(flagBit)) != 0) { return true; }
     return false;
   };
+  bool hasAny() const { return flags > 0; }
 
   Flags operator&(const Flags &other) {
     flags &= other.flags;

@@ -98,8 +98,8 @@ void main() {
   myId3Dmc -= ivec3(1 * gridInfoMC.detail);
   myId3Dsph -= ivec3(1);
 
-  if (myId == 242)
-    debugPrintfEXT("myId: %d, myId3Dmc: %v3d, myId3Dsph: %v3d", myId, myId3Dmc, myId3Dsph);
+/*   if (myId == 242)
+    debugPrintfEXT("myId: %d, myId3Dmc: %v3d, myId3Dsph: %v3d", myId, myId3Dmc, myId3Dsph); */
 
   float color = 0.0f;
 
@@ -123,9 +123,9 @@ void main() {
             && all(greaterThanEqual(currentGridID3D, ivec3(0)))) {
           int sortedID = cellInfos[currentGridID].indexes;
 
-                    if (myId == 242)
+/*                     if (myId == 242)
             debugPrintfEXT("myId: %u, currentGridID: %d, currentGridID3D: %v3d", myId,
-                           currentGridID, currentGridID3D);
+                           currentGridID, currentGridID3D); */
 
           if (sortedID == -1) { continue; }
 

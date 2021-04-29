@@ -11,8 +11,7 @@
 #include <glm/gtx/component_wise.hpp>
 
 vk::UniqueSemaphore VulkanGridFluidRender::draw(const vk::UniqueSemaphore &inSemaphore,
-                                                unsigned int imageIndex,
-                                                const vk::UniqueFence &fenceInFlight) {
+                                                unsigned int imageIndex) {
   auto tmpfence = device->getDevice()->createFenceUnique({});
 
   vk::Semaphore semaphoreAfterRender = device->getDevice()->createSemaphore({});
@@ -32,7 +31,7 @@ vk::UniqueSemaphore VulkanGridFluidRender::draw(const vk::UniqueSemaphore &inSem
                                   .signalSemaphoreCount = 1,
                                   .pSignalSemaphores = &semaphoreAfterRender};
 
-  queue.submit(submitInfoRender, fenceInFlight.get());
+  queue.submit(submitInfoRender);
 
   currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
@@ -62,11 +61,13 @@ VulkanGridFluidRender::VulkanGridFluidRender(
           .addPushConstant(vk::ShaderStageFlagBits::eVertex, sizeof(SimulationInfoGridFluid))
           .setBlendEnabled(true)
           .setDepthTestEnabled(false)
-          .addRenderPass("toSwapchain",
-                         RenderPassBuilder{device}
-                             .setDepthAttachmentFormat(VulkanUtils::findDepthFormat(device))
-                             .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
-                             .build())
+          .addRenderPass(
+              "toSwapchain",
+              RenderPassBuilder{device}
+                  .setDepthAttachmentFormat(VulkanUtils::findDepthFormat(device))
+                  .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
+                  .setColorAttachementFinalLayout(vk::ImageLayout::eColorAttachmentOptimal)
+                  .build())
           .build();
 
   auto queueFamilyIndices = Device::findQueueFamilies(this->device->getPhysicalDevice(), surface);
@@ -87,6 +88,7 @@ VulkanGridFluidRender::VulkanGridFluidRender(
 
   createVertexBuffer({model});
   createIndexBuffer({model});
+  createUniformBuffers();
 
   descriptorBufferInfos = {
       DescriptorBufferInfo{.buffer = buffersUniformMVP, .bufferSize = sizeof(UniformBufferObject)},
@@ -94,7 +96,9 @@ VulkanGridFluidRender::VulkanGridFluidRender(
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferDensity, 1},
                            .bufferSize = bufferDensity->getSize()},
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferTags, 1},
-                           .bufferSize = bufferTags->getSize()}};
+                           .bufferSize = bufferTags->getSize()},
+      DescriptorBufferInfo{.buffer = buffersUniformAngles,
+                           .bufferSize = buffersUniformAngles[0]->getSize()}};
 
   createDescriptorPool();
 
@@ -249,14 +253,15 @@ void VulkanGridFluidRender::rebuildPipeline(bool clearBeforeDraw) {
           .addPushConstant(vk::ShaderStageFlagBits::eVertex, sizeof(SimulationInfoGridFluid))
           .setBlendEnabled(true)
           .setDepthTestEnabled(false)
-          .addRenderPass("toSwapchain",
-                         RenderPassBuilder{device}
-                             .setDepthAttachmentFormat(VulkanUtils::findDepthFormat(device))
-                             .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
-                             .setColorAttachmentLoadOp(clearBeforeDraw
-                                                           ? vk::AttachmentLoadOp::eClear
-                                                           : vk::AttachmentLoadOp::eLoad)
-                             .build())
+          .addRenderPass(
+              "toSwapchain",
+              RenderPassBuilder{device}
+                  .setDepthAttachmentFormat(VulkanUtils::findDepthFormat(device))
+                  .setColorAttachmentFormat(swapchain->getSwapchainImageFormat())
+                  .setColorAttachementFinalLayout(vk::ImageLayout::eColorAttachmentOptimal)
+                  .setColorAttachmentLoadOp(clearBeforeDraw ? vk::AttachmentLoadOp::eClear
+                                                            : vk::AttachmentLoadOp::eLoad)
+                  .build())
           .build();
 
   descriptorSet =
@@ -267,4 +272,23 @@ void VulkanGridFluidRender::rebuildPipeline(bool clearBeforeDraw) {
 void VulkanGridFluidRender::setFramebuffersSwapchain(
     const std::shared_ptr<Framebuffers> &framebuffer) {
   framebuffersSwapchain = framebuffer;
+}
+void VulkanGridFluidRender::createUniformBuffers() {
+
+  auto builder = BufferBuilder()
+                     .setSize(sizeof(float) * 3)
+                     .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eHostVisible
+                                             | vk::MemoryPropertyFlagBits::eHostCoherent)
+                     .setUsageFlags(vk::BufferUsageFlagBits::eUniformBuffer
+                                    | vk::BufferUsageFlagBits::eTransferDst);
+
+  for ([[maybe_unused]] const auto &swapImage : swapchain->getSwapChainImageViews()) {
+    buffersUniformAngles.emplace_back(
+        std::make_shared<Buffer>(builder, device, commandPool, queue));
+  }
+}
+void VulkanGridFluidRender::updateUniformBuffer(unsigned int imageIndex, float yaw, float pitch) {
+
+  auto data = std::vector<glm::vec3>{glm::vec3{yaw, pitch, 0}};
+  buffersUniformAngles[imageIndex]->fill(data);
 }
