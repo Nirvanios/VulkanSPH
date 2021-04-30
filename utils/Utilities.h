@@ -156,11 +156,17 @@ class Flags {
     for (const auto &item : flagBits) { *this | item; }
   }
   Flags(){};
+  void clear(){ flags = 0;}
   bool has(T flagBit) const { return (flags & magic_enum::enum_integer(flagBit)) != 0; };
-  bool has(const std::vector<T> &flagBit) const {
+  bool hasAnyOf(const std::vector<T> &flagBit) const {
     for (const auto &item : flagBit)
-      if ((flags & magic_enum::enum_integer(flagBit)) != 0) { return true; }
+      if ((flags & magic_enum::enum_integer(item)) != 0) { return true; }
     return false;
+  };
+  bool hasAllOf(const std::vector<T> &flagBit) const {
+    for (const auto &item : flagBit)
+      if ((flags & magic_enum::enum_integer(item)) == 0) { return false; }
+    return true;
   };
   bool hasAny() const { return flags > 0; }
 
@@ -168,16 +174,31 @@ class Flags {
     flags &= other.flags;
     return *this;
   }
+  Flags operator&=(const Flags &other) {
+    flags &= other.flags;
+    return *this;
+  }
   Flags operator&(const T &other) {
     flags &= magic_enum::enum_integer(other);
     return *this;
   }
-
+  Flags operator&=(const T &other) {
+    flags &= magic_enum::enum_integer(other);
+    return *this;
+  }
   Flags operator|(const Flags &other) {
     flags |= other.flags;
     return *this;
   }
+  Flags operator|=(const Flags &other) {
+    flags |= other.flags;
+    return *this;
+  }
   Flags operator|(const T &other) {
+    flags |= magic_enum::enum_integer(other);
+    return *this;
+  }
+  Flags operator|=(const T &other) {
     flags |= magic_enum::enum_integer(other);
     return *this;
   }

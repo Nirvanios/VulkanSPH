@@ -42,15 +42,11 @@ pf::ui::ig::ImGuiGlfwVulkan::ImGuiGlfwVulkan(std::shared_ptr<Device> inDevice,
   init_info.Allocator = nullptr;
   init_info.MinImageCount = imageCount;
   init_info.ImageCount = imageCount;
-  init_info.CheckVkResultFn = details::checkVkResult;
+  init_info.CheckVkResultFn = ::details::checkVkResult;
   ImGui_ImplVulkan_Init(&init_info, pass);
 
   uploadFonts(surf);
 
-  /*
-    swapChain->addRebuildListener(
-      [&] { ImGui_ImplVulkan_SetMinImageCount(swapChain->getImageViews().size()); });
-*/
 }
 void pf::ui::ig::ImGuiGlfwVulkan::addToCommandBuffer(const vk::UniqueCommandBuffer &commandBuffer) {
   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer.get());

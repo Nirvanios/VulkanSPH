@@ -7,14 +7,18 @@
 
 enum class PixelFormat {
     RGB,
-    RGBA
+    RGBA,
+    BGRA,
+    BGR
 };
 
 inline int getComponentCount(PixelFormat pixelFormat) {
     switch (pixelFormat) {
         case PixelFormat::RGB:
+        case PixelFormat::BGR:
             return 3;
         case PixelFormat::RGBA:
+        case PixelFormat::BGRA:
             return 4;
     }
     return 0;

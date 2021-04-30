@@ -146,7 +146,7 @@ add_executable(VulkanApp main.cpp
         vulkan/types/RenderPass.cpp vulkan/types/RenderPass.h vulkan/builders/RenderPassBuilder.cpp vulkan/builders/RenderPassBuilder.h
         vulkan/types/TextureSampler.cpp vulkan/types/TextureSampler.h vulkan/enums.h vulkan/VulkanGridFluid.cpp vulkan/VulkanGridFluid.h
         vulkan/VulkanGridFluidRender.cpp vulkan/VulkanGridFluidRender.h vulkan/VulkanGridFluidSPHCoupling.cpp
-        vulkan/VulkanGridFluidSPHCoupling.h utils/Exceptions.h vulkan/VulkanSPHMarchingCubes.cpp vulkan/VulkanSPHMarchingCubes.h vulkan/lookuptables.h)
+        vulkan/VulkanGridFluidSPHCoupling.h utils/Exceptions.h vulkan/VulkanSPHMarchingCubes.cpp vulkan/VulkanSPHMarchingCubes.h vulkan/lookuptables.h ui/SimulationUI.cpp ui/SimulationUI.h)
 
 
 target_link_libraries(VulkanApp PUBLIC

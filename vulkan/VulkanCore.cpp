@@ -18,11 +18,6 @@
 #include "enums.h"
 #include <glm/gtx/component_wise.hpp>
 #include <magic_enum.hpp>
-#include <pf_imgui/elements/Button.h>
-#include <pf_imgui/elements/ComboBox.h>
-#include <pf_imgui/elements/Group.h>
-#include <pf_imgui/elements/Image.h>
-#include <pf_imgui/elements/InputText.h>
 
 #include <plf_nanotimer.h>
 
@@ -34,6 +29,7 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
                             const SimulationInfoGridFluid &simulationInfoGridFluid) {
 
   this->simulationInfo = simulationInfoSPH;
+  framesToSkip = std::rint((1 / simulationInfoSPH.timeStep) / 60.0);
   spdlog::debug("Vulkan initialization...");
   instance = std::make_shared<Instance>(window.getWindowName(), config.getApp().DEBUG);
   createSurface();
@@ -125,7 +121,6 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
       vulkanSPH->getBufferParticles(), bufferIndexes, bufferCellParticlePair, buffersUniformMVP,
       buffersUniformCameraPos);
   vulkanSphMarchingCubes->setFramebuffersSwapchain(framebuffersSwapchain);
-  vulkanSphMarchingCubes->setImgui(imgui);
 
   auto tmpBuffer = std::vector{vulkanSPH->getBufferParticles()};
   std::array<DescriptorBufferInfo, 3> descriptorBufferInfosGraphic{
@@ -141,18 +136,13 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
   spdlog::debug("Created command pool");
   textureSampler = std::make_shared<TextureSampler>(device);
   initGui();
-  vulkanGridFluidRender->setImgui(imgui);
   window.setIgnorePredicate(
-      [this]() { return imgui->isWindowHovered() || imgui->isKeyboardCaptured(); });
+      [this]() { return simulationUi.isHovered() || simulationUi.isKeyboardCaptured(); });
   createCommandBuffers();
   spdlog::debug("Created command buffers");
   createSyncObjects();
   spdlog::debug("Created semaphores.");
   spdlog::debug("Vulkan OK.");
-/*  videoDiskSaver.initStream(
-      "./stream.mp4",
-      *//*static_cast<unsigned int>(1.0 / static_cast<float>(config.getApp().simulationSPH.timeStep))*//*
-      60, swapchain->getExtentWidth(), swapchain->getExtentHeight());*/
 }
 
 void VulkanCore::run() {
@@ -163,12 +153,11 @@ void VulkanCore::run() {
 void VulkanCore::mainLoop() {
   while (!glfwWindowShouldClose(window.getWindow().get())) {
     glfwPollEvents();
-    imgui->render();
-    //recordCommandBuffers(0);
+    simulationUi.render();
     drawFrame();
     fpsCounter.newFrame();
+    simulationUi.getFPScallback()(fpsCounter,simStep, yaw, pitch);
   }
-
   device->getDevice()->waitIdle();
 }
 
@@ -270,7 +259,7 @@ void VulkanCore::recordCommandBuffers(uint32_t imageIndex, Utilities::Flags<Draw
                                            vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawInfo),
                                            &drawInfo);
       commandBufferGraphics->drawIndexed(indicesSizes[1], 1, 0, verticesCountOffset[1], 0);
-      imgui->addToCommandBuffer(commandBufferGraphics);
+      simulationUi.addToCommandBuffer(commandBufferGraphics);
     }
 
     commandBufferGraphics->endRenderPass();
@@ -279,7 +268,7 @@ void VulkanCore::recordCommandBuffers(uint32_t imageIndex, Utilities::Flags<Draw
 
       imageColorTexture[imageIndex]->transitionImageLayout(
           commandBufferGraphics,
-          /*simulationType != SimulationType::SPH ? vk::ImageLayout::eColorAttachmentOptimal
+          /*selectedSimulationType != SimulationType::SPH ? vk::ImageLayout::eColorAttachmentOptimal
                                               : */
           vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal,
           vk::AccessFlagBits::eMemoryWrite, vk::AccessFlagBits::eMemoryRead);
@@ -314,7 +303,7 @@ void VulkanCore::recordCommandBuffers(uint32_t imageIndex, Utilities::Flags<Draw
 
     if (stageRecord.has(DrawType::ToFile)) {
 
-      if (outputToFile) {
+      if (recordingStateFlags.hasAnyOf(std::vector<RecordingState>{RecordingState::Recording, RecordingState::Screenshot})) {
         swapchain->getSwapchainImages()[imageIndex]->transitionImageLayout(
             commandBufferGraphics, vk::ImageLayout::ePresentSrcKHR,
             vk::ImageLayout::eTransferSrcOptimal, vk::AccessFlagBits::eMemoryRead,
@@ -408,7 +397,7 @@ void VulkanCore::drawFrame() {
 
   auto drawFlags = Utilities::Flags<DrawType>{std::vector<DrawType>{}};
 
-  if (simulate || step) {
+  if (Utilities::isIn(simulationState, {SimulationState::SingleStep, SimulationState::Simulating})) {
     ++simStep;
     auto fence = device->getDevice()->createFenceUnique({});
     vk::SubmitInfo submitInfoRenderBefore{
@@ -448,7 +437,7 @@ void VulkanCore::drawFrame() {
       ? &semaphoreBetweenRender[currentFrame]
       : &semaphoreImageAvailable[currentFrame];
   auto semaphoreGridRenderIn = &semaphoreImageAvailable[currentFrame];
-  if (simulate || step) {
+  if (Utilities::isIn(simulationState, {SimulationState::SingleStep, SimulationState::Simulating})) {
     if (Utilities::isIn(simulationType, {SimulationType::SPH, SimulationType::Combined})) {
       semaphoreAfterSort[currentFrame] = vulkanGridSPH->run(semaphoreBeforeSPH[currentFrame]);
 
@@ -519,14 +508,14 @@ void VulkanCore::drawFrame() {
     if (renderType == RenderType::Particles) {
       queueGraphics.submit(submitInfoRender, fencesInFlight[currentFrame].get());
     } else if (renderType == RenderType::MarchingCubes) {
-      if (simulationType == SimulationType::SPH && (simulate || step || computeColors)) {
+      if (simulationType == SimulationType::SPH && (Utilities::isIn(simulationState, {SimulationState::SingleStep, SimulationState::Simulating}) || computeColors)) {
         semaphoreAfterTag[currentFrame] =
             vulkanGridFluidSphCoupling->run({semaphoreSPHRenderIn->get()}, CouplingStep::tag);
         semaphoreBeforeMC[currentFrame] =
             vulkanSphMarchingCubes->run(semaphoreAfterTag[currentFrame]);
         semaphoreAfterMC[currentFrame] =
             vulkanSphMarchingCubes->draw(semaphoreBeforeMC[currentFrame], imageindex);
-      } else if (simulate || step || computeColors) {
+      } else if (Utilities::isIn(simulationState, {SimulationState::SingleStep, SimulationState::Simulating}) || computeColors) {
         semaphoreBeforeMC[currentFrame] = vulkanSphMarchingCubes->run(*semaphoreSPHRenderIn);
         semaphoreAfterMC[currentFrame] =
             vulkanSphMarchingCubes->draw(semaphoreBeforeMC[currentFrame], imageindex);
@@ -540,10 +529,10 @@ void VulkanCore::drawFrame() {
     }
   }
 
-  if (outputToFile) {
-    ++capturedFrameCount;
-    if (capturedFrameCount % 17 == 0) {
-      onFrameSaveCallback();
+  if (recordingStateFlags.hasAnyOf(std::vector<RecordingState>{RecordingState::Recording, RecordingState::Screenshot})) {
+    if (recordingStateFlags.has(RecordingState::Recording)) { ++capturedFrameCount; }
+    if (capturedFrameCount % framesToSkip == 0) {
+
       device->getDevice()->waitForFences(fencesInFlight[currentFrame].get(), VK_TRUE, UINT64_MAX);
 
       vk::ImageSubresource subResource{vk::ImageAspectFlagBits::eColor, 0, 0};
@@ -552,9 +541,18 @@ void VulkanCore::drawFrame() {
                                                      &subresourceLayout);
 
       auto output = imageOutput->read(device);
-      //videoDiskSaver.insertFrameBlocking(output, PixelFormat::RGBA);
-      if (previousFrame.valid()) { previousFrame.wait(); }
-      videoDiskSaver.insertFrameAsync(output, PixelFormat::RGBA);
+      if (recordingStateFlags.has(RecordingState::Recording)) {
+        if (previousFrameVideo.valid()) { previousFrameVideo.wait(); }
+        previousFrameVideo = videoDiskSaver.insertFrameAsync(output, PixelFormat::BGRA);
+        auto recordedFrames = capturedFrameCount / framesToSkip;
+        simulationUi.onFrameSave(recordedFrames, recordedFrames / 60.0);
+      } else if (recordingStateFlags.has(RecordingState::Screenshot)) {
+        recordingStateFlags &= Utilities::Flags<RecordingState>{{RecordingState::Stopped, RecordingState::Recording}};
+        if (previousFrameScreenshot.valid()) { previousFrameScreenshot.wait(); }
+        previousFrameScreenshot = screenshotDiskSaver.saveImageAsync(
+            "./screenshot.jpg", FilenameFormat::WithDateTime, PixelFormat::BGRA, ImageFormat::JPEG,
+            swapchain->getExtentWidth(), swapchain->getExtentHeight(), output);
+      }
     }
   }
 
@@ -570,7 +568,7 @@ void VulkanCore::drawFrame() {
   } catch (const vk::OutOfDateKHRError &e) { recreateSwapchain(); }
 
   currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-  step = false;
+  simulationState = SimulationState::Stopped;
 }
 void VulkanCore::recreateSwapchain() {
   window.checkMinimized();
@@ -751,121 +749,41 @@ VulkanCore::~VulkanCore() {
   spdlog::info("Avg time to SPH: {}ms.", time / static_cast<double>(steps));
 }
 void VulkanCore::initGui() {
-  using namespace pf::ui;
-  imgui = std::make_shared<ig::ImGuiGlfwVulkan>(
-      device, instance, pipelineGraphics->getRenderPass(""), surface, swapchain,
-      window.getWindow().get(), ImGuiConfigFlags{}, toml::table{});
-
-  auto &infoWindow = imgui->createWindow("info_window", "Info");
-  auto &labelFPS = infoWindow.createChild<ig::Text>("text_FPS", "");
-  auto &labelFrameTime = infoWindow.createChild<ig::Text>("text_FrameTime", "");
-  auto &labelSimStep = infoWindow.createChild<ig::Text>("text_SimStep", "");
-  auto &labelYaw = infoWindow.createChild<ig::Text>("text_yaw", "");
-  auto &labelPitch = infoWindow.createChild<ig::Text>("text_pitch:", "");
-
-  fpsCounter.setOnNewFrameCallback(
-      [this, &labelFrameTime, &labelFPS, &labelSimStep, &labelYaw, &labelPitch]() {
-        labelFPS.setText(fmt::format("FPS: {:.1f} AVG: {:.1f}", fpsCounter.getCurrentFPS(),
-                                     fpsCounter.getAverageFPS()));
-        labelFrameTime.setText(fmt::format("Frame time: {:.1f}ms, AVG: {:.1f}ms",
-                                           fpsCounter.getCurrentFrameTime(),
-                                           fpsCounter.getAverageFrameTime()));
-        labelSimStep.setText(fmt::format("Simulation step: {}", simStep));
-        labelYaw.setText("Yaw: {}", yaw);
-        labelPitch.setText("Pitch: {}", pitch);
-      });
-  auto &controlWindow = imgui->createWindow("control_window", "Control");
-  auto &controlGroup = controlWindow.createChild<ig::Group>("aaa", "aaaaa");
-
-  auto &controlButton =
-      controlGroup.createChild<ig::Button>("button_control", "Start simulationSPH");
-  auto &stepButton = controlGroup.createChild<ig::Button>("button_step", "Step simulationSPH");
-  stepButton.setEnabled(pf::Enabled::Yes);
-  controlButton.addClickListener([this, &controlButton, &stepButton]() {
-    simulate = not simulate;
-    if (simulate) {
-      controlButton.setLabel("Pause simulationSPH");
-      stepButton.setEnabled(pf::Enabled::No);
-    } else {
-      controlButton.setLabel("Start simulationSPH");
-      stepButton.setEnabled(pf::Enabled::Yes);
-    }
+  simulationUi.setImageProvider([this] {
+    return (ImTextureID) ImGui_ImplVulkan_AddTexture(
+        textureSampler->getSampler().get(), imageColorTexture[currentFrame]->getImageView().get(),
+        static_cast<VkImageLayout>(imageColorTexture[currentFrame]->getLayout()));
   });
-  stepButton.addClickListener([this]() { step = true; });
-
-  controlWindow
-      .createChild<ig::ComboBox<std::string>>(
-          "combobox_SimulationSelect", "Simulation:", "SPH",
-          [] {
-            auto names = magic_enum::enum_names<SimulationType>();
-            return std::vector<std::string>{names.begin(), names.end()};
-          }())
-      .addValueListener([this](auto value) {
-        auto selected = magic_enum::enum_cast<SimulationType>(value);
-        simulationType = selected.has_value() ? selected.value() : SimulationType::SPH;
-        rebuildRenderPipelines();
-      });
-  controlWindow
-      .createChild<ig::ComboBox<std::string>>(
-          "combobox_RenderSelect", "Render:", "Particles",
-          [] {
-            auto names = magic_enum::enum_names<RenderType>();
-            return std::vector<std::string>{names.begin(), names.end()};
-          }())
-      .addValueListener([this](auto value) {
-        auto selected = magic_enum::enum_cast<RenderType>(value);
-        renderType = selected.has_value() ? selected.value() : RenderType::Particles;
-        computeColors = renderType == RenderType::MarchingCubes;
-        rebuildRenderPipelines();
-      });
-
-  auto &debugVisualizationWindow = imgui->createWindow("window_visualization", "Visualization");
-  debugVisualizationWindow
-      .createChild<ig::ComboBox<std::string>>(
-          "combobox_visualization", "Show", "None",
-          [] {
-            auto names = magic_enum::enum_names<Visualization>();
-            return std::vector<std::string>{names.begin(), names.end()};
-          }())
-      .addValueListener([this](auto value) {
-        auto selected = magic_enum::enum_cast<Visualization>(value);
-        textureVisualization = selected.has_value() ? selected.value() : Visualization::None;
-      });
-  textureVisualization = Visualization::None;
-  debugVisualizationWindow.createChild<ig::Image>(
-      "image_debug",
-      [&] {
-        return (ImTextureID) ImGui_ImplVulkan_AddTexture(
-            textureSampler->getSampler().get(),
-            imageColorTexture[currentFrame]->getImageView().get(),
-            static_cast<VkImageLayout>(imageColorTexture[currentFrame]->getLayout()));
-      }(),
-      ImVec2{200, 200}, ig::IsButton::No,
-      [] {
-        return std::pair(ImVec2{0, 0}, ImVec2{1, 1});
-      });
-
-  auto &recordingWindow = imgui->createWindow("window_Recording", "Recording");
-  auto &framesCount = recordingWindow.createChild<ig::Text>("text_RecordedFramesCount", "");
-  onFrameSaveCallback = [this, &framesCount] {
-    framesCount.setText("Recorded frames: {}, Recorded time: {:.3}s", capturedFrameCount / 17,
-                        (capturedFrameCount / 17 )/ 60.0);
-  };
-  auto &editFilename = recordingWindow.createChild<ig::InputText>("memo_Filename", "Filename:");
-
-  auto &buttonRecording =
-      recordingWindow.createChild<ig::Button>("button_startRecord", "Start Recording");
-  buttonRecording.addClickListener([this, &buttonRecording, &editFilename] {
-    outputToFile = !outputToFile;
-    if (outputToFile) {
-      buttonRecording.setLabel("Stop Recording");
-      videoDiskSaver.initStream(fmt::format("./{}", editFilename.getText()), 60,
-                                swapchain->getExtentWidth(), swapchain->getExtentHeight());
-    } else {
-      buttonRecording.setLabel("Start Recording");
-      videoDiskSaver.endStream();
-    }
+  simulationUi.init(device,  instance,  pipelineGraphics->getRenderPass("toSwapchain"),
+                    surface, swapchain, window);
+  simulationUi.setOnButtonSimulationControlClick([this](auto state) { simulationState = state; });
+  simulationUi.setOnButtonSimulationStepClick([this](auto state) { simulationState = state; });
+  simulationUi.setOnComboboxSimulationTypeChange([this](auto type) {
+    simulationType = type;
+    rebuildRenderPipelines();
   });
+  simulationUi.setOnComboboxRenderTypeChange([this](auto type) {
+    renderType = type;
+    computeColors = renderType == RenderType::MarchingCubes;
+    rebuildRenderPipelines();
+  });
+  simulationUi.setOnComboboxVisualizationChange([this](auto type) { textureVisualization = type; });
+  simulationUi.setOnButtonRecordingClick(
+      [this](Utilities::Flags<RecordingState> stateFlags, std::filesystem::path path) {
+        recordingStateFlags = stateFlags;
+        if (recordingStateFlags.has(RecordingState::Recording)) {
+          capturedFrameCount = 0;
+          auto filename = path.empty() ? "video.mp4" : path.string();
+          videoDiskSaver.initStream(fmt::format("./{}", filename), 60, swapchain->getExtentWidth(),
+                                    swapchain->getExtentHeight());
+        } else {
+          videoDiskSaver.endStream();
+        }
+      });
+  simulationUi.setOnButtonScreenshotClick(
+      [this](auto stateFlags) { recordingStateFlags = stateFlags; });
+
+  fpsCounter.setOnNewFrameCallback([]{});
 }
 
 void VulkanCore::createTextureImages() {

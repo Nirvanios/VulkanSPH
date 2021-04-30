@@ -268,7 +268,6 @@ void VulkanSPHMarchingCubes::recordRenderpass(unsigned int imageIndex,
       &descriptorSets[Stages::Render]->getDescriptorSets()[imageIndex].get(), 0, nullptr);
 
   commandBuffer->draw(1, invocationCount, 0, 0);
-  imgui->addToCommandBuffer(commandBuffer);
   commandBuffer->endRenderPass();
 }
 
@@ -353,9 +352,6 @@ vk::UniqueSemaphore VulkanSPHMarchingCubes::draw(const vk::UniqueSemaphore &inSe
   currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
   return vk::UniqueSemaphore(semaphoreAfterRender, device->getDevice().get());
-}
-void VulkanSPHMarchingCubes::setImgui(std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> inImgui) {
-  imgui = std::move(inImgui);
 }
 
 void VulkanSPHMarchingCubes::rebuildPipeline(bool clearBeforeDraw) {

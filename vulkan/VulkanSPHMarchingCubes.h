@@ -29,7 +29,6 @@ class VulkanSPHMarchingCubes {
   vk::UniqueSemaphore run(const vk::UniqueSemaphore &inSemaphore);
   vk::UniqueSemaphore draw(const vk::UniqueSemaphore &inSemaphore, unsigned int imageIndex);
   void setFramebuffersSwapchain(const std::shared_ptr<Framebuffers> &framebuffer);
-  void setImgui(std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> inImgui);
   void rebuildPipeline(bool clearBeforeDraw);
 
  private:
@@ -62,8 +61,6 @@ class VulkanSPHMarchingCubes {
 
   const Config &config;
   MarchingCubesInfo marchingCubesInfo;
-
-  std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> imgui;
 
   std::shared_ptr<Device> device;
   std::shared_ptr<Swapchain> swapchain;

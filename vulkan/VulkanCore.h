@@ -13,9 +13,11 @@
 
 #include "../utils/Config.h"
 #include "../utils/saver/VideoDiskSaver.h"
+#include "../utils/saver/ScreenshotDiskSaver.h"
 #include "../window/GlfwWindow.h"
 
 #include "../ui/ImGuiGlfwVulkan.h"
+#include "../ui/SimulationUI.h"
 #include "../utils/FPSCounter.h"
 #include "VulkanGridFluid.h"
 #include "VulkanGridFluidRender.h"
@@ -77,24 +79,29 @@ class VulkanCore {
   std::vector<int> indicesSizes;
   std::vector<int> verticesCountOffset;
 
+  SimulationUI simulationUi;
+  SimulationState simulationState = SimulationState::Stopped;
+  Utilities::Flags<RecordingState> recordingStateFlags{{RecordingState::Stopped}};
+  Visualization textureVisualization = Visualization::None;
+
   double time = 0;
   uint steps = 0;
-  bool simulate = false;
-  bool step = false;
   bool initSPH = true;
   bool computeColors = false;
-  Visualization textureVisualization;
 
   std::function<glm::mat4()> viewMatrixGetter = []() { return glm::mat4(1.0f); };
   const glm::vec3 &cameraPos;
   const float &yaw;
   const float &pitch;
-  SimulationInfoSPH simulationInfo;
+  SimulationInfoSPH simulationInfo{};
   VideoDiskSaver videoDiskSaver;
-  std::future<void> previousFrame;
+  std::future<void> previousFrameVideo;
   int capturedFrameCount = 0;
-  bool outputToFile = false;
+  int framesToSkip{};
   std::function<void()> onFrameSaveCallback = []{};
+
+  ScreenshotDiskSaver screenshotDiskSaver;
+  std::future<void> previousFrameScreenshot;
 
   std::shared_ptr<Instance> instance;
   std::shared_ptr<Device> device;
@@ -141,7 +148,6 @@ class VulkanCore {
   GlfwWindow &window;
 
   FPSCounter fpsCounter;
-  std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> imgui;
   SimulationType simulationType = SimulationType::SPH;
   RenderType renderType = RenderType::Particles;
 

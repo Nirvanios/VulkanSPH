@@ -233,12 +233,9 @@ void VulkanGridFluidRender::recordRenderpass(unsigned int imageIndex,
 
   commandBuffer->drawIndexed(indicesSizes[0], glm::compMul(config.getApp().simulationSPH.gridSize),
                              0, 0, 0);
-  imgui->addToCommandBuffer(commandBuffer);
   commandBuffer->endRenderPass();
 }
-void VulkanGridFluidRender::setImgui(std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> &inImgui) {
-  VulkanGridFluidRender::imgui = inImgui;
-}
+
 void VulkanGridFluidRender::updateDensityBuffer(std::shared_ptr<Buffer> densityBufferNew) {
   bufferDensity = std::move(densityBufferNew);
   descriptorSet->updateDescriptorSet(descriptorBufferInfos, bindingInfosRender);

@@ -27,7 +27,6 @@ class VulkanGridFluidRender {
                         std::vector<std::shared_ptr<Buffer>> buffersUniformCameraPos,
                         std::shared_ptr<Buffer> inBufferTags);
   vk::UniqueSemaphore draw(const vk::UniqueSemaphore &inSemaphore, unsigned int imageIndex);
-  void setImgui(std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> &inImgui);
   void updateDensityBuffer(std::shared_ptr<Buffer> densityBufferNew);
   void rebuildPipeline(bool clearBeforeDraw);
   void setFramebuffersSwapchain(const std::shared_ptr<Framebuffers> &framebuffer);
@@ -68,7 +67,6 @@ class VulkanGridFluidRender {
 
   Config config;
   SimulationInfoGridFluid simulationInfoGridFluid;
-  std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> imgui;
 
   std::shared_ptr<Device> device;
   std::shared_ptr<Swapchain> swapchain;
