@@ -353,7 +353,7 @@ vk::UniqueSemaphore VulkanSPHMarchingCubes::draw(const vk::UniqueSemaphore &inSe
                                   .signalSemaphoreCount = 1,
                                   .pSignalSemaphores = &semaphoreAfterRender};
 
-  queueRender.submit(submitInfoRender);
+  queueRender.submit(submitInfoRender, nullptr);
 
   currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 

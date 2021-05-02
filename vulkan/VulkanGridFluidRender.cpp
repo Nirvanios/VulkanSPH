@@ -31,7 +31,7 @@ vk::UniqueSemaphore VulkanGridFluidRender::draw(const vk::UniqueSemaphore &inSem
                                   .signalSemaphoreCount = 1,
                                   .pSignalSemaphores = &semaphoreAfterRender};
 
-  queue.submit(submitInfoRender);
+  queue.submit(submitInfoRender, nullptr);
 
   currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
