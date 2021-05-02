@@ -14,13 +14,18 @@ class VulkanSPH {
  public:
   VulkanSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device> device, Config config,
             std::shared_ptr<Swapchain> swapchain, const SimulationInfoSPH &simulationInfo,
-            const std::vector<ParticleRecord> &particles, std::shared_ptr<Buffer> bufferIndexes,
+            const std::vector<ParticleRecord> &inParticles, std::shared_ptr<Buffer> bufferIndexes,
             std::shared_ptr<Buffer> bufferSortedPairs);
   vk::UniqueSemaphore run(const vk::UniqueSemaphore &semaphoreWait, SPHStep step);
+  void resetBuffers();
 
   [[nodiscard]] const std::shared_ptr<Buffer> &getBufferParticles() const;
 
  private:
+  void createBuffers();
+
+  std::vector<ParticleRecord> particles;
+
   std::array<PipelineLayoutBindingInfo, 3> bindingInfosCompute{
       PipelineLayoutBindingInfo{.binding = 0,
                                 .descriptorType = vk::DescriptorType::eStorageBuffer,

@@ -10,10 +10,10 @@
 VulkanSPH::VulkanSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device> device,
                      Config config, std::shared_ptr<Swapchain> swapchain,
                      const SimulationInfoSPH &simulationInfo,
-                     const std::vector<ParticleRecord> &particles,
+                     const std::vector<ParticleRecord> &inParticles,
                      std::shared_ptr<Buffer> bufferIndexes,
                      std::shared_ptr<Buffer> bufferSortedPairs)
-    : config(std::move(config)), simulationInfo(simulationInfo), device(std::move(device)),
+    : particles(inParticles), config(std::move(config)), simulationInfo(simulationInfo), device(std::move(device)),
       bufferGrid(std::move(bufferSortedPairs)), bufferIndexes(std::move(bufferIndexes)) {
 
   auto computePipelineBuilder = PipelineBuilder{this->config, this->device, swapchain}
@@ -49,15 +49,7 @@ VulkanSPH::VulkanSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device
   commandBufferCompute = std::move(this->device->allocateCommandBuffer(commandPool, 1)[0]);
   queue = this->device->getComputeQueue();
 
-  bufferParticles = std::make_shared<Buffer>(
-      BufferBuilder()
-          .setSize(sizeof(ParticleRecord) * particles.size())
-          .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
-                         | vk::BufferUsageFlagBits::eTransferSrc
-                         | vk::BufferUsageFlagBits::eStorageBuffer)
-          .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
-      this->device, commandPool, queue);
-  bufferParticles->fill(particles);
+  createBuffers();
 
   std::array<vk::DescriptorPoolSize, 1> poolSize{
       vk::DescriptorPoolSize{.type = vk::DescriptorType::eStorageBuffer, .descriptorCount = 3}};
@@ -163,3 +155,16 @@ void VulkanSPH::recordCommandBuffer(const std::shared_ptr<Pipeline> &pipeline) {
   commandBufferCompute->end();
 }
 const std::shared_ptr<Buffer> &VulkanSPH::getBufferParticles() const { return bufferParticles; }
+
+void VulkanSPH::createBuffers() {
+  bufferParticles = std::make_shared<Buffer>(
+      BufferBuilder()
+          .setSize(sizeof(ParticleRecord) * particles.size())
+          .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
+                         | vk::BufferUsageFlagBits::eTransferSrc
+                         | vk::BufferUsageFlagBits::eStorageBuffer)
+          .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
+      this->device, commandPool, queue);
+  bufferParticles->fill(particles);
+}
+void VulkanSPH::resetBuffers() { bufferParticles->fill(particles); }

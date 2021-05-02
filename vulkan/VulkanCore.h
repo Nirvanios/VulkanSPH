@@ -79,7 +79,6 @@ class VulkanCore {
   std::vector<int> indicesSizes;
   std::vector<int> verticesCountOffset;
 
-  SimulationUI simulationUi;
   SimulationState simulationState = SimulationState::Stopped;
   Utilities::Flags<RecordingState> recordingStateFlags{{RecordingState::Stopped}};
   Visualization textureVisualization = Visualization::None;
@@ -107,6 +106,8 @@ class VulkanCore {
   std::shared_ptr<Device> device;
   vk::UniqueSurfaceKHR surface;
   std::shared_ptr<Swapchain> swapchain;
+
+  SimulationUI simulationUi;
 
   std::shared_ptr<Pipeline> pipelineGraphics;
   std::shared_ptr<Pipeline> pipelineGraphicsGrid;
@@ -187,6 +188,7 @@ class VulkanCore {
 
   void rebuildRenderPipelines();
   int simStep = 0;
+  void resetSimulation();
 };
 
 #endif//VULKANAPP_VULKANCORE_H

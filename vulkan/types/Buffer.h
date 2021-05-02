@@ -57,6 +57,40 @@ class Buffer {
     }
   };
 
+  template<typename T>
+  void fill(const T &input, bool useStaging = true, int offset = 0) {
+    auto valueSize = sizeof(T);
+    auto itemCount = (size / valueSize);
+
+    if (useStaging) {
+      auto stagingBuffer =
+          Buffer(BufferBuilder()
+                     .setSize(size)
+                     .setUsageFlags(vk::BufferUsageFlagBits::eTransferSrc)
+                     .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eHostCoherent
+                                             | vk::MemoryPropertyFlagBits::eHostVisible),
+                 device, commandPool, queue);
+
+      auto data =
+          reinterpret_cast<T*>(device->getDevice()->mapMemory(stagingBuffer.getDeviceMemory().get(), 0, size));
+      auto dataSpan = std::span<T>{data, static_cast<size_t>(itemCount)};
+      std::fill(dataSpan.begin(), dataSpan.end(), input);
+/*      int i = 0;
+      for ( ; i < itemCount; ++i, data += valueSize)
+      {
+        memcpy(cp, val, size);
+      }*/
+      device->getDevice()->unmapMemory(stagingBuffer.getDeviceMemory().get());
+
+      copy(size, stagingBuffer, offset);
+    } else {
+      auto data = reinterpret_cast<T*>(device->getDevice()->mapMemory(deviceMemory.get(), offset, size));
+      auto dataSpan = std::span<T>{data,  static_cast<size_t>(itemCount)};
+      std::fill(dataSpan.begin(), dataSpan.end(), input);
+      device->getDevice()->unmapMemory(deviceMemory.get());
+    }
+  }
+
   void copy(const vk::DeviceSize &copySize, const Buffer &srcBuffer, int offset = 0,
             const std::vector<vk::Semaphore> &semaphores = {});
   void copy(const vk::DeviceSize &copySize, const Buffer &srcBuffer, const Buffer &dstBuffer, int offset = 0,

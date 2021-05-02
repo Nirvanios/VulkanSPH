@@ -5,7 +5,7 @@
 #ifndef VULKANAPP_ENUMS_H
 #define VULKANAPP_ENUMS_H
 
-enum class SimulationState { Stopped, Simulating, SingleStep};
+enum class SimulationState { Stopped, Simulating, SingleStep, Reset};
 
 enum class RecordingState { Stopped = 1 << 0 , Recording= 1 << 1, Screenshot= 1 << 2};
 

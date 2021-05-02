@@ -31,21 +31,28 @@ void SimulationUI::init(const std::shared_ptr<Device> &device,
       &infoWindow.createChild<ig::Text>("text_pitch:", ""));
 
   auto &controlTree = infoWindow.createChild<ig::Tree>("control_window", "Simulation control");
-  auto &controlGroup = controlTree.createChild<ig::Group>("group_Controls", "");
+  auto &controlGroup = controlTree.createChild<ig::BoxLayout>("box_Controls", ig::LayoutDirection::LeftToRight, ImVec2{infoWindow.getSize().x, 20});
 
   auto &controlButton =
-      controlGroup.createChild<ig::Button>("button_control", "Start simulationSPH");
-  auto &stepButton = controlGroup.createChild<ig::Button>("button_step", "Step simulationSPH");
+      controlGroup.createChild<ig::Button>("button_control", "Start simulation");
+  auto &buttonReset =
+      controlGroup.createChild<ig::Button>("button_reset", "Reset simulation");
+  buttonReset.addClickListener([this](){
+    onButtonSimulationResetClick(SimulationState::Reset);
+  });
+  auto &stepButton = controlTree.createChild<ig::Button>("button_step", "Step simulation");
   stepButton.setEnabled(pf::Enabled::Yes);
-  controlButton.addClickListener([this, &controlButton, &stepButton]() {
-    if (simulationState == SimulationState::Simulating) {
-      controlButton.setLabel("Pause simulationSPH");
+  controlButton.addClickListener([this, &controlButton, &stepButton, &buttonReset]() {
+    if (simulationState == SimulationState::Stopped) {
+      controlButton.setLabel("Pause simulation");
       stepButton.setEnabled(pf::Enabled::No);
-      simulationState = SimulationState::Stopped;
-    } else {
-      controlButton.setLabel("Start simulationSPH");
-      stepButton.setEnabled(pf::Enabled::Yes);
+      buttonReset.setEnabled(pf::Enabled::No);
       simulationState = SimulationState::Simulating;
+    } else {
+      controlButton.setLabel("Start simulation");
+      stepButton.setEnabled(pf::Enabled::Yes);
+      buttonReset.setEnabled(pf::Enabled::Yes);
+      simulationState = SimulationState::Stopped;
     }
     onButtonSimulationControlClick(simulationState);
   });
@@ -173,6 +180,10 @@ void SimulationUI::setOnButtonRecordingClick(
 void SimulationUI::setOnButtonScreenshotClick(
     const std::function<void(Utilities::Flags<RecordingState>)> &onButtonScreenshotClickCallback) {
   SimulationUI::onButtonScreenshotClick = onButtonScreenshotClickCallback;
+}
+void SimulationUI::setOnButtonSimulationResetClick(
+    const std::function<void(SimulationState)> &onButtonSimulationResetClickCallback) {
+  SimulationUI::onButtonSimulationResetClick = onButtonSimulationResetClickCallback;
 }
 bool SimulationUI::isHovered() { return imgui->isWindowHovered(); }
 bool SimulationUI::isKeyboardCaptured() { return imgui->isKeyboardCaptured(); }

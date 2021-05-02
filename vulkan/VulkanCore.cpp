@@ -22,6 +22,7 @@
 #include <plf_nanotimer.h>
 
 #include "../Third Party/imgui/imgui_impl_vulkan.h"
+#include "../utils/Exceptions.h"
 
 void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
                             const std::vector<ParticleRecord> particles,
@@ -156,7 +157,8 @@ void VulkanCore::mainLoop() {
     simulationUi.render();
     drawFrame();
     fpsCounter.newFrame();
-    simulationUi.getFPScallback()(fpsCounter,simStep, yaw, pitch);
+    simulationUi.getFPScallback()(fpsCounter, simStep, yaw, pitch);
+    if (simulationState == SimulationState::Reset) { resetSimulation(); }
   }
   device->getDevice()->waitIdle();
 }
@@ -303,7 +305,8 @@ void VulkanCore::recordCommandBuffers(uint32_t imageIndex, Utilities::Flags<Draw
 
     if (stageRecord.has(DrawType::ToFile)) {
 
-      if (recordingStateFlags.hasAnyOf(std::vector<RecordingState>{RecordingState::Recording, RecordingState::Screenshot})) {
+      if (recordingStateFlags.hasAnyOf(
+              std::vector<RecordingState>{RecordingState::Recording, RecordingState::Screenshot})) {
         swapchain->getSwapchainImages()[imageIndex]->transitionImageLayout(
             commandBufferGraphics, vk::ImageLayout::ePresentSrcKHR,
             vk::ImageLayout::eTransferSrcOptimal, vk::AccessFlagBits::eMemoryRead,
@@ -397,7 +400,8 @@ void VulkanCore::drawFrame() {
 
   auto drawFlags = Utilities::Flags<DrawType>{std::vector<DrawType>{}};
 
-  if (Utilities::isIn(simulationState, {SimulationState::SingleStep, SimulationState::Simulating})) {
+  if (Utilities::isIn(simulationState,
+                      {SimulationState::SingleStep, SimulationState::Simulating})) {
     ++simStep;
     auto fence = device->getDevice()->createFenceUnique({});
     vk::SubmitInfo submitInfoRenderBefore{
@@ -437,7 +441,8 @@ void VulkanCore::drawFrame() {
       ? &semaphoreBetweenRender[currentFrame]
       : &semaphoreImageAvailable[currentFrame];
   auto semaphoreGridRenderIn = &semaphoreImageAvailable[currentFrame];
-  if (Utilities::isIn(simulationState, {SimulationState::SingleStep, SimulationState::Simulating})) {
+  if (Utilities::isIn(simulationState,
+                      {SimulationState::SingleStep, SimulationState::Simulating})) {
     if (Utilities::isIn(simulationType, {SimulationType::SPH, SimulationType::Combined})) {
       semaphoreAfterSort[currentFrame] = vulkanGridSPH->run(semaphoreBeforeSPH[currentFrame]);
 
@@ -508,14 +513,19 @@ void VulkanCore::drawFrame() {
     if (renderType == RenderType::Particles) {
       queueGraphics.submit(submitInfoRender, fencesInFlight[currentFrame].get());
     } else if (renderType == RenderType::MarchingCubes) {
-      if (simulationType == SimulationType::SPH && (Utilities::isIn(simulationState, {SimulationState::SingleStep, SimulationState::Simulating}) || computeColors)) {
+      if (simulationType == SimulationType::SPH
+          && (Utilities::isIn(simulationState,
+                              {SimulationState::SingleStep, SimulationState::Simulating})
+              || computeColors)) {
         semaphoreAfterTag[currentFrame] =
             vulkanGridFluidSphCoupling->run({semaphoreSPHRenderIn->get()}, CouplingStep::tag);
         semaphoreBeforeMC[currentFrame] =
             vulkanSphMarchingCubes->run(semaphoreAfterTag[currentFrame]);
         semaphoreAfterMC[currentFrame] =
             vulkanSphMarchingCubes->draw(semaphoreBeforeMC[currentFrame], imageindex);
-      } else if (Utilities::isIn(simulationState, {SimulationState::SingleStep, SimulationState::Simulating}) || computeColors) {
+      } else if (Utilities::isIn(simulationState,
+                                 {SimulationState::SingleStep, SimulationState::Simulating})
+                 || computeColors) {
         semaphoreBeforeMC[currentFrame] = vulkanSphMarchingCubes->run(*semaphoreSPHRenderIn);
         semaphoreAfterMC[currentFrame] =
             vulkanSphMarchingCubes->draw(semaphoreBeforeMC[currentFrame], imageindex);
@@ -529,7 +539,8 @@ void VulkanCore::drawFrame() {
     }
   }
 
-  if (recordingStateFlags.hasAnyOf(std::vector<RecordingState>{RecordingState::Recording, RecordingState::Screenshot})) {
+  if (recordingStateFlags.hasAnyOf(
+          std::vector<RecordingState>{RecordingState::Recording, RecordingState::Screenshot})) {
     if (recordingStateFlags.has(RecordingState::Recording)) { ++capturedFrameCount; }
     if (capturedFrameCount % framesToSkip == 0) {
 
@@ -547,7 +558,8 @@ void VulkanCore::drawFrame() {
         auto recordedFrames = capturedFrameCount / framesToSkip;
         simulationUi.onFrameSave(recordedFrames, recordedFrames / 60.0);
       } else if (recordingStateFlags.has(RecordingState::Screenshot)) {
-        recordingStateFlags &= Utilities::Flags<RecordingState>{{RecordingState::Stopped, RecordingState::Recording}};
+        recordingStateFlags &=
+            Utilities::Flags<RecordingState>{{RecordingState::Stopped, RecordingState::Recording}};
         if (previousFrameScreenshot.valid()) { previousFrameScreenshot.wait(); }
         previousFrameScreenshot = screenshotDiskSaver.saveImageAsync(
             "./screenshot.jpg", FilenameFormat::WithDateTime, PixelFormat::BGRA, ImageFormat::JPEG,
@@ -568,7 +580,6 @@ void VulkanCore::drawFrame() {
   } catch (const vk::OutOfDateKHRError &e) { recreateSwapchain(); }
 
   currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-  simulationState = SimulationState::Stopped;
 }
 void VulkanCore::recreateSwapchain() {
   window.checkMinimized();
@@ -745,8 +756,7 @@ void VulkanCore::setViewMatrixGetter(std::function<glm::mat4()> getter) {
 }
 
 VulkanCore::~VulkanCore() {
-  videoDiskSaver.endStream();
-  spdlog::info("Avg time to SPH: {}ms.", time / static_cast<double>(steps));
+  if(recordingStateFlags.has(RecordingState::Recording)) { videoDiskSaver.endStream(); }
 }
 void VulkanCore::initGui() {
   simulationUi.setImageProvider([this] {
@@ -754,9 +764,10 @@ void VulkanCore::initGui() {
         textureSampler->getSampler().get(), imageColorTexture[currentFrame]->getImageView().get(),
         static_cast<VkImageLayout>(imageColorTexture[currentFrame]->getLayout()));
   });
-  simulationUi.init(device,  instance,  pipelineGraphics->getRenderPass("toSwapchain"),
-                    surface, swapchain, window);
+  simulationUi.init(device, instance, pipelineGraphics->getRenderPass("toSwapchain"), surface,
+                    swapchain, window);
   simulationUi.setOnButtonSimulationControlClick([this](auto state) { simulationState = state; });
+  simulationUi.setOnButtonSimulationResetClick([this](auto state) {simulationState = state;});
   simulationUi.setOnButtonSimulationStepClick([this](auto state) { simulationState = state; });
   simulationUi.setOnComboboxSimulationTypeChange([this](auto type) {
     simulationType = type;
@@ -783,7 +794,7 @@ void VulkanCore::initGui() {
   simulationUi.setOnButtonScreenshotClick(
       [this](auto stateFlags) { recordingStateFlags = stateFlags; });
 
-  fpsCounter.setOnNewFrameCallback([]{});
+  fpsCounter.setOnNewFrameCallback([] {});
 }
 
 void VulkanCore::createTextureImages() {
@@ -843,4 +854,9 @@ void VulkanCore::rebuildRenderPipelines() {
   pipelineGraphics = pipelineBuilder.build();
 
   vulkanGridFluidRender->rebuildPipeline(true);
+}
+void VulkanCore::resetSimulation() {
+  vulkanSPH->resetBuffers();
+  vulkanGridFluid->resetBuffers();
+  simStep = 0;
 }

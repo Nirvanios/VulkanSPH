@@ -280,7 +280,7 @@ VulkanGridFluid::VulkanGridFluid(const Config &config,
 void VulkanGridFluid::createBuffers() {
   auto cellCountBorder = glm::compMul(simulationInfo.gridSize.xyz() + glm::ivec3(2));
   auto initialDensity = std::vector<glm::vec2>(cellCountBorder, glm::vec2(0.0, 50.0));
-  auto sources = std::vector<glm::vec2>(simulationInfo.cellCount, glm::vec2(0));
+  auto sources = std::vector<glm::vec2>(simulationInfo.cellCount, glm::vec2(20));
   [[maybe_unused]] auto positionSources =
       ((simulationInfo.gridSize.z / 2) * simulationInfo.gridSize.x * simulationInfo.gridSize.y)
       + (simulationInfo.gridSize.x / 2) + (simulationInfo.gridSize.x * (20));
@@ -323,25 +323,26 @@ void VulkanGridFluid::createBuffers() {
   //initialVelocities[positionDensity - (simulationInfo.gridSize.x + 2)].y = -0.010;
   bufferVelocitiesNew = std::make_shared<Buffer>(
       bufferBuilder.setSize(sizeof(glm::vec4) * cellCountBorder), this->device, commandPool, queue);
-  bufferVelocitiesNew->fill(initialVelocities);
+  bufferVelocitiesNew->fill(glm::vec4(0));
+
 
   bufferVelocitiesOld = std::make_shared<Buffer>(
       bufferBuilder.setSize(sizeof(glm::vec4) * cellCountBorder), this->device, commandPool, queue);
-  bufferVelocitiesOld->fill(std::vector<glm::vec4>(cellCountBorder, glm::vec4(0, 0, 0, 0)));
+  bufferVelocitiesOld->fill(glm::vec4(0, 0, 0, 0));
 
   bufferVelocitySources =
       std::make_shared<Buffer>(bufferBuilder.setSize(sizeof(glm::vec4) * simulationInfo.cellCount),
                                this->device, commandPool, queue);
   bufferVelocitySources->fill(
-      std::vector<glm::vec4>(simulationInfo.cellCount, glm::vec4(0, 0, 0, 0)));
+      glm::vec4(0, 0, 0, 0));
 
   bufferDivergences = std::make_shared<Buffer>(
       bufferBuilder.setSize(sizeof(float) * cellCountBorder), this->device, commandPool, queue);
-  bufferDivergences->fill(std::vector<float>(cellCountBorder, 0));
+  bufferDivergences->fill(0.f);
 
   bufferPressures = std::make_shared<Buffer>(bufferBuilder.setSize(sizeof(float) * cellCountBorder),
                                              this->device, commandPool, queue);
-  bufferPressures->fill(std::vector<float>(cellCountBorder, 0));
+  bufferPressures->fill(0.f);
 }
 
 const std::shared_ptr<Buffer> &VulkanGridFluid::getBufferValuesNew() const {
@@ -432,4 +433,36 @@ void VulkanGridFluid::setBoundaryScalarStageBuffer(std::shared_ptr<Buffer> &buff
 
 const std::shared_ptr<Buffer> &VulkanGridFluid::getBufferVelocitiesNew() const {
   return bufferVelocitiesNew;
+}
+void VulkanGridFluid::resetBuffers() {
+  auto cellCountBorder = glm::compMul(simulationInfo.gridSize.xyz() + glm::ivec3(2));
+  auto initialDensity = std::vector<glm::vec2>(cellCountBorder, glm::vec2(0.0, 50.0));
+  auto sources = std::vector<glm::vec2>(simulationInfo.cellCount, glm::vec2(0));
+  auto initialVelocities = std::vector<glm::vec4>(cellCountBorder, glm::vec4(0, 0, 0, 0));
+
+  [[maybe_unused]] auto positionSources =
+      ((simulationInfo.gridSize.z / 2) * simulationInfo.gridSize.x * simulationInfo.gridSize.y)
+      + (simulationInfo.gridSize.x / 2) + (simulationInfo.gridSize.x * (20));
+  /*  sources[positionSources] = {1.0, 0.0};
+  sources[positionSources-1] = {1.0, 0.0};
+  sources[positionSources+1] = {1.0, 0.0};*/
+  [[maybe_unused]] auto positionDensity =
+      (((simulationInfo.gridSize.z + 2) / 2) * (simulationInfo.gridSize.x + 2)
+       * (simulationInfo.gridSize.y + 2))
+      + ((simulationInfo.gridSize.x + 2) / 2) + ((simulationInfo.gridSize.x + 2) * 1);
+  //initialDensity[positionDensity] = glm::vec2(0.0f, 0.0f);
+  /*  initialDensity[positionDensity-1] = {1.0, 100.0};
+  initialDensity[positionDensity+1] = {1.0, 100.0};
+  initialDensity[positionDensity] = {1.0, 100.0};*/
+
+  /*  initialDensity[positionDensity].x = 1.0;*/
+  //initialDensity[(22*22)+44+1].x = 1.0;
+  //initialDensity[44].x = 1.0;
+
+  bufferValuesNew->fill(initialDensity);
+  bufferValuesOld->fill(initialDensity);
+  bufferValuesSources->fill(sources);
+  bufferVelocitiesNew->fill(initialVelocities);
+  bufferVelocitiesOld->fill(glm::vec4(0, 0, 0, 0));
+  bufferVelocitySources->fill(glm::vec4(0, 0, 0, 0));
 }

@@ -38,6 +38,8 @@ class SimulationUI {
       const std::function<void(SimulationState)> &onButtonSimulationControlClickCallback);
   void setOnButtonSimulationStepClick(
       const std::function<void(SimulationState)> &onButtonSimulationStepClickCallback);
+  void setOnButtonSimulationResetClick(
+      const std::function<void(SimulationState)> &onButtonSimulationResetClickCallback);
   void setOnComboboxSimulationTypeChange(
       const std::function<void(SimulationType)> &onComboboxSimulationTypeChangeCallback);
   void setOnComboboxRenderTypeChange(
@@ -61,6 +63,7 @@ class SimulationUI {
 
   std::function<void(SimulationState)> onButtonSimulationControlClick;
   std::function<void(SimulationState)> onButtonSimulationStepClick;
+  std::function<void(SimulationState)> onButtonSimulationResetClick;
   std::function<void(SimulationType)> onComboboxSimulationTypeChange;
   std::function<void(RenderType)> onComboboxRenderTypeChange;
   std::function<void(Visualization)> onComboboxVisualizationChange;
