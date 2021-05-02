@@ -5,25 +5,26 @@
 #ifndef VULKANAPP_SIMULATIONUI_H
 #define VULKANAPP_SIMULATIONUI_H
 
+#include "../utils/FPSCounter.h"
+#include "../vulkan/enums.h"
+#include "ImGuiGlfwVulkan.h"
+#include <experimental/memory>
 #include <pf_imgui/elements/Button.h>
 #include <pf_imgui/elements/ComboBox.h>
 #include <pf_imgui/elements/Group.h>
 #include <pf_imgui/elements/Image.h>
 #include <pf_imgui/elements/InputText.h>
 #include <pf_imgui/elements/Tree.h>
-#include "../utils/FPSCounter.h"
-#include "../vulkan/enums.h"
-#include "ImGuiGlfwVulkan.h"
-#include <experimental/memory>
 
 class SimulationUI {
   using ObserverPtrText = std::experimental::observer_ptr<pf::ui::ig::Text>;
+  using ObserverPtrWindow = std::experimental::observer_ptr<pf::ui::ig::Window>;
 
  public:
   SimulationUI();
   void init(const std::shared_ptr<Device> &device, const std::shared_ptr<Instance> &instance,
-               const vk::RenderPass &renderPass, const vk::UniqueSurfaceKHR &surface,
-               const std::shared_ptr<Swapchain> &swapchain, const GlfwWindow &window);
+            const vk::RenderPass &renderPass, const vk::UniqueSurfaceKHR &surface,
+            const std::shared_ptr<Swapchain> &swapchain, const GlfwWindow &window);
   void render();
   void addToCommandBuffer(const vk::UniqueCommandBuffer &commandBuffer);
   void onFrameSave(int framesSaved, float recordedSeconds);
@@ -31,7 +32,6 @@ class SimulationUI {
   [[nodiscard]] const std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> &getImgui() const;
   [[nodiscard]] bool isHovered();
   [[nodiscard]] bool isKeyboardCaptured();
-
 
   void setImageProvider(const std::function<ImTextureID()> &imageProviderCallback);
   void setOnButtonSimulationControlClick(
@@ -51,9 +51,11 @@ class SimulationUI {
           &onButtonRecordingClickCallback);
   void setOnButtonScreenshotClick(
       const std::function<void(Utilities::Flags<RecordingState>)> &onButtonScreenshotClickCallback);
+  void setOnColorPicked(const std::function<void(glm::vec4)> &onColorPickedCallback);
 
  private:
   std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> imgui;
+  ObserverPtrWindow windowMain;
   ObserverPtrText labelFPS;
   ObserverPtrText labelFrameTime;
   ObserverPtrText labelSimStep;
@@ -70,6 +72,7 @@ class SimulationUI {
   std::function<void(Utilities::Flags<RecordingState>, std::filesystem::path)>
       onButtonRecordingClick;
   std::function<void(Utilities::Flags<RecordingState>)> onButtonScreenshotClick;
+  std::function<void(glm::vec4)> onColorPicked;
 
   SimulationState simulationState;
   SimulationType selectedSimulationType;
@@ -77,6 +80,19 @@ class SimulationUI {
   Utilities::Flags<RecordingState> recordingStateFlags;
   Visualization textureVisualization;
   std::function<ImTextureID()> imageProvider;
+
+  void initSimulationControlGroup(pf::ui::ig::Window &parent);
+  void initRecordingGroup(pf::ui::ig::Window &parent);
+  void initVisualizationGroup(pf::ui::ig::Window &parent,
+                             const std::shared_ptr<Swapchain> &swapchain);
+  void initSettingsGroup(pf::ui::ig::Window &parent);
+  void initSettingsSimulationSubtree(pf::ui::ig::Group &parent);
+  void initSettingsVisualSubtree(pf::ui::ig::Group &parent);
+  void initSettingsSimulationSPHSubtree(pf::ui::ig::Tree &parent);
+  void initSettingsSimulationGridSubtree(pf::ui::ig::Tree &parent);
+  void initSettingsSimulationEvaporationSubtree(pf::ui::ig::Tree &parent);
+  void initSettingsSimulationOtherSubtree(pf::ui::ig::Tree &parent);
+
 };
 
 #endif//VULKANAPP_SIMULATIONUI_H

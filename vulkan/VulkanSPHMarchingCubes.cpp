@@ -17,12 +17,14 @@ VulkanSPHMarchingCubes::VulkanSPHMarchingCubes(
     std::shared_ptr<Swapchain> inSwapchain, std::shared_ptr<Buffer> inBufferParticles,
     std::shared_ptr<Buffer> inBufferIndexes, std::shared_ptr<Buffer> inBufferSortedPairs,
     std::vector<std::shared_ptr<Buffer>> inBuffersUniformMVP,
-    std::vector<std::shared_ptr<Buffer>> inBuffersUniformCameraPos)
+    std::vector<std::shared_ptr<Buffer>> inBuffersUniformCameraPos,
+    std::vector<std::shared_ptr<Buffer>> inBuffersUniformColor)
     : shaderPathTemplate(inConfig.getVulkan().shaderFolder / "SPH/Render/{}"), config(inConfig),
       device(std::move(inDevice)), swapchain(std::move(inSwapchain)),
       bufferParticles(std::move(inBufferParticles)), bufferGrid(std::move(inBufferSortedPairs)),
       bufferIndexes(std::move(inBufferIndexes)), bufferUnioformMVP(std::move(inBuffersUniformMVP)),
-      bufferUnioformCameraPos(std::move(inBuffersUniformCameraPos)) {
+      bufferUnioformCameraPos(std::move(inBuffersUniformCameraPos)),
+      bufferUnioformColor(std::move(inBuffersUniformColor)) {
 
   const auto &detailMC = config.getApp().marchingCubes.detail;
 
@@ -188,6 +190,9 @@ void VulkanSPHMarchingCubes::fillDescriptorBufferInfo() {
   const auto descriptorBufferPolygonCountLUT =
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferPolygonCountLUT, 1},
                            .bufferSize = bufferPolygonCountLUT->getSize()};
+  const auto descriptorBufferUniformColor =
+      DescriptorBufferInfo{.buffer = bufferUnioformColor,
+                           .bufferSize = bufferUnioformColor[0]->getSize()};
 
   descriptorBufferInfosCompute[Stages::ComputeColors] = {
       descriptorBufferInfoParticles, descriptorBufferInfoGrid, descriptorBufferInfoIndexes,
@@ -197,7 +202,8 @@ void VulkanSPHMarchingCubes::fillDescriptorBufferInfo() {
       descriptorBufferEdgesToVertexLUT, descriptorBufferPolygonCountLUT,
       descriptorBufferEdgesLUT,         descriptorBufferInfoIndexes,
       descriptorBufferInfoParticles,    descriptorBufferInfoGrid,
-      descriptorBufferInfoCameraPos,    descriptorBufferInfoMVP};
+      descriptorBufferInfoCameraPos,    descriptorBufferInfoMVP,
+      descriptorBufferUniformColor};
 }
 void VulkanSPHMarchingCubes::recordCommandBuffer(VulkanSPHMarchingCubes::Stages pipelineStage,
                                                  unsigned int imageIndex = -1) {
@@ -323,7 +329,7 @@ vk::UniqueSemaphore VulkanSPHMarchingCubes::run(const vk::UniqueSemaphore &inSem
 
   waitFence();
 
-/*  [[maybe_unused]] auto colors = bufferGridColors->read<float>();
+  /*  [[maybe_unused]] auto colors = bufferGridColors->read<float>();
   [[maybe_unused]] auto parts = bufferParticles->read<ParticleRecord>();*/
 
   return vk::UniqueSemaphore(outSemaphore, device->getDevice().get());

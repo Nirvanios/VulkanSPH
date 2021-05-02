@@ -120,15 +120,17 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
   vulkanSphMarchingCubes = std::make_unique<VulkanSPHMarchingCubes>(
       config, simulationInfoSPH, vulkanGridSPH->getGridInfo(), device, surface, swapchain,
       vulkanSPH->getBufferParticles(), bufferIndexes, bufferCellParticlePair, buffersUniformMVP,
-      buffersUniformCameraPos);
+      buffersUniformCameraPos, bufferUniformColor);
   vulkanSphMarchingCubes->setFramebuffersSwapchain(framebuffersSwapchain);
 
   auto tmpBuffer = std::vector{vulkanSPH->getBufferParticles()};
-  std::array<DescriptorBufferInfo, 3> descriptorBufferInfosGraphic{
+  std::array<DescriptorBufferInfo, 4> descriptorBufferInfosGraphic{
       DescriptorBufferInfo{.buffer = buffersUniformMVP, .bufferSize = sizeof(UniformBufferObject)},
       DescriptorBufferInfo{.buffer = buffersUniformCameraPos, .bufferSize = sizeof(glm::vec3)},
       DescriptorBufferInfo{.buffer = tmpBuffer,
-                           .bufferSize = sizeof(ParticleRecord) * particles.size()}};
+                           .bufferSize = sizeof(ParticleRecord) * particles.size()},
+      DescriptorBufferInfo{.buffer = bufferUniformColor, .bufferSize = sizeof(glm::vec4)},
+  };
   descriptorSetGraphics =
       std::make_shared<DescriptorSet>(device, swapchain->getSwapchainImageCount(),
                                       pipelineGraphics->getDescriptorSetLayout(), descriptorPool);
@@ -580,6 +582,7 @@ void VulkanCore::drawFrame() {
   } catch (const vk::OutOfDateKHRError &e) { recreateSwapchain(); }
 
   currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+  if(simulationState == SimulationState::SingleStep){simulationState = SimulationState::Stopped;}
 }
 void VulkanCore::recreateSwapchain() {
   window.checkMinimized();
@@ -678,22 +681,18 @@ void VulkanCore::createOutputImage() {
 
 void VulkanCore::createUniformBuffers() {
   vk::DeviceSize size = sizeof(UniformBufferObject);
-  auto builderMVP = BufferBuilder()
-                        .setSize(size)
-                        .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eHostVisible
-                                                | vk::MemoryPropertyFlagBits::eHostCoherent)
-                        .setUsageFlags(vk::BufferUsageFlagBits::eUniformBuffer);
-  auto builderCameraPos = BufferBuilder()
-                              .setSize(size)
-                              .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eHostVisible
-                                                      | vk::MemoryPropertyFlagBits::eHostCoherent)
-                              .setUsageFlags(vk::BufferUsageFlagBits::eUniformBuffer);
+  auto builder = BufferBuilder()
+                     .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eHostVisible
+                                             | vk::MemoryPropertyFlagBits::eHostCoherent)
+                     .setUsageFlags(vk::BufferUsageFlagBits::eUniformBuffer);
 
   for ([[maybe_unused]] const auto &swapImage : swapchain->getSwapChainImageViews()) {
-    buffersUniformMVP.emplace_back(
-        std::make_shared<Buffer>(builderMVP, device, commandPoolGraphics, queueGraphics));
-    buffersUniformCameraPos.emplace_back(
-        std::make_shared<Buffer>(builderCameraPos, device, commandPoolGraphics, queueGraphics));
+    buffersUniformMVP.emplace_back(std::make_shared<Buffer>(builder.setSize(size), device,
+                                                            commandPoolGraphics, queueGraphics));
+    buffersUniformCameraPos.emplace_back(std::make_shared<Buffer>(
+        builder.setSize(sizeof(glm::vec3)), device, commandPoolGraphics, queueGraphics));
+    bufferUniformColor.emplace_back(std::make_shared<Buffer>(
+        builder.setSize(sizeof(glm::vec4)), device, commandPoolGraphics, queueGraphics));
   }
 }
 void VulkanCore::updateUniformBuffers(uint32_t currentImage) {
@@ -705,8 +704,9 @@ void VulkanCore::updateUniformBuffers(uint32_t currentImage) {
                                    / static_cast<float>(swapchain->getExtentHeight()),
                                0.01f, 1000.f)};
   ubo.proj[1][1] *= -1;
-  buffersUniformMVP[currentImage]->fill(std::span(&ubo, 1), false);
-  buffersUniformCameraPos[currentImage]->fill(std::span(&cameraPos, 1), false);
+  buffersUniformMVP[currentImage]->fill(ubo, false);
+  buffersUniformCameraPos[currentImage]->fill(cameraPos, false);
+  bufferUniformColor[currentImage]->fill(fluidColor, false);
 }
 void VulkanCore::createDescriptorPool() {
   std::array<vk::DescriptorPoolSize, 2> poolSize{
@@ -756,7 +756,7 @@ void VulkanCore::setViewMatrixGetter(std::function<glm::mat4()> getter) {
 }
 
 VulkanCore::~VulkanCore() {
-  if(recordingStateFlags.has(RecordingState::Recording)) { videoDiskSaver.endStream(); }
+  if (recordingStateFlags.has(RecordingState::Recording)) { videoDiskSaver.endStream(); }
 }
 void VulkanCore::initGui() {
   simulationUi.setImageProvider([this] {
@@ -767,7 +767,7 @@ void VulkanCore::initGui() {
   simulationUi.init(device, instance, pipelineGraphics->getRenderPass("toSwapchain"), surface,
                     swapchain, window);
   simulationUi.setOnButtonSimulationControlClick([this](auto state) { simulationState = state; });
-  simulationUi.setOnButtonSimulationResetClick([this](auto state) {simulationState = state;});
+  simulationUi.setOnButtonSimulationResetClick([this](auto state) { simulationState = state; });
   simulationUi.setOnButtonSimulationStepClick([this](auto state) { simulationState = state; });
   simulationUi.setOnComboboxSimulationTypeChange([this](auto type) {
     simulationType = type;
@@ -793,6 +793,7 @@ void VulkanCore::initGui() {
       });
   simulationUi.setOnButtonScreenshotClick(
       [this](auto stateFlags) { recordingStateFlags = stateFlags; });
+  simulationUi.setOnColorPicked([this](auto color) { fluidColor = color; });
 
   fpsCounter.setOnNewFrameCallback([] {});
 }

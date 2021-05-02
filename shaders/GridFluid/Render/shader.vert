@@ -56,7 +56,7 @@ layout(std430, binding = 2) buffer densityBuffer { vec2 density[]; };
 layout(std430, binding = 3) buffer Indexes { CellInfo cellInfos[]; };
 
 layout(location = 0) in vec3 inPosition;
-layout(location = 1) in vec3 inColor;
+//layout(location = 1) in vec3 inColor;
 layout(location = 2) in vec3 inNormal;
 
 layout(location = 3) out vec4 fragColor;
@@ -100,7 +100,7 @@ int getAlignedAxis() {
 const float cellScale = 0.022 * 0.5;
 
 void main() {
-  vec3 color = inColor;
+  vec3 color = vec3(0);
   mat4 rotMatrix = mat4(1.0);
   const int axis = getAlignedAxis();
   switch (axis) {

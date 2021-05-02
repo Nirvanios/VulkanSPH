@@ -12,8 +12,8 @@
 #include <stdexcept>
 
 #include "../utils/Config.h"
-#include "../utils/saver/VideoDiskSaver.h"
 #include "../utils/saver/ScreenshotDiskSaver.h"
+#include "../utils/saver/VideoDiskSaver.h"
 #include "../window/GlfwWindow.h"
 
 #include "../ui/ImGuiGlfwVulkan.h"
@@ -42,7 +42,8 @@
 class VulkanCore {
 
  public:
-  explicit VulkanCore(const Config &config, GlfwWindow &window, const glm::vec3 &cameraPos, const float &yaw, const float &pitch);
+  explicit VulkanCore(const Config &config, GlfwWindow &window, const glm::vec3 &cameraPos,
+                      const float &yaw, const float &pitch);
   ~VulkanCore();
   void setViewMatrixGetter(std::function<glm::mat4()> getter);
   [[nodiscard]] bool isFramebufferResized() const;
@@ -54,7 +55,7 @@ class VulkanCore {
   void run();
 
  private:
-  std::array<PipelineLayoutBindingInfo, 3> bindingInfosRender{
+  std::array<PipelineLayoutBindingInfo, 4> bindingInfosRender{
       PipelineLayoutBindingInfo{
           .binding = 0,
           .descriptorType = vk::DescriptorType::eUniformBuffer,
@@ -69,6 +70,10 @@ class VulkanCore {
       },
       PipelineLayoutBindingInfo{.binding = 2,
                                 .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                .descriptorCount = 1,
+                                .stageFlags = vk::ShaderStageFlagBits::eVertex},
+      PipelineLayoutBindingInfo{.binding = 3,
+                                .descriptorType = vk::DescriptorType::eUniformBuffer,
                                 .descriptorCount = 1,
                                 .stageFlags = vk::ShaderStageFlagBits::eVertex}};
 
@@ -97,10 +102,11 @@ class VulkanCore {
   std::future<void> previousFrameVideo;
   int capturedFrameCount = 0;
   int framesToSkip{};
-  std::function<void()> onFrameSaveCallback = []{};
 
   ScreenshotDiskSaver screenshotDiskSaver;
   std::future<void> previousFrameScreenshot;
+
+  glm::vec4 fluidColor = glm::vec4{0.5, 0.8, 1.0, 1.0};
 
   std::shared_ptr<Instance> instance;
   std::shared_ptr<Device> device;
@@ -134,6 +140,7 @@ class VulkanCore {
   std::shared_ptr<Buffer> bufferIndexes;
   std::vector<std::shared_ptr<Buffer>> buffersUniformMVP;
   std::vector<std::shared_ptr<Buffer>> buffersUniformCameraPos;
+  std::vector<std::shared_ptr<Buffer>> bufferUniformColor;
 
   vk::UniqueDescriptorPool descriptorPool;
   std::shared_ptr<DescriptorSet> descriptorSetGraphics;

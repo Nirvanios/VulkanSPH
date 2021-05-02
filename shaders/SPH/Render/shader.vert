@@ -10,7 +10,7 @@ layout(binding = 0) uniform UniformBufferObject {
 ubo;
 
 layout(location = 0) in vec3 inPosition;
-layout(location = 1) in vec3 inColor;
+//layout(location = 1) in vec3 inColor;
 layout(location = 2) in vec3 inNormal;
 
 layout(location = 0) out vec4 outColor;
@@ -18,7 +18,9 @@ layout(location = 1) out vec4 outNormal;
 layout(location = 2) out vec4 outPosition;
 layout(location = 3) out uint outGridID;
 
-
+layout(binding = 10) uniform Color {
+  vec4 inColor;
+};
 
 struct SimulationInfoSPH {
   ivec4 gridSizeXYZcountW;
@@ -60,7 +62,7 @@ void main() {
 
   gl_Position = /* ubo.proj * ubo.view * ubo.model * */ vec4(myPosition, 1.0);
 
-  outColor = vec4(inColor, 1.0f);
+  outColor = inColor;
   outPosition = gl_Position;
   outNormal = vec4(inNormal, 1.0f);
   outGridID = gl_InstanceIndex;

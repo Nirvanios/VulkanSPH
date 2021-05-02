@@ -9,6 +9,8 @@
 #define VEC_TO_INDEX(a) (TO_INDEX(a.x, a.y, a.z))
 #define VEC_TO_INDEX_BOUNDARY(a) (TO_INDEX_BOUNDARY(a.x, a.y, a.z))
 
+#define COMP3_MUL(a) (a.x * a.y * a.y)
+
 #define RED 0
 #define BLACK 1
 
@@ -78,7 +80,7 @@ void main() {
     switch (type) {
       case DIFFUSE:
         alpha = simulationInfo.timeStep * simulationInfo.diffusionCoefficient
-            * pow(simulationInfo.gridSize.x, 3);//TODO
+            * COMP3_MUL(simulationInfo.gridSize);
         beta = (1 + 6 * alpha);
         base = fieldOld[myId];
         break;

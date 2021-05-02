@@ -25,7 +25,8 @@ class VulkanSPHMarchingCubes {
                          std::shared_ptr<Buffer> inBufferIndexes,
                          std::shared_ptr<Buffer> inBufferSortedPairs,
                          std::vector<std::shared_ptr<Buffer>> inBuffersUniformMVP,
-                         std::vector<std::shared_ptr<Buffer>> inBuffersUniformCameraPos);
+                         std::vector<std::shared_ptr<Buffer>> inBuffersUniformCameraPos,
+                         std::vector<std::shared_ptr<Buffer>> inBuffersUniformColor);
   vk::UniqueSemaphore run(const vk::UniqueSemaphore &inSemaphore);
   vk::UniqueSemaphore draw(const vk::UniqueSemaphore &inSemaphore, unsigned int imageIndex);
   void setFramebuffersSwapchain(const std::shared_ptr<Framebuffers> &framebuffer);
@@ -94,6 +95,7 @@ class VulkanSPHMarchingCubes {
   std::shared_ptr<Buffer> bufferVertex;
   std::vector<std::shared_ptr<Buffer>> bufferUnioformMVP;
   std::vector<std::shared_ptr<Buffer>> bufferUnioformCameraPos;
+  std::vector<std::shared_ptr<Buffer>> bufferUnioformColor;
 
   std::map<Stages, std::shared_ptr<Pipeline>> pipelines;
 
@@ -154,10 +156,14 @@ class VulkanSPHMarchingCubes {
                                   .descriptorType = vk::DescriptorType::eUniformBuffer,
                                   .descriptorCount = 1,
                                   .stageFlags = vk::ShaderStageFlagBits::eFragment},
-        {PipelineLayoutBindingInfo{.binding = 9,
+        PipelineLayoutBindingInfo{.binding = 9,
                                    .descriptorType = vk::DescriptorType::eUniformBuffer,
                                    .descriptorCount = 1,
-                                   .stageFlags = vk::ShaderStageFlagBits::eGeometry}}}}};
+                                   .stageFlags = vk::ShaderStageFlagBits::eGeometry},
+        PipelineLayoutBindingInfo{.binding = 10,
+                                   .descriptorType = vk::DescriptorType::eUniformBuffer,
+                                   .descriptorCount = 1,
+                                   .stageFlags = vk::ShaderStageFlagBits::eVertex}}}};
 };
 
 #endif//VULKANAPP_VULKANSPHMARCHINGCUBES_H

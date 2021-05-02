@@ -1,8 +1,8 @@
 [App]
 DEBUG = true
 outputToFile = true
-pitch = -35.299861907958984
-yaw = -425.50341796875
+pitch = -36.799854278564453
+yaw = -441.70425415039062
 cameraPos = [-0.27033710479736328,2.6638836860656738,3.1748919486999512]
 MarchingCubes = {detail=2}
 [App.simulationSPH]

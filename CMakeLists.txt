@@ -107,7 +107,7 @@ CPMAddPackage(
 CPMAddPackage(
         NAME pf_imgui
         GITHUB_REPOSITORY PetrFlajsingr/pf_imgui
-        GIT_TAG v0.3.3
+        GIT_TAG v0.4.2
 )
 
 include_directories("Third Party/")
