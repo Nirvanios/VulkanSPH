@@ -112,16 +112,18 @@ void SimulationUI::setOnColorPicked(const std::function<void(glm::vec4)> &onColo
 void SimulationUI::initSettingsGroup(pf::ui::ig::Window &parent) {
   using namespace pf::ui;
 
-  auto &treeSettings =
-      parent.createChild<ig::Group>("tree_settings", "Settings", ig::Persistent::Yes, ig::AllowCollapse::Yes);
-  initSettingsVisualSubtree(treeSettings);
-  initSettingsSimulationSubtree(treeSettings);
+  auto &groupSettings = parent.createChild<ig::Group>("tree_settings", "Settings",
+                                                     ig::Persistent::Yes, ig::AllowCollapse::Yes);
+  groupSettings.setCollapsed(true);
+  initSettingsVisualSubtree(groupSettings);
+  initSettingsSimulationSubtree(groupSettings);
 }
 void SimulationUI::initSimulationControlGroup(pf::ui::ig::Window &parent) {
   using namespace pf::ui;
   /**Simulation control*/
   auto &treeControl = parent.createChild<ig::Group>("tree_control", "Simulation control",
                                                     ig::Persistent::Yes, ig::AllowCollapse::Yes);
+  treeControl.setCollapsed(true);
   auto &controlGroup = treeControl.createChild<ig::BoxLayout>(
       "box_Controls", ig::LayoutDirection::LeftToRight, ImVec2{250, 20});
 
@@ -178,9 +180,9 @@ void SimulationUI::initSettingsVisualSubtree(pf::ui::ig::Group &parent) {
 
   auto &treeSettingsRender = parent.createChild<ig::Tree>("tree_settingsVisual", "Visual Settings");
   /**Light*/
-/*  auto &treeLightPos =
+  /*  auto &treeLightPos =
       treeSettingsRender.createChild<ig::Tree>("tree_lightPosition", "Light position");*/
-/*  [[maybe_unused]] auto &positionLight = treeLightPos.createChild<ig::Slider3D<float>>(
+  /*  [[maybe_unused]] auto &positionLight = treeLightPos.createChild<ig::Slider3D<float>>(
       "slider3d_lightPos", "", lightPosLimits, lightPosLimits, lightPosLimits, glm::vec3{0, 5, 0}, 0.5);*/
   auto &treeLightColor = treeSettingsRender.createChild<ig::Tree>("tree_lightColor", "Light color");
   auto &lightColor =
@@ -196,8 +198,8 @@ void SimulationUI::initSettingsVisualSubtree(pf::ui::ig::Group &parent) {
   /**Color picker*/
   auto &treeColor = treeSettingsRender.createChild<ig::Tree>("tree_colorPick", "Fluid color");
   auto &colorPicker =
-      treeColor.createChild<ig::ColorChooser<ig::ColorChooserType::Edit, glm::vec4>>(
-          "color_Fluid", "Fluid color");
+      treeColor.createChild<ig::ColorChooser<ig::ColorChooserType::Edit, glm::vec4>>("color_Fluid",
+                                                                                     "Fluid color");
   colorPicker.setValue(glm::vec4{0.5, 0.8, 1.0, 1.0});
   colorPicker.addValueListener(
       [this, &colorPicker](auto) { onColorPicked(colorPicker.getValue()); });
@@ -210,7 +212,7 @@ void SimulationUI::initSettingsSimulationSubtree(pf::ui::ig::Group &parent) {
 
   initSettingsSimulationSPHSubtree(treeSettingsSimulation);
   initSettingsSimulationGridSubtree(treeSettingsSimulation);
-  //auto &treeSettingsSimulationEvaporation = treeSettingsSimulation.createChild<ig::Tree>("tree_settingsSimulationEvaporation", "Evaporation");
+  initSettingsSimulationEvaporationSubtree(treeSettingsSimulation);
   initSettingsSimulationOtherSubtree(treeSettingsSimulation);
 
   auto &groupSettingsButtons = treeSettingsSimulation.createChild<ig::BoxLayout>(
@@ -221,8 +223,6 @@ void SimulationUI::initSettingsSimulationSubtree(pf::ui::ig::Group &parent) {
   auto &buttonSettingsReset =
       groupSettingsButtons.createChild<ig::Button>("button_resetSettings", "Reset values");
   buttonSettingsReset.addClickListener([] {});
-
-
 }
 void SimulationUI::initSettingsSimulationSPHSubtree(pf::ui::ig::Tree &parent) {
   using namespace pf::ui;
@@ -233,40 +233,46 @@ void SimulationUI::initSettingsSimulationSPHSubtree(pf::ui::ig::Tree &parent) {
   /***/
   treeSettingsSimulationSPH.createChild<ig::Input<float>>("input_volume", "Volume", 0.1, 1.0, 2.0,
                                                           ig::Persistent::No);
-  treeSettingsSimulationSPH.createChild<ig::Input<float>>("input_density", "Rest density", 0, 0,
-                                                          0, ig::Persistent::Yes);
-  treeSettingsSimulationSPH.createChild<ig::Input<float>>("input_viscosity", "Viscosity", 0, 0,
-                                                          0, ig::Persistent::Yes);
-  treeSettingsSimulationSPH.createChild<ig::Input<float>>("input_gasStiff", "Gas stiffnes", 0, 0,
-                                                          0, ig::Persistent::Yes);
-  treeSettingsSimulationSPH.createChild<ig::Input<float>>("input_HeatConSPH", "Heat conductivity", 0, 0,
-                                                          0, ig::Persistent::Yes);
+  treeSettingsSimulationSPH.createChild<ig::Input<float>>("input_density", "Rest density", 0, 0, 0,
+                                                          ig::Persistent::Yes);
+  treeSettingsSimulationSPH.createChild<ig::Input<float>>("input_viscosity", "Viscosity", 0, 0, 0,
+                                                          ig::Persistent::Yes);
+  treeSettingsSimulationSPH.createChild<ig::Input<float>>("input_temp", "Temperature", 0, 0, 0,
+                                                          ig::Persistent::Yes);
+  treeSettingsSimulationSPH.createChild<ig::Input<float>>("input_gasStiff", "Gas stiffnes", 0, 0, 0,
+                                                          ig::Persistent::Yes);
+  treeSettingsSimulationSPH.createChild<ig::Input<float>>("input_HeatConSPH", "Heat conductivity",
+                                                          0, 0, 0, ig::Persistent::Yes);
   treeSettingsSimulationSPH.createChild<ig::Input<float>>("input_HeatCapSPH", "Heat capacity", 0, 0,
                                                           0, ig::Persistent::Yes);
-/*  treeSettingsSimulationSPH.createChild<ig::Input<float>>("input_TenThre", "Tension threshold", 0, 0,
+  /*  treeSettingsSimulationSPH.createChild<ig::Input<float>>("input_TenThre", "Tension threshold", 0, 0,
                                                           0, ig::Persistent::Yes);*/
-  treeSettingsSimulationSPH.createChild<ig::Input<float>>("input_TenCoeff", "Tension coefficient", 0, 0,
-                                                          0, ig::Persistent::Yes);
+  treeSettingsSimulationSPH.createChild<ig::Input<float>>("input_TenCoeff", "Tension coefficient",
+                                                          0, 0, 0, ig::Persistent::Yes);
 
   treeSettingsSimulationSPH.createChild<ig::Text>("group_fluidSize", "Initial fluid size");
-  treeSettingsSimulationSPH.createChild<ig::Input<int>>("input_fluidSizeX", "x", 1, 5, 20, ig::Persistent::Yes);
-  treeSettingsSimulationSPH.createChild<ig::Input<int>>("input_fluidSizeY", "y", 1, 5, 20, ig::Persistent::Yes);
-  treeSettingsSimulationSPH.createChild<ig::Input<int>>("input_fluidSizeZ", "z", 1, 5, 20, ig::Persistent::Yes);
+  treeSettingsSimulationSPH.createChild<ig::Input<int>>("input_fluidSizeX", "x", 1, 5, 20,
+                                                        ig::Persistent::Yes);
+  treeSettingsSimulationSPH.createChild<ig::Input<int>>("input_fluidSizeY", "y", 1, 5, 20,
+                                                        ig::Persistent::Yes);
+  treeSettingsSimulationSPH.createChild<ig::Input<int>>("input_fluidSizeZ", "z", 1, 5, 20,
+                                                        ig::Persistent::Yes);
   treeSettingsSimulationSPH.createChild<ig::Text>("text_particleCount", "Particle count ");
-
 }
 void SimulationUI::initRecordingGroup(pf::ui::ig::Window &parent) {
   using namespace pf::ui;
 
   /**Recording*/
-  auto &recordingWindow = parent.createChild<ig::Group>("tree_Recording", "Recording", ig::Persistent::Yes, ig::AllowCollapse::Yes);
+  auto &groupRecording = parent.createChild<ig::Group>(
+      "tree_Recording", "Recording", ig::Persistent::Yes, ig::AllowCollapse::Yes);
+  groupRecording.setCollapsed(true);
   labelFramesCount =
-      std::experimental::observer_ptr<ig::Text>(&recordingWindow.createChild<ig::Text>(
+      std::experimental::observer_ptr<ig::Text>(&groupRecording.createChild<ig::Text>(
           "text_RecordedFramesCount", "Recorded frames: 0\nRecorded time: 0.0s"));
-  auto &editFilename = recordingWindow.createChild<ig::InputText>("memo_Filename", "Filename");
+  auto &editFilename = groupRecording.createChild<ig::InputText>("memo_Filename", "Filename");
 
   auto &buttonRecording =
-      recordingWindow.createChild<ig::Button>("button_startRecord", "Start Recording");
+      groupRecording.createChild<ig::Button>("button_startRecord", "Start Recording");
   buttonRecording.addClickListener([this, &buttonRecording, &editFilename] {
     if (recordingStateFlags.has(RecordingState::Stopped)) {
       buttonRecording.setLabel("Stop Recording");
@@ -279,18 +285,20 @@ void SimulationUI::initRecordingGroup(pf::ui::ig::Window &parent) {
     }
     onButtonRecordingClick(recordingStateFlags, editFilename.getText());
   });
-  recordingWindow.createChild<ig::Button>("button_takeScreenshot", "Take Screenshot")
+  groupRecording.createChild<ig::Button>("button_takeScreenshot", "Take Screenshot")
       .addClickListener(
           [this] { onButtonScreenshotClick(recordingStateFlags | RecordingState::Screenshot); });
 }
 void SimulationUI::initVisualizationGroup(pf::ui::ig::Window &parent,
-                                         const std::shared_ptr<Swapchain> &swapchain) {
+                                          const std::shared_ptr<Swapchain> &swapchain) {
   using namespace pf::ui;
 
   /**Visualization*/
-  auto &debugVisualizationWindow =
-      parent.createChild<ig::Group>("tree_visualization", "Visualization", ig::Persistent::Yes, ig::AllowCollapse::Yes);
-  debugVisualizationWindow
+  auto &groupVisualization = parent.createChild<ig::Group>(
+      "tree_visualization", "Visualization", ig::Persistent::Yes, ig::AllowCollapse::Yes);
+  groupVisualization.setCollapsed(true);
+
+  groupVisualization
       .createChild<ig::ComboBox<std::string>>(
           "combobox_visualization", "Show", "None",
           [] {
@@ -303,7 +311,7 @@ void SimulationUI::initVisualizationGroup(pf::ui::ig::Window &parent,
         onComboboxVisualizationChange(textureVisualization);
       });
 
-  debugVisualizationWindow.createChild<ig::Image>(
+  groupVisualization.createChild<ig::Image>(
       "image_debug", imageProvider(),
       ImVec2{static_cast<float>(swapchain->getExtentWidth() / 4),
              static_cast<float>(swapchain->getExtentHeight() / 4)},
@@ -317,14 +325,17 @@ void SimulationUI::initSettingsSimulationOtherSubtree(pf::ui::ig::Tree &parent) 
   auto &treeSettingsOtherSimulation =
       parent.createChild<ig::Tree>("tree_settingsSimulation", "Other");
 
-  treeSettingsOtherSimulation.createChild<ig::Input<float>>("input_timestep", "Timestep", 0.0001, 0.1,
-      0.001, ig::Persistent::No, "%.4f");
+  treeSettingsOtherSimulation.createChild<ig::Input<float>>("input_timestep", "Timestep", 0.0001,
+                                                            0.1, 0.001, ig::Persistent::No, "%.4f");
 
   treeSettingsOtherSimulation.createChild<ig::Text>("label_gridSize", "Grid size");
 
-  treeSettingsOtherSimulation.createChild<ig::Input<int>>("input_gridSizeX", "x", 1, 5, 20, ig::Persistent::No);
-  treeSettingsOtherSimulation.createChild<ig::Input<int>>("input_gridSizeY", "y", 1, 5, 20, ig::Persistent::No);
-  treeSettingsOtherSimulation.createChild<ig::Input<int>>("input_gridSizeZ", "z", 1, 5, 20, ig::Persistent::No);
+  treeSettingsOtherSimulation.createChild<ig::Input<int>>("input_gridSizeX", "x", 1, 5, 20,
+                                                          ig::Persistent::No);
+  treeSettingsOtherSimulation.createChild<ig::Input<int>>("input_gridSizeY", "y", 1, 5, 20,
+                                                          ig::Persistent::No);
+  treeSettingsOtherSimulation.createChild<ig::Input<int>>("input_gridSizeZ", "z", 1, 5, 20,
+                                                          ig::Persistent::No);
 }
 void SimulationUI::initSettingsSimulationGridSubtree(pf::ui::ig::Tree &parent) {
   using namespace pf::ui;
@@ -332,12 +343,29 @@ void SimulationUI::initSettingsSimulationGridSubtree(pf::ui::ig::Tree &parent) {
   auto &treeSettingsSimulationGrid =
       parent.createChild<ig::Tree>("tree_settingsSimulationGrid", "Euler grid");
 
-  treeSettingsSimulationGrid.createChild<ig::Input<float>>("input_diff", "Diffusion coefficient", 0, 0,
-      0, ig::Persistent::Yes);
-  treeSettingsSimulationGrid.createChild<ig::Input<float>>("input_gasConst", "Specific gas constant", 0, 0,
-      0, ig::Persistent::Yes);
-  treeSettingsSimulationGrid.createChild<ig::Input<float>>("input_HeatConGrid", "Heat conductivity", 0, 0,
-      0, ig::Persistent::Yes);
-  treeSettingsSimulationGrid.createChild<ig::Input<float>>("input_HeatCapGrid", "Heat capacity", 0, 0,
-      0, ig::Persistent::Yes);
+  treeSettingsSimulationGrid.createChild<ig::Input<float>>("input_ambient", "Ambient temperature", 0,
+                                                           0, 0, ig::Persistent::Yes);
+  treeSettingsSimulationGrid.createChild<ig::Input<float>>("input_bouyancyA", "Bouyancy alpha", 0,
+                                                           0, 0, ig::Persistent::Yes);
+  treeSettingsSimulationGrid.createChild<ig::Input<float>>("input_bouyancyB", "Bouyancy beta", 0,
+                                                           0, 0, ig::Persistent::Yes);
+  treeSettingsSimulationGrid.createChild<ig::Input<float>>("input_diff", "Diffusion coefficient", 0,
+                                                           0, 0, ig::Persistent::Yes);
+  treeSettingsSimulationGrid.createChild<ig::Input<float>>(
+      "input_gasConst", "Specific gas constant", 0, 0, 0, ig::Persistent::Yes);
+  treeSettingsSimulationGrid.createChild<ig::Input<float>>("input_HeatConGrid", "Heat conductivity",
+                                                           0, 0, 0, ig::Persistent::Yes);
+  treeSettingsSimulationGrid.createChild<ig::Input<float>>("input_HeatCapGrid", "Heat capacity", 0,
+                                                           0, 0, ig::Persistent::Yes);
+}
+void SimulationUI::initSettingsSimulationEvaporationSubtree(pf::ui::ig::Tree &parent) {
+  using namespace pf::ui;
+
+  auto &treeSettingsSimulationEvaporation =
+      parent.createChild<ig::Tree>("tree_settingsSimulationEvaporation", "Evaporation");
+
+  treeSettingsSimulationEvaporation.createChild<ig::Input<float>>("input_coeffA", "A (rate)", 0, 0,
+                                                                  0, ig::Persistent::Yes);
+  treeSettingsSimulationEvaporation.createChild<ig::Input<float>>(
+      "input_coeffB", "B (rate velocity)", 0, 0, 0, ig::Persistent::Yes);
 }
