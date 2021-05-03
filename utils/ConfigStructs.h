@@ -44,6 +44,7 @@ struct SimulationGridFluidConfig {
 
 struct MarchingCubes{
   int detail;
+  float threshold;
 };
 
 struct AppConfig {

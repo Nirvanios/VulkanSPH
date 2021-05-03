@@ -205,14 +205,25 @@ void SimulationUI::initSettingsVisualSubtree(pf::ui::ig::Group &parent) {
     onLightSettingsChanged(fragmentInfo);
   });
 
-      /**MC*/
-      auto &treeMC = treeSettingsRender.createChild<ig::Tree>("tree_MC", "Marching cubes");
+  /**MC*/
+  auto &treeMC = treeSettingsRender.createChild<ig::Tree>("tree_MC", "Marching cubes");
   treeMC
       .createChild<ig::Slider<int>>("input_detailMC", "Deatil", 1, 5, settings.gridInfoMC.detail,
                                     ig::Persistent::Yes)
-      .addValueListener([this](auto value) { settings.gridInfoMC.detail = value; });
-  treeMC.createChild<ig::Slider<float>>("input_threshold", "SDF Threshold", 0.01, 1, 0.5,
-                                        ig::Persistent::No);
+      .addValueListener([this](auto value) {
+        settings.gridInfoMC.detail = value;
+        settings.gridInfoMC.gridSize = value * (settings.simulationInfoGridFluid.gridSize + 2);
+        settings.gridInfoMC.cellSize =
+            settings.simulationInfoGridFluid.cellSize / static_cast<float>(value);
+        onMCSettingsChanged(settings.gridInfoMC);
+      });
+  treeMC
+      .createChild<ig::Slider<float>>("input_threshold", "SDF Threshold", 0.01, 1, 0.5,
+                                      ig::Persistent::No)
+      .addValueListener([this](auto value) {
+        settings.gridInfoMC.threshold = value;
+        onMCSettingsChanged(settings.gridInfoMC);
+      });
   /**Color picker*/
   auto &treeColor = treeSettingsRender.createChild<ig::Tree>("tree_colorPick", "Fluid color");
   auto &colorPicker =
@@ -478,4 +489,8 @@ void SimulationUI::fillSettings(const SimulationInfoSPH &simulationInfoSph,
 void SimulationUI::setOnLightSettingsChanged(
     const std::function<void(FragmentInfo)> &onLightSettingsChangedCallback) {
   SimulationUI::onLightSettingsChanged = onLightSettingsChangedCallback;
+}
+void SimulationUI::setOnMcSettingsChanged(
+    const std::function<void(GridInfoMC)> &onMcSettingsChangedCallback) {
+  onMCSettingsChanged = onMcSettingsChangedCallback;
 }

@@ -33,6 +33,7 @@ class VulkanSPHMarchingCubes {
   void rebuildPipeline(bool clearBeforeDraw);
   GridInfoMC &getGridInfoMC();
   void updateInfo(const Settings &settings);
+  void recreateBuffer();
 
  private:
   enum class Stages { ComputeColors, Render };

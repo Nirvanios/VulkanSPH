@@ -49,6 +49,7 @@ Config::Config(const std::string &configFile) : file(configFile) {
       toml::find<float>(tomlSimulationGridFluid, "ambientTemperature");
 
   app.marchingCubes.detail = toml::find<int>(tomlMarchingCubes, "detail");
+  app.marchingCubes.threshold = toml::find<float>(tomlMarchingCubes, "threshold");
 
   Vulkan.shaderFolder = toml::find<std::string>(tomlVulkan, "pathToShaders");
 

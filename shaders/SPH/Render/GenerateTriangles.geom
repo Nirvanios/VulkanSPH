@@ -98,6 +98,7 @@ struct GridInfoMC {
   vec4 gridOrigin;
   float cellSize;
   int detail;
+  float threshold;
 };
 
 layout(push_constant) uniform MarchingCubesInfo {
@@ -113,7 +114,6 @@ uvec3 vertices[] = {uvec3(0, 0, 1), uvec3(0, 1, 1), uvec3(1, 1, 1), uvec3(1, 0, 
                     uvec3(0, 0, 0), uvec3(0, 1, 0), uvec3(1, 1, 0), uvec3(1, 0, 0)};
 
 uint idToCheck = -1;
-const float threshold = 0.3;
 
 float M_PI = 3.1415;
 
@@ -130,7 +130,7 @@ uint getDensity(uint vertexOriginId) {
 
   for (int i = 7; i >= 0; --i) {
     density = density << 1;
-    density += uint(colorField[vertexOriginId + verticesIDs[i]] > threshold);
+    density += uint(colorField[vertexOriginId + verticesIDs[i]] > gridInfoMC.threshold);
     /*     if (inGridID[0] == idToCheck)
       debugPrintfEXT("vertexOriginId: %u, vertices: %u", inGridID[0],
                      vertexOriginId + verticesIDs[i]); */
@@ -185,8 +185,8 @@ void main() {
       const uvec2 edgeVertices = edgeToVertexLUT[edge];
       const uvec3 halfEdge = uvec3(notEqual(vertices[edgeVertices.x], vertices[edgeVertices.y]));
       const uvec3 fullEdge = uvec3(vertices[edgeVertices.x] * vertices[edgeVertices.y]);
-      const float v0 = colorField[vertexOriginId + verticesIDs[edgeVertices.x]] - threshold;
-      const float v1 = colorField[vertexOriginId + verticesIDs[edgeVertices.y]] - threshold;
+      const float v0 = colorField[vertexOriginId + verticesIDs[edgeVertices.x]] - gridInfoMC.threshold;
+      const float v1 = colorField[vertexOriginId + verticesIDs[edgeVertices.y]] - gridInfoMC.threshold;
       const float edgeInterpolation = -v0 / (v1 - v0);
       const vec4 polygon =
           vec4(inPosition[0]*scale + (edgeInterpolation * halfEdge * gridInfoMC.cellSize * scale)

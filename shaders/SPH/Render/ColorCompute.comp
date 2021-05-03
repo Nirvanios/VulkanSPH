@@ -41,6 +41,7 @@ struct GridInfoMC {
   vec4 gridOrigin;
   float cellSize;
   int detail;
+  float threshold;
 };
 
 layout(push_constant) uniform MarchingCubesInfo {

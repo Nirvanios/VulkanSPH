@@ -33,7 +33,8 @@ VulkanSPHMarchingCubes::VulkanSPHMarchingCubes(
       GridInfoMC{.gridSize = (inGridInfo.gridSize + 2) * detailMC,
                  .gridOrigin = inGridInfo.gridOrigin,
                  .cellSize = inGridInfo.cellSize / static_cast<float>(detailMC),
-                 .detail = detailMC};
+                 .detail = detailMC,
+                 .threshold = config.getApp().marchingCubes.threshold};
 
   auto queueFamilyIndices = Device::findQueueFamilies(this->device->getPhysicalDevice(), surface);
   vk::CommandPoolCreateInfo commandPoolCreateInfoCompute{
@@ -394,11 +395,36 @@ void VulkanSPHMarchingCubes::rebuildPipeline(bool clearBeforeDraw) {
   descriptorSets[Stages::Render]->updateDescriptorSet(descriptorBufferInfosCompute[Stages::Render],
                                                       bindingInfos[Stages::Render]);
 }
-GridInfoMC &VulkanSPHMarchingCubes::getGridInfoMC() {
-
-  return marchingCubesInfo.gridInfoMC;
-}
+GridInfoMC &VulkanSPHMarchingCubes::getGridInfoMC() { return marchingCubesInfo.gridInfoMC; }
 void VulkanSPHMarchingCubes::updateInfo(const Settings &settings) {
   marchingCubesInfo.simulationInfoSph = settings.simulationInfoSPH;
   marchingCubesInfo.gridInfoMC = settings.gridInfoMC;
+}
+void VulkanSPHMarchingCubes::recreateBuffer() {
+  auto bufferSize = glm::compMul(marchingCubesInfo.gridInfoMC.gridSize.xyz() + glm::ivec3(1));
+
+  auto bufferBuilder = BufferBuilder()
+                           .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
+                                          | vk::BufferUsageFlagBits::eStorageBuffer)
+                           .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal);
+
+  bufferGridColors = std::make_shared<Buffer>(bufferBuilder.setSize(sizeof(float) * bufferSize),
+                                              this->device, commandPoolCompute, queueCompute);
+
+  fillDescriptorBufferInfo();
+
+  for (const auto &stage : magic_enum::enum_values<Stages>()) {
+    if (stage != Stages::Render) {
+
+      descriptorSets[stage] = std::make_shared<DescriptorSet>(
+          this->device, 1, pipelines[stage]->getDescriptorSetLayout(), descriptorPool);
+      descriptorSets[stage]->updateDescriptorSet(descriptorBufferInfosCompute[stage],
+                                                 bindingInfos[stage]);
+    }
+  }
+  descriptorSets[Stages::Render] = std::make_shared<DescriptorSet>(
+      this->device, swapchain->getSwapchainImageCount(),
+      pipelines[Stages::Render]->getDescriptorSetLayout(), descriptorPool);
+  descriptorSets[Stages::Render]->updateDescriptorSet(descriptorBufferInfosCompute[Stages::Render],
+                                                      bindingInfos[Stages::Render]);
 }

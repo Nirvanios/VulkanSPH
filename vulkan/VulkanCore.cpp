@@ -807,6 +807,12 @@ void VulkanCore::initGui() {
     fragmentInfo.lightPosition = data.lightPosition;
     fragmentInfo.lightColor = data.lightColor;
   });
+  simulationUi.setOnMcSettingsChanged([this](auto data){
+                device->getDevice()->template waitIdle();
+                vulkanSphMarchingCubes->updateInfo(Settings{.simulationInfoSPH = simulationInfoSPH, .simulationInfoGridFluid = {}, .gridInfoMC = data});
+                vulkanSphMarchingCubes->recreateBuffer();
+                computeColors = true;
+              });
   simulationUi.setOnSettingsSave([this](auto settings) {
     simulationState = SimulationState::Stopped;
     updateInfos(settings);

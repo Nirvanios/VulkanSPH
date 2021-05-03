@@ -149,6 +149,7 @@ struct GridInfoMC {
   glm::vec4 gridOrigin;
   float cellSize;
   int detail;
+  float threshold;
 };
 
 struct CellInfo {

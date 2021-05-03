@@ -55,6 +55,7 @@ class SimulationUI {
       const std::function<void(Utilities::Flags<RecordingState>)> &onButtonScreenshotClickCallback);
   void setOnFluidColorPicked(const std::function<void(glm::vec4)> &onFluidColorPickedCallback);
   void setOnLightSettingsChanged(const std::function<void(FragmentInfo)> &onLightSettingsChangedCallback);
+  void setOnMcSettingsChanged(const std::function<void(GridInfoMC)> &onMcSettingsChangedCallback);
   void setOnSettingsSave(const std::function<void(Settings)> &onSettingsSave);
 
  private:
@@ -81,6 +82,7 @@ class SimulationUI {
   std::function<void(Utilities::Flags<RecordingState>)> onButtonScreenshotClick;
   std::function<void(glm::vec4)> onFluidColorPicked;
   std::function<void(FragmentInfo)> onLightSettingsChanged;
+  std::function<void(GridInfoMC)> onMCSettingsChanged;
   std::function<void(Settings)> onSettingsSave;
 
   Settings settings;
