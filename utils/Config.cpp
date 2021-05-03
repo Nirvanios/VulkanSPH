@@ -23,6 +23,8 @@ Config::Config(const std::string &configFile) : file(configFile) {
   app.cameraPos = glm::make_vec3(toml::find<std::vector<float>>(tomlApp, "cameraPos").data());
   app.yaw = toml::find<float>(tomlApp, "yaw");
   app.pitch = toml::find<float>(tomlApp, "pitch");
+  app.lightColor = glm::make_vec3(toml::find<std::vector<float>>(tomlApp, "lightColor").data());
+  app.lightPos = glm::make_vec3(toml::find<std::vector<float>>(tomlApp, "lightPos").data());
 
   app.simulationSPH.particleModel = toml::find<std::string>(tomlSimulationSPH, "particleModel");
   app.simulationSPH.particleCount = toml::find<int>(tomlSimulationSPH, "particleCount");

@@ -66,7 +66,7 @@ class VulkanGridFluidRender {
   std::vector<int> verticesCountOffset;
 
   Config config;
-  SimulationInfoGridFluid simulationInfoGridFluid;
+  const SimulationInfoGridFluid &simulationInfoGridFluid;
 
   std::shared_ptr<Device> device;
   std::shared_ptr<Swapchain> swapchain;

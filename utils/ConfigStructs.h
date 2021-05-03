@@ -50,6 +50,8 @@ struct AppConfig {
   bool DEBUG;
   bool outputToFile;
   glm::vec3 cameraPos;
+  glm::vec3 lightPos;
+  glm::vec3 lightColor;
   float yaw;
   float pitch;
   SimulationSPHConfig simulationSPH;

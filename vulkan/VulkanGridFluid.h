@@ -9,7 +9,7 @@
 #include "types/Pipeline.h"
 class VulkanGridFluid {
  public:
-  VulkanGridFluid(const Config &config, const SimulationInfoGridFluid &simulationInfo,
+  VulkanGridFluid(const Config &config, SimulationInfoGridFluid &simulationInfo,
                   std::shared_ptr<Device> inDevice, const vk::UniqueSurfaceKHR &surface,
                   std::shared_ptr<Swapchain> swapchain);
   vk::UniqueSemaphore run(const vk::UniqueSemaphore &inSemaphore);// TODO wait semaphore
@@ -49,7 +49,7 @@ class VulkanGridFluid {
   void waitFence();
 
   const Config &config;
-  SimulationInfoGridFluid simulationInfo;
+  SimulationInfoGridFluid &simulationInfo;
 
   std::shared_ptr<Device> device;
 

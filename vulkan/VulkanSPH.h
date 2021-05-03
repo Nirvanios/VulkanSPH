@@ -41,7 +41,7 @@ class VulkanSPH {
                                 .stageFlags = vk::ShaderStageFlagBits::eCompute}};
 
   Config config;
-  SimulationInfoSPH simulationInfo;
+  const SimulationInfoSPH &simulationInfo;
 
   std::shared_ptr<Device> device;
 

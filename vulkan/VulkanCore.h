@@ -50,8 +50,8 @@ class VulkanCore {
   void setFramebufferResized(bool resized);
   void initVulkan(const std::vector<Model> &modelParticle,
                   const std::vector<ParticleRecord> particles,
-                  const SimulationInfoSPH &simulationInfoSPH,
-                  const SimulationInfoGridFluid &simulationInfoGridFluid);
+                  const SimulationInfoSPH &inSimulationInfoSPH,
+                  const SimulationInfoGridFluid &inSimulationInfoGridFluid);
   void run();
 
  private:
@@ -97,11 +97,13 @@ class VulkanCore {
   const glm::vec3 &cameraPos;
   const float &yaw;
   const float &pitch;
-  SimulationInfoSPH simulationInfo{};
+  SimulationInfoSPH simulationInfoSPH;
+  SimulationInfoGridFluid simulationInfoGridFluid;
+  FragmentInfo fragmentInfo;
   VideoDiskSaver videoDiskSaver;
   std::future<void> previousFrameVideo;
   int capturedFrameCount = 0;
-  int framesToSkip{};
+  int framesToSkip = 0;
 
   ScreenshotDiskSaver screenshotDiskSaver;
   std::future<void> previousFrameScreenshot;
@@ -196,6 +198,7 @@ class VulkanCore {
   void rebuildRenderPipelines();
   int simStep = 0;
   void resetSimulation();
+  void updateInfos(const Settings &settings);
 };
 
 #endif//VULKANAPP_VULKANCORE_H

@@ -31,6 +31,8 @@ class VulkanSPHMarchingCubes {
   vk::UniqueSemaphore draw(const vk::UniqueSemaphore &inSemaphore, unsigned int imageIndex);
   void setFramebuffersSwapchain(const std::shared_ptr<Framebuffers> &framebuffer);
   void rebuildPipeline(bool clearBeforeDraw);
+  GridInfoMC &getGridInfoMC();
+  void updateInfo(const Settings &settings);
 
  private:
   enum class Stages { ComputeColors, Render };

@@ -26,10 +26,14 @@
 
 void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
                             const std::vector<ParticleRecord> particles,
-                            const SimulationInfoSPH &simulationInfoSPH,
-                            const SimulationInfoGridFluid &simulationInfoGridFluid) {
+                            const SimulationInfoSPH &inSimulationInfoSPH,
+                            const SimulationInfoGridFluid &inSimulationInfoGridFluid) {
 
-  this->simulationInfo = simulationInfoSPH;
+  this->simulationInfoSPH = inSimulationInfoSPH;
+  simulationInfoGridFluid = inSimulationInfoGridFluid;
+  fragmentInfo = FragmentInfo{.cameraPosition = glm::vec4(config.getApp().cameraPos, 0.0),
+                              .lightPosition = glm::vec4(config.getApp().lightPos, 0.0),
+                              .lightColor = glm::vec4(config.getApp().lightColor, 0.0)};
   framesToSkip = std::rint((1 / simulationInfoSPH.timeStep) / 60.0);
   spdlog::debug("Vulkan initialization...");
   instance = std::make_shared<Instance>(window.getWindowName(), config.getApp().DEBUG);
@@ -111,11 +115,10 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
   vulkanGridFluidRender->setFramebuffersSwapchain(framebuffersSwapchain);
 
   vulkanGridFluidSphCoupling = std::make_unique<VulkanGridFluidSPHCoupling>(
-      config, vulkanGridSPH->getGridInfo(),
-      SimulationInfo{simulationInfoSPH, simulationInfoGridFluid}, device, surface, swapchain,
-      bufferIndexes, vulkanSPH->getBufferParticles(), vulkanGridFluid->getBufferValuesOld(),
-      vulkanGridFluid->getBufferValuesNew(), bufferCellParticlePair,
-      vulkanGridFluid->getBufferVelocitiesNew());
+      config, vulkanGridSPH->getGridInfo(), simulationInfoSPH, simulationInfoGridFluid, device,
+      surface, swapchain, bufferIndexes, vulkanSPH->getBufferParticles(),
+      vulkanGridFluid->getBufferValuesOld(), vulkanGridFluid->getBufferValuesNew(),
+      bufferCellParticlePair, vulkanGridFluid->getBufferVelocitiesNew());
 
   vulkanSphMarchingCubes = std::make_unique<VulkanSPHMarchingCubes>(
       config, simulationInfoSPH, vulkanGridSPH->getGridInfo(), device, surface, swapchain,
@@ -126,7 +129,7 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
   auto tmpBuffer = std::vector{vulkanSPH->getBufferParticles()};
   std::array<DescriptorBufferInfo, 4> descriptorBufferInfosGraphic{
       DescriptorBufferInfo{.buffer = buffersUniformMVP, .bufferSize = sizeof(UniformBufferObject)},
-      DescriptorBufferInfo{.buffer = buffersUniformCameraPos, .bufferSize = sizeof(glm::vec3)},
+      DescriptorBufferInfo{.buffer = buffersUniformCameraPos, .bufferSize = sizeof(FragmentInfo)},
       DescriptorBufferInfo{.buffer = tmpBuffer,
                            .bufferSize = sizeof(ParticleRecord) * particles.size()},
       DescriptorBufferInfo{.buffer = bufferUniformColor, .bufferSize = sizeof(glm::vec4)},
@@ -161,6 +164,7 @@ void VulkanCore::mainLoop() {
     fpsCounter.newFrame();
     simulationUi.getFPScallback()(fpsCounter, simStep, yaw, pitch);
     if (simulationState == SimulationState::Reset) { resetSimulation(); }
+    fragmentInfo.cameraPosition = glm::vec4{cameraPos, 0.0};
   }
   device->getDevice()->waitIdle();
 }
@@ -208,7 +212,7 @@ void VulkanCore::recordCommandBuffers(uint32_t imageIndex, Utilities::Flags<Draw
   auto &commandBufferGraphics = commandBuffersGraphic[imageIndex];
   DrawInfo drawInfo{.drawType = magic_enum::enum_integer(DrawType::Particles),
                     .visualization = magic_enum::enum_integer(Visualization::None),
-                    .supportRadius = simulationInfo.supportRadius};
+                    .supportRadius = simulationInfoSPH.supportRadius};
   vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse,
                                        .pInheritanceInfo = nullptr};
 
@@ -582,7 +586,9 @@ void VulkanCore::drawFrame() {
   } catch (const vk::OutOfDateKHRError &e) { recreateSwapchain(); }
 
   currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-  if(simulationState == SimulationState::SingleStep){simulationState = SimulationState::Stopped;}
+  if (simulationState == SimulationState::SingleStep) {
+    simulationState = SimulationState::Stopped;
+  }
 }
 void VulkanCore::recreateSwapchain() {
   window.checkMinimized();
@@ -690,7 +696,7 @@ void VulkanCore::createUniformBuffers() {
     buffersUniformMVP.emplace_back(std::make_shared<Buffer>(builder.setSize(size), device,
                                                             commandPoolGraphics, queueGraphics));
     buffersUniformCameraPos.emplace_back(std::make_shared<Buffer>(
-        builder.setSize(sizeof(glm::vec3)), device, commandPoolGraphics, queueGraphics));
+        builder.setSize(sizeof(FragmentInfo)), device, commandPoolGraphics, queueGraphics));
     bufferUniformColor.emplace_back(std::make_shared<Buffer>(
         builder.setSize(sizeof(glm::vec4)), device, commandPoolGraphics, queueGraphics));
   }
@@ -705,7 +711,7 @@ void VulkanCore::updateUniformBuffers(uint32_t currentImage) {
                                0.01f, 1000.f)};
   ubo.proj[1][1] *= -1;
   buffersUniformMVP[currentImage]->fill(ubo, false);
-  buffersUniformCameraPos[currentImage]->fill(cameraPos, false);
+  buffersUniformCameraPos[currentImage]->fill(fragmentInfo, false);
   bufferUniformColor[currentImage]->fill(fluidColor, false);
 }
 void VulkanCore::createDescriptorPool() {
@@ -764,6 +770,8 @@ void VulkanCore::initGui() {
         textureSampler->getSampler().get(), imageColorTexture[currentFrame]->getImageView().get(),
         static_cast<VkImageLayout>(imageColorTexture[currentFrame]->getLayout()));
   });
+  simulationUi.fillSettings(simulationInfoSPH, simulationInfoGridFluid,
+                            vulkanSphMarchingCubes->getGridInfoMC(), fragmentInfo);
   simulationUi.init(device, instance, pipelineGraphics->getRenderPass("toSwapchain"), surface,
                     swapchain, window);
   simulationUi.setOnButtonSimulationControlClick([this](auto state) { simulationState = state; });
@@ -788,12 +796,22 @@ void VulkanCore::initGui() {
           videoDiskSaver.initStream(fmt::format("./{}", filename), 60, swapchain->getExtentWidth(),
                                     swapchain->getExtentHeight());
         } else {
+          if (previousFrameVideo.valid()) { previousFrameVideo.wait(); }
           videoDiskSaver.endStream();
         }
       });
   simulationUi.setOnButtonScreenshotClick(
       [this](auto stateFlags) { recordingStateFlags = stateFlags; });
-  simulationUi.setOnColorPicked([this](auto color) { fluidColor = color; });
+  simulationUi.setOnFluidColorPicked([this](auto color) { fluidColor = color; });
+  simulationUi.setOnLightSettingsChanged([this](auto data) {
+    fragmentInfo.lightPosition = data.lightPosition;
+    fragmentInfo.lightColor = data.lightColor;
+  });
+  simulationUi.setOnSettingsSave([this](auto settings) {
+    simulationState = SimulationState::Stopped;
+    updateInfos(settings);
+    resetSimulation();
+  });
 
   fpsCounter.setOnNewFrameCallback([] {});
 }
@@ -859,5 +877,15 @@ void VulkanCore::rebuildRenderPipelines() {
 void VulkanCore::resetSimulation() {
   vulkanSPH->resetBuffers();
   vulkanGridFluid->resetBuffers();
+  initSPH = true;
+  computeColors = true;
   simStep = 0;
+}
+void VulkanCore::updateInfos(const Settings &settings) {
+  simulationInfoSPH = settings.simulationInfoSPH;
+  simulationInfoGridFluid = settings.simulationInfoGridFluid;
+  framesToSkip = std::rint((1 / simulationInfoSPH.timeStep) / 60.0);
+  vulkanGridSPH->updateInfo(settings);
+  vulkanSphMarchingCubes->updateInfo(settings);
+  vulkanGridFluidSphCoupling->updateInfos(settings);
 }

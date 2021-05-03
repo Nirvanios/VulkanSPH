@@ -14,11 +14,12 @@ class VulkanGridSPH {
 
  public:
   VulkanGridSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device> device, Config config,
-                std::shared_ptr<Swapchain> swapchain, SimulationInfoSPH simulationInfo, std::shared_ptr<Buffer> bufferParticles,
+                std::shared_ptr<Swapchain> swapchain, const SimulationInfoSPH &simulationInfo, std::shared_ptr<Buffer> bufferParticles,
                 std::shared_ptr<Buffer> bufferCellParticlesPair,
                 std::shared_ptr<Buffer> bufferIndexes);
   vk::UniqueSemaphore run(const vk::UniqueSemaphore &waitSemaphore);
   const GridInfo &getGridInfo() const;
+  void updateInfo(const Settings &settings);
 
  private:
   std::array<PipelineLayoutBindingInfo, 2> bindingInfosCompute{
@@ -32,7 +33,7 @@ class VulkanGridSPH {
                                 .stageFlags = vk::ShaderStageFlagBits::eCompute}};
 
   Config config;
-  SimulationInfoSPH simulationInfo;
+  const SimulationInfoSPH &simulationInfo;
   GridInfo gridInfo;
 
   std::unique_ptr<VulkanSort> vulkanSort;

@@ -231,7 +231,7 @@ void VulkanGridFluidRender::recordRenderpass(unsigned int imageIndex,
       vk::PipelineBindPoint::eGraphics, pipeline->getPipelineLayout().get(), 0, 1,
       &descriptorSet->getDescriptorSets()[imageIndex].get(), 0, nullptr);
 
-  commandBuffer->drawIndexed(indicesSizes[0], glm::compMul(config.getApp().simulationSPH.gridSize),
+  commandBuffer->drawIndexed(indicesSizes[0], glm::compMul(simulationInfoGridFluid.gridSize.xyz()),
                              0, 0, 0);
   commandBuffer->endRenderPass();
 }

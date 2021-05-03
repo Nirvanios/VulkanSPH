@@ -394,3 +394,11 @@ void VulkanSPHMarchingCubes::rebuildPipeline(bool clearBeforeDraw) {
   descriptorSets[Stages::Render]->updateDescriptorSet(descriptorBufferInfosCompute[Stages::Render],
                                                       bindingInfos[Stages::Render]);
 }
+GridInfoMC &VulkanSPHMarchingCubes::getGridInfoMC() {
+
+  return marchingCubesInfo.gridInfoMC;
+}
+void VulkanSPHMarchingCubes::updateInfo(const Settings &settings) {
+  marchingCubesInfo.simulationInfoSph = settings.simulationInfoSPH;
+  marchingCubesInfo.gridInfoMC = settings.gridInfoMC;
+}

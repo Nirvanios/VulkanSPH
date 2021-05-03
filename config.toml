@@ -1,9 +1,11 @@
 [App]
 DEBUG = true
 outputToFile = true
-pitch = -36.799854278564453
-yaw = -441.70425415039062
+pitch = -38.600177764892578
+yaw = 283.9970703125
 cameraPos = [-0.27033710479736328,2.6638836860656738,3.1748919486999512]
+lightPos = [0.0,5.0,0.0]
+lightColor = [1.0,1.0,1.0]
 MarchingCubes = {detail=2}
 [App.simulationSPH]
 useNNS = true

@@ -14,42 +14,42 @@ class VulkanSort {
  public:
   VulkanSort(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device> device,
              const Config &config, std::shared_ptr<Swapchain> swapchain,
-             std::shared_ptr<Buffer> bufferToSort, std::shared_ptr<Buffer> bufferIndexes);
+             std::shared_ptr<Buffer> bufferToSort, std::shared_ptr<Buffer> bufferIndexes,
+             const SimulationInfoSPH &inSimulationInfoSph);
   vk::UniqueSemaphore run(const vk::UniqueSemaphore &semaphoreWait);
-
 
  private:
   std::array<PipelineLayoutBindingInfo, 6> bindingInfosCompute{
       PipelineLayoutBindingInfo{.binding = 0,
-          .descriptorType = vk::DescriptorType::eUniformBuffer,
-          .descriptorCount = 1,
-          .stageFlags = vk::ShaderStageFlagBits::eCompute},
+                                .descriptorType = vk::DescriptorType::eUniformBuffer,
+                                .descriptorCount = 1,
+                                .stageFlags = vk::ShaderStageFlagBits::eCompute},
       PipelineLayoutBindingInfo{.binding = 1,
-          .descriptorType = vk::DescriptorType::eStorageBuffer,
-          .descriptorCount = 1,
-          .stageFlags = vk::ShaderStageFlagBits::eCompute},
+                                .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                .descriptorCount = 1,
+                                .stageFlags = vk::ShaderStageFlagBits::eCompute},
       PipelineLayoutBindingInfo{.binding = 2,
-          .descriptorType = vk::DescriptorType::eStorageBuffer,
-          .descriptorCount = 1,
-          .stageFlags = vk::ShaderStageFlagBits::eCompute},
+                                .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                .descriptorCount = 1,
+                                .stageFlags = vk::ShaderStageFlagBits::eCompute},
       PipelineLayoutBindingInfo{.binding = 3,
-          .descriptorType = vk::DescriptorType::eStorageBuffer,
-          .descriptorCount = 1,
-          .stageFlags = vk::ShaderStageFlagBits::eCompute},
+                                .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                .descriptorCount = 1,
+                                .stageFlags = vk::ShaderStageFlagBits::eCompute},
       PipelineLayoutBindingInfo{.binding = 4,
-          .descriptorType = vk::DescriptorType::eStorageBuffer,
-          .descriptorCount = 1,
-          .stageFlags = vk::ShaderStageFlagBits::eCompute},
+                                .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                .descriptorCount = 1,
+                                .stageFlags = vk::ShaderStageFlagBits::eCompute},
       PipelineLayoutBindingInfo{.binding = 5,
-          .descriptorType = vk::DescriptorType::eStorageBuffer,
-          .descriptorCount = 1,
-          .stageFlags = vk::ShaderStageFlagBits::eCompute}
-  };
+                                .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                .descriptorCount = 1,
+                                .stageFlags = vk::ShaderStageFlagBits::eCompute}};
 
   const std::array<vk::PipelineStageFlags, 1> waitStagesCompute{
       vk::PipelineStageFlagBits::eComputeShader};
 
   Config config;
+  const SimulationInfoSPH &simulationInfoSph;
 
   std::shared_ptr<Device> device;
 
@@ -73,8 +73,7 @@ class VulkanSort {
   std::shared_ptr<Buffer> bufferIndexes;
   std::shared_ptr<Buffer> bufferSums;
 
-  void recordCommandBuffersCompute(const std::shared_ptr<Pipeline> &pipeline,
-                                   int dispatchCount);
+  void recordCommandBuffersCompute(const std::shared_ptr<Pipeline> &pipeline, int dispatchCount);
 };
 
 #endif//VULKANAPP_VULKANSORT_H

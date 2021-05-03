@@ -130,8 +130,8 @@ vk::UniqueSemaphore VulkanSPH::run(const vk::UniqueSemaphore &semaphoreWait, SPH
       this->device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
       this->device->getDevice()->resetFences(fence.get());
       break;
-  }
 
+  }
 
   return vk::UniqueSemaphore(semaphoreOut, device->getDevice().get());
 }
@@ -151,7 +151,7 @@ void VulkanSPH::recordCommandBuffer(const std::shared_ptr<Pipeline> &pipeline) {
                                       vk::ShaderStageFlagBits::eCompute, 0, sizeof(SimulationInfoSPH),
                                       &simulationInfo);
   commandBufferCompute->dispatch(
-      static_cast<int>(std::ceil(config.getApp().simulationSPH.particleCount / 32.0)), 1, 1);
+      static_cast<int>(std::ceil(simulationInfo.particleCount / 32.0)), 1, 1);
   commandBufferCompute->end();
 }
 const std::shared_ptr<Buffer> &VulkanSPH::getBufferParticles() const { return bufferParticles; }

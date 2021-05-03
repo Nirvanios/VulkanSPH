@@ -15,7 +15,8 @@
 class VulkanGridFluidSPHCoupling {
  public:
   VulkanGridFluidSPHCoupling(
-      const Config &config, const GridInfo &inGridInfo, const SimulationInfo &inSimulationInfo,
+      const Config &config, const GridInfo &inGridInfo, const SimulationInfoSPH &inSimulationInfoSPH,
+      const SimulationInfoGridFluid &inSimulationInfoGridFluid,
       std::shared_ptr<Device> inDevice, const vk::UniqueSurfaceKHR &surface,
       std::shared_ptr<Swapchain> swapchain, std::shared_ptr<Buffer> inBufferIndexes,
       std::shared_ptr<Buffer> inBufferParticles, std::shared_ptr<Buffer> inBufferGridValuesOld,
@@ -24,6 +25,7 @@ class VulkanGridFluidSPHCoupling {
   vk::UniqueSemaphore run(const vk::Semaphore &semaphoreWait, CouplingStep couplingStep);
   vk::UniqueSemaphore run(const std::vector<vk::Semaphore> &semaphoreWait, CouplingStep couplingStep);
   [[nodiscard]] const vk::UniqueFence &getFenceAfterCompute() const;
+  void updateInfos(const Settings &settings);
 
  private:
   enum class Stages {
@@ -46,7 +48,9 @@ class VulkanGridFluidSPHCoupling {
   void waitFence();
 
   const Config &config;
-  GridInfo gridInfo;
+  const GridInfo &gridInfo;
+  const SimulationInfoSPH &simulationInfoSph;
+  const SimulationInfoGridFluid &simulationInfoGridFluid;
   SimulationInfo simulationInfo;
 
   std::shared_ptr<Device> device;

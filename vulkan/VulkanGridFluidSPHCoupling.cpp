@@ -7,15 +7,16 @@
 
 #include <glm/gtx/component_wise.hpp>
 VulkanGridFluidSPHCoupling::VulkanGridFluidSPHCoupling(
-    const Config &config, const GridInfo &inGridInfo, const SimulationInfo &inSimulationInfo,
-    std::shared_ptr<Device> inDevice, const vk::UniqueSurfaceKHR &surface,
-    std::shared_ptr<Swapchain> swapchain, std::shared_ptr<Buffer> inBufferIndexes,
-    std::shared_ptr<Buffer> inBufferParticles, std::shared_ptr<Buffer> inBufferGridValuesOld,
-    std::shared_ptr<Buffer> inBufferGridValuesNew, std::shared_ptr<Buffer> inBufferGridSPH,
-    std::shared_ptr<Buffer> inBufferVelocities)
-    : config(config), gridInfo(inGridInfo), simulationInfo(inSimulationInfo),
-      device(std::move(inDevice)), bufferIndexes(std::move(inBufferIndexes)),
-      bufferParticles(std::move(inBufferParticles)),
+    const Config &config, const GridInfo &inGridInfo, const SimulationInfoSPH &inSimulationInfoSPH,
+    const SimulationInfoGridFluid &inSimulationInfoGridFluid, std::shared_ptr<Device> inDevice,
+    const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Swapchain> swapchain,
+    std::shared_ptr<Buffer> inBufferIndexes, std::shared_ptr<Buffer> inBufferParticles,
+    std::shared_ptr<Buffer> inBufferGridValuesOld, std::shared_ptr<Buffer> inBufferGridValuesNew,
+    std::shared_ptr<Buffer> inBufferGridSPH, std::shared_ptr<Buffer> inBufferVelocities)
+    : config(config), gridInfo(inGridInfo), simulationInfoSph(inSimulationInfoSPH),
+      simulationInfoGridFluid(inSimulationInfoGridFluid),
+      simulationInfo({simulationInfoSph, simulationInfoGridFluid}), device(std::move(inDevice)),
+      bufferIndexes(std::move(inBufferIndexes)), bufferParticles(std::move(inBufferParticles)),
       bufferGridValuesOld(std::move(inBufferGridValuesOld)),
       bufferGridValuesNew(std::move(inBufferGridValuesNew)),
       bufferGridVelocities(std::move(inBufferVelocities)),
@@ -94,8 +95,8 @@ VulkanGridFluidSPHCoupling::VulkanGridFluidSPHCoupling(
                   [&] { return device->getDevice()->createSemaphoreUnique({}); });
 }
 
-vk::UniqueSemaphore
-VulkanGridFluidSPHCoupling::run(const std::vector<vk::Semaphore> &semaphoreWait, CouplingStep couplingStep) {
+vk::UniqueSemaphore VulkanGridFluidSPHCoupling::run(const std::vector<vk::Semaphore> &semaphoreWait,
+                                                    CouplingStep couplingStep) {
 
   currentSemaphore = 0;
 
@@ -137,7 +138,8 @@ VulkanGridFluidSPHCoupling::run(const std::vector<vk::Semaphore> &semaphoreWait,
   return vk::UniqueSemaphore(outSemaphore, device->getDevice().get());
 }
 
-vk::UniqueSemaphore VulkanGridFluidSPHCoupling::run(const vk::Semaphore &semaphoreWait, CouplingStep couplingStep) {
+vk::UniqueSemaphore VulkanGridFluidSPHCoupling::run(const vk::Semaphore &semaphoreWait,
+                                                    CouplingStep couplingStep) {
   return run(std::vector<vk::Semaphore>{semaphoreWait}, couplingStep);
 }
 
@@ -299,4 +301,9 @@ void VulkanGridFluidSPHCoupling::swapBuffers(std::shared_ptr<Buffer> &buffer1,
   waitFence();
   buffer1.swap(buffer2);
   updateDescriptorSets();
+}
+void VulkanGridFluidSPHCoupling::updateInfos(const Settings &settings) {
+  simulationInfo.simulationInfoSPH = settings.simulationInfoSPH;
+  simulationInfo.simulationInfoGridFluid = settings.simulationInfoGridFluid;
+  bufferUniformSimulationInfo->fill(simulationInfo);
 }

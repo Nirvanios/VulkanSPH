@@ -144,7 +144,7 @@ void VulkanGridFluid::project() {
 }
 
 void VulkanGridFluid::recordCommandBuffer(Stages pipelineStage) {
-  auto gridSize = config.getApp().simulationSPH.gridSize;
+  auto gridSize = simulationInfo.gridSize;
   auto gridSizeBorder = gridSize + 2;
   const auto &pipeline = pipelines[pipelineStage];
   vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse,
@@ -193,7 +193,7 @@ void VulkanGridFluid::submit(Stages pipelineStage, const vk::Fence submitFence,
   currentSemaphore++;
 }
 VulkanGridFluid::VulkanGridFluid(const Config &config,
-                                 const SimulationInfoGridFluid &simulationInfo,
+                                 SimulationInfoGridFluid &simulationInfo,
                                  std::shared_ptr<Device> inDevice,
                                  const vk::UniqueSurfaceKHR &surface,
                                  std::shared_ptr<Swapchain> swapchain)
@@ -280,7 +280,7 @@ VulkanGridFluid::VulkanGridFluid(const Config &config,
 void VulkanGridFluid::createBuffers() {
   auto cellCountBorder = glm::compMul(simulationInfo.gridSize.xyz() + glm::ivec3(2));
   auto initialDensity = std::vector<glm::vec2>(cellCountBorder, glm::vec2(0.0, 50.0));
-  auto sources = std::vector<glm::vec2>(simulationInfo.cellCount, glm::vec2(20));
+  auto sources = std::vector<glm::vec2>(simulationInfo.cellCount, glm::vec2(0));
   [[maybe_unused]] auto positionSources =
       ((simulationInfo.gridSize.z / 2) * simulationInfo.gridSize.x * simulationInfo.gridSize.y)
       + (simulationInfo.gridSize.x / 2) + (simulationInfo.gridSize.x * (20));
@@ -320,7 +320,7 @@ void VulkanGridFluid::createBuffers() {
   bufferValuesSources->fill(sources);
 
   auto initialVelocities = std::vector<glm::vec4>(cellCountBorder, glm::vec4(0, 0, 0, 0));
-  //initialVelocities[positionDensity - (simulationInfo.gridSize.x + 2)].y = -0.010;
+  //initialVelocities[positionDensity - (simulationInfoSPH.gridSize.x + 2)].y = -0.010;
   bufferVelocitiesNew = std::make_shared<Buffer>(
       bufferBuilder.setSize(sizeof(glm::vec4) * cellCountBorder), this->device, commandPool, queue);
   bufferVelocitiesNew->fill(glm::vec4(0));

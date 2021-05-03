@@ -162,6 +162,11 @@ struct DrawInfo {
   float supportRadius;
 };
 
+struct FragmentInfo{
+  glm::vec4 cameraPosition;
+  glm::vec4 lightPosition;
+  glm::vec4 lightColor;
+};
 
 struct SimulationInfo {
   SimulationInfoSPH simulationInfoSPH;
@@ -170,6 +175,12 @@ struct SimulationInfo {
 
 struct MarchingCubesInfo{
   SimulationInfoSPH simulationInfoSph;
+  GridInfoMC gridInfoMC;
+};
+
+struct Settings{
+  SimulationInfoSPH simulationInfoSPH;
+  SimulationInfoGridFluid simulationInfoGridFluid;
   GridInfoMC gridInfoMC;
 };
 
