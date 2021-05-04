@@ -26,7 +26,10 @@ class SimulationUI {
   void init(const std::shared_ptr<Device> &device, const std::shared_ptr<Instance> &instance,
             const vk::RenderPass &renderPass, const vk::UniqueSurfaceKHR &surface,
             const std::shared_ptr<Swapchain> &swapchain, const GlfwWindow &window);
-  void fillSettings(const SimulationInfoSPH &simulationInfoSph, const SimulationInfoGridFluid &simulationInfoGridFluid, const GridInfoMC &gridInfoMc, const FragmentInfo &inFragmentInfo);
+  void fillSettings(const SimulationInfoSPH &simulationInfoSph,
+                    const SimulationInfoGridFluid &simulationInfoGridFluid,
+                    const GridInfoMC &gridInfoMc, const FragmentInfo &inFragmentInfo,
+                    float initialTempSPH, float coefficientA, float coefficientB);
   void render();
   void addToCommandBuffer(const vk::UniqueCommandBuffer &commandBuffer);
   void onFrameSave(int framesSaved, float recordedSeconds);
@@ -54,9 +57,12 @@ class SimulationUI {
   void setOnButtonScreenshotClick(
       const std::function<void(Utilities::Flags<RecordingState>)> &onButtonScreenshotClickCallback);
   void setOnFluidColorPicked(const std::function<void(glm::vec4)> &onFluidColorPickedCallback);
-  void setOnLightSettingsChanged(const std::function<void(FragmentInfo)> &onLightSettingsChangedCallback);
+  void setOnLightSettingsChanged(
+      const std::function<void(FragmentInfo)> &onLightSettingsChangedCallback);
   void setOnMcSettingsChanged(const std::function<void(GridInfoMC)> &onMcSettingsChangedCallback);
   void setOnSettingsSave(const std::function<void(Settings)> &onSettingsSave);
+  void setOnButtonSaveState(const std::function<void()> &onButtonSaveStateCallback);
+  void setOnButtonLoadState(const std::function<void()> &onButtonLoadStateCallback);
 
  private:
   std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> imgui;
@@ -84,6 +90,8 @@ class SimulationUI {
   std::function<void(FragmentInfo)> onLightSettingsChanged;
   std::function<void(GridInfoMC)> onMCSettingsChanged;
   std::function<void(Settings)> onSettingsSave;
+  std::function<void()> onButtonSaveState;
+  std::function<void()> onButtonLoadState;
 
   Settings settings;
   FragmentInfo fragmentInfo;
@@ -98,7 +106,7 @@ class SimulationUI {
   void initSimulationControlGroup(pf::ui::ig::Window &parent);
   void initRecordingGroup(pf::ui::ig::Window &parent);
   void initVisualizationGroup(pf::ui::ig::Window &parent,
-                             const std::shared_ptr<Swapchain> &swapchain);
+                              const std::shared_ptr<Swapchain> &swapchain);
   void initSettingsGroup(pf::ui::ig::Window &parent);
   void initSettingsSimulationSubtree(pf::ui::ig::Group &parent);
   void initSettingsVisualSubtree(pf::ui::ig::Group &parent);
@@ -106,7 +114,6 @@ class SimulationUI {
   void initSettingsSimulationGridSubtree(pf::ui::ig::Tree &parent);
   void initSettingsSimulationEvaporationSubtree(pf::ui::ig::Tree &parent);
   void initSettingsSimulationOtherSubtree(pf::ui::ig::Tree &parent);
-
 };
 
 #endif//VULKANAPP_SIMULATIONUI_H

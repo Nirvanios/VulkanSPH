@@ -1,3 +1,4 @@
+#include <argparse.hpp>
 #include <cstdlib>
 #include <stdexcept>
 
@@ -6,13 +7,26 @@
 #include "Renderers/TestRenderer.h"
 #include "utils/Config.h"
 
-
 void setupLogger(bool debug = false) {
   if (debug) spdlog::set_level(spdlog::level::debug);
 }
 
-int main() {
-  Config config("../config.toml");
+int main(int argc, char **argv) {
+  argparse::ArgumentParser program("Fluid simulation");
+  program.add_argument("-c", "--config")
+      .help("Path to file with simulation configuration.")
+      .default_value(std::filesystem::path("../config.toml"))
+      .action([](const auto &value) { return std::filesystem::path(value); });
+
+  try {
+    program.parse_args(argc, argv);
+  } catch (const std::runtime_error &err) {
+    std::cout << err.what() << std::endl;
+    std::cout << program;
+    return EXIT_FAILURE;
+  }
+
+  Config config(program.get<std::filesystem::path>("-c"));
   setupLogger(config.getApp().DEBUG);
 
   TestRenderer testRenderer{config};

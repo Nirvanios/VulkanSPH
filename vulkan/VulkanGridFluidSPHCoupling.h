@@ -15,15 +15,16 @@
 class VulkanGridFluidSPHCoupling {
  public:
   VulkanGridFluidSPHCoupling(
-      const Config &config, const GridInfo &inGridInfo, const SimulationInfoSPH &inSimulationInfoSPH,
-      const SimulationInfoGridFluid &inSimulationInfoGridFluid,
-      std::shared_ptr<Device> inDevice, const vk::UniqueSurfaceKHR &surface,
-      std::shared_ptr<Swapchain> swapchain, std::shared_ptr<Buffer> inBufferIndexes,
-      std::shared_ptr<Buffer> inBufferParticles, std::shared_ptr<Buffer> inBufferGridValuesOld,
-      std::shared_ptr<Buffer> inBufferGridValuesNew, std::shared_ptr<Buffer> inBufferGridSPH,
-      std::shared_ptr<Buffer> inBufferGridVelocities);
+      const Config &config, const GridInfo &inGridInfo,
+      const SimulationInfoSPH &inSimulationInfoSPH,
+      const SimulationInfoGridFluid &inSimulationInfoGridFluid, std::shared_ptr<Device> inDevice,
+      const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Swapchain> swapchain,
+      std::shared_ptr<Buffer> inBufferIndexes, std::shared_ptr<Buffer> inBufferParticles,
+      std::shared_ptr<Buffer> inBufferGridValuesOld, std::shared_ptr<Buffer> inBufferGridValuesNew,
+      std::shared_ptr<Buffer> inBufferGridSPH, std::shared_ptr<Buffer> inBufferGridVelocities);
   vk::UniqueSemaphore run(const vk::Semaphore &semaphoreWait, CouplingStep couplingStep);
-  vk::UniqueSemaphore run(const std::vector<vk::Semaphore> &semaphoreWait, CouplingStep couplingStep);
+  vk::UniqueSemaphore run(const std::vector<vk::Semaphore> &semaphoreWait,
+                          CouplingStep couplingStep);
   [[nodiscard]] const vk::UniqueFence &getFenceAfterCompute() const;
   void updateInfos(const Settings &settings);
 
@@ -85,6 +86,14 @@ class VulkanGridFluidSPHCoupling {
   std::map<Stages, std::vector<PipelineLayoutBindingInfo>> bindingInfosCompute{
       {Stages::Tag,
        {PipelineLayoutBindingInfo{.binding = 0,
+                                  .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                  .descriptorCount = 1,
+                                  .stageFlags = vk::ShaderStageFlagBits::eCompute},
+        PipelineLayoutBindingInfo{.binding = 1,
+                                  .descriptorType = vk::DescriptorType::eStorageBuffer,
+                                  .descriptorCount = 1,
+                                  .stageFlags = vk::ShaderStageFlagBits::eCompute},
+        PipelineLayoutBindingInfo{.binding = 2,
                                   .descriptorType = vk::DescriptorType::eStorageBuffer,
                                   .descriptorCount = 1,
                                   .stageFlags = vk::ShaderStageFlagBits::eCompute}}},

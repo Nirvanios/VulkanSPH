@@ -98,6 +98,8 @@ class VulkanCore {
   const float &yaw;
   const float &pitch;
   SimulationInfoSPH simulationInfoSPH;
+  float temperatureSPH;
+  float volume;
   SimulationInfoGridFluid simulationInfoGridFluid;
   FragmentInfo fragmentInfo;
   VideoDiskSaver videoDiskSaver;
@@ -197,7 +199,7 @@ class VulkanCore {
 
   void rebuildRenderPipelines();
   int simStep = 0;
-  void resetSimulation();
+  void resetSimulation(std::optional<Settings> settings = std::nullopt);
   void updateInfos(const Settings &settings);
 };
 

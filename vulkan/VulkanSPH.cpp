@@ -133,6 +133,8 @@ vk::UniqueSemaphore VulkanSPH::run(const vk::UniqueSemaphore &semaphoreWait, SPH
 
   }
 
+  //auto p = bufferParticles->read<ParticleRecord>();
+
   return vk::UniqueSemaphore(semaphoreOut, device->getDevice().get());
 }
 
@@ -167,4 +169,10 @@ void VulkanSPH::createBuffers() {
       this->device, commandPool, queue);
   bufferParticles->fill(particles);
 }
-void VulkanSPH::resetBuffers() { bufferParticles->fill(particles); }
+void VulkanSPH::resetBuffers(std::optional<float> newTemp) {
+  if(newTemp.has_value()) {
+    std::ranges::for_each(particles.begin(), particles.end(),
+                          [&newTemp](auto &item) { item.temperature = newTemp.value(); });
+  }
+  bufferParticles->fill(particles);
+}

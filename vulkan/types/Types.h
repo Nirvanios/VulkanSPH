@@ -135,6 +135,10 @@ struct alignas(16) SimulationInfoGridFluid {
   float heatConductivity;
   float heatCapacity;
   float specificGasConstant;
+  float ambientTemperature;
+  float buoyancyAlpha;
+  float buoyancyBeta;
+
 };
 
 struct GridInfo {
@@ -172,6 +176,8 @@ struct FragmentInfo{
 struct SimulationInfo {
   SimulationInfoSPH simulationInfoSPH;
   SimulationInfoGridFluid simulationInfoGridFluid;
+  float coeafficientA;
+  float coeafficientB;
 };
 
 struct MarchingCubesInfo{
@@ -183,6 +189,9 @@ struct Settings{
   SimulationInfoSPH simulationInfoSPH;
   SimulationInfoGridFluid simulationInfoGridFluid;
   GridInfoMC gridInfoMC;
+  float initialSPHTemperature;
+  float coefficientA;
+  float coefficientB;
 };
 
 enum class BufferType { floatType = 0, vec4Type = 1 };

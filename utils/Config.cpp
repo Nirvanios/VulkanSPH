@@ -13,7 +13,10 @@ Config::Config(const std::string &configFile) : file(configFile) {
   const auto data = toml::parse(file);
   const auto &tomlApp = toml::find(data, "App");
   const auto &tomlSimulationSPH = toml::find(tomlApp, "simulationSPH");
+  const auto &tomlSimulationSPHDatafiles = toml::find(tomlSimulationSPH, "datafiles");
   const auto &tomlSimulationGridFluid = toml::find(tomlApp, "simulationGridFluid");
+  const auto &tomlSimulationGridFluidDatafiles = toml::find(tomlSimulationGridFluid, "datafiles");
+  const auto &tomlEvaporation = toml::find(tomlApp, "Evaporation");
   const auto &tomlMarchingCubes = toml::find(tomlApp, "MarchingCubes");
   const auto &tomlVulkan = toml::find(data, "Vulkan");
   const auto &tomlWindow = toml::find(tomlVulkan, "window");
@@ -39,14 +42,31 @@ Config::Config(const std::string &configFile) : file(configFile) {
   app.simulationSPH.gasStiffness = toml::find<float>(tomlSimulationSPH, "gasStiffness");
   app.simulationSPH.heatCapacity = toml::find<float>(tomlSimulationSPH, "heatCapacity");
   app.simulationSPH.heatConductivity = toml::find<float>(tomlSimulationSPH, "heatConductivity");
+  app.simulationSPH.temperature = toml::find<float>(tomlSimulationSPH, "temperature");
   app.simulationSPH.viscosityCoefficient =
       toml::find<float>(tomlSimulationSPH, "viscosityCoefficient");
   app.simulationSPH.timeStep = toml::find<float>(tomlSimulationSPH, "timeStep");
   app.simulationSPH.useNNS = toml::find<bool>(tomlSimulationSPH, "useNNS");
 
+  app.simulationSPH.dataFiles.particles = toml::find_or<std::string>(tomlSimulationSPHDatafiles, "particles", "");
+
   app.simulationGridFluid.cellModel = toml::find<std::string>(tomlSimulationGridFluid, "cellModel");
   app.simulationGridFluid.ambientTemperature =
       toml::find<float>(tomlSimulationGridFluid, "ambientTemperature");
+  app.simulationGridFluid.buoyancyAlpha = toml::find<float>(tomlSimulationGridFluid, "buoyancyAlpha");
+  app.simulationGridFluid.buoyancyBeta = toml::find<float>(tomlSimulationGridFluid, "buoyancyBeta");
+  app.simulationGridFluid.diffusionCoefficient = toml::find<float>(tomlSimulationGridFluid, "diffusionCoefficient");
+  app.simulationGridFluid.heatConductivity = toml::find<float>(tomlSimulationGridFluid, "heatConductivity");
+  app.simulationGridFluid.heatCapacity = toml::find<float>(tomlSimulationGridFluid, "heatCapacity");
+  app.simulationGridFluid.specificGasConstant = toml::find<float>(tomlSimulationGridFluid, "specificGasConstant");
+
+  app.simulationGridFluid.datafiles.velocities = toml::find_or<std::string>(tomlSimulationGridFluidDatafiles, "velocity", "");
+  app.simulationGridFluid.datafiles.velocitySources = toml::find_or<std::string>(tomlSimulationGridFluidDatafiles, "velocitySrc", "");
+  app.simulationGridFluid.datafiles.values = toml::find_or<std::string>(tomlSimulationGridFluidDatafiles, "values", "");
+  app.simulationGridFluid.datafiles.valuesSources = toml::find_or<std::string>(tomlSimulationGridFluidDatafiles, "valuesSrc", "");
+
+  app.evaportaion.coefficientA = toml::find<float>(tomlEvaporation, "coefficientA");
+  app.evaportaion.coefficientB = toml::find<float>(tomlEvaporation, "coefficientB");
 
   app.marchingCubes.detail = toml::find<int>(tomlMarchingCubes, "detail");
   app.marchingCubes.threshold = toml::find<float>(tomlMarchingCubes, "threshold");

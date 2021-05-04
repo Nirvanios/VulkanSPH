@@ -15,8 +15,11 @@ VulkanGridFluidSPHCoupling::VulkanGridFluidSPHCoupling(
     std::shared_ptr<Buffer> inBufferGridSPH, std::shared_ptr<Buffer> inBufferVelocities)
     : config(config), gridInfo(inGridInfo), simulationInfoSph(inSimulationInfoSPH),
       simulationInfoGridFluid(inSimulationInfoGridFluid),
-      simulationInfo({simulationInfoSph, simulationInfoGridFluid}), device(std::move(inDevice)),
-      bufferIndexes(std::move(inBufferIndexes)), bufferParticles(std::move(inBufferParticles)),
+      simulationInfo({simulationInfoSph, simulationInfoGridFluid,
+                      config.getApp().evaportaion.coefficientA,
+                      config.getApp().evaportaion.coefficientB}),
+      device(std::move(inDevice)), bufferIndexes(std::move(inBufferIndexes)),
+      bufferParticles(std::move(inBufferParticles)),
       bufferGridValuesOld(std::move(inBufferGridValuesOld)),
       bufferGridValuesNew(std::move(inBufferGridValuesNew)),
       bufferGridVelocities(std::move(inBufferVelocities)),
@@ -125,15 +128,16 @@ vk::UniqueSemaphore VulkanGridFluidSPHCoupling::run(const std::vector<vk::Semaph
       submit(Stages::WeightDistribution, fence.get(), std::nullopt, outSemaphore);
       waitFence();
 
-      //[[maybe_unused]] auto ind = bufferIndexes->read<CellInfo>();
-      //[[maybe_unused]] auto tempsCells = bufferGridValuesNew->read<glm::vec2>();
-      //[[maybe_unused]] auto tempsCellsOld = bufferGridValuesOld->read<glm::vec2>();
-      [[maybe_unused]] auto particles = bufferParticles->read<ParticleRecord>();
-      //[[maybe_unused]] auto tempsParticle = bufferParticleTempsNew->read<float>();
-      //[[maybe_unused]] auto hasPair = bufferHasPair->read<KeyValue>();
-
       break;
   }
+
+//  [[maybe_unused]] auto ind = bufferIndexes->read<CellInfo>();
+//  [[maybe_unused]] auto gr = bufferGridSPH->read<KeyValue>();
+  //[[maybe_unused]] auto tempsCells = bufferGridValuesNew->read<glm::vec2>();
+  //[[maybe_unused]] auto tempsCellsOld = bufferGridValuesOld->read<glm::vec2>();
+  //[[maybe_unused]] auto particles = bufferParticles->read<ParticleRecord>();
+  //[[maybe_unused]] auto tempsParticle = bufferParticleTempsNew->read<float>();
+  //[[maybe_unused]] auto hasPair = bufferHasPair->read<KeyValue>();
 
   return vk::UniqueSemaphore(outSemaphore, device->getDevice().get());
 }
@@ -241,7 +245,7 @@ void VulkanGridFluidSPHCoupling::fillDescriptorBufferInfo() {
       DescriptorBufferInfo{.buffer = std::span<std::shared_ptr<Buffer>>{&bufferHasPair, 1},
                            .bufferSize = bufferHasPair->getSize()};
 
-  descriptorBufferInfosCompute[Stages::Tag] = {descriptorBufferIndexes};
+  descriptorBufferInfosCompute[Stages::Tag] = {descriptorBufferIndexes, descriptorBufferParticles, descriptorBufferGridSPH};
   descriptorBufferInfosCompute[Stages::TransferHeatToParticles] = {
       descriptorBufferIndexes,
       descriptorBufferParticles,
@@ -305,5 +309,7 @@ void VulkanGridFluidSPHCoupling::swapBuffers(std::shared_ptr<Buffer> &buffer1,
 void VulkanGridFluidSPHCoupling::updateInfos(const Settings &settings) {
   simulationInfo.simulationInfoSPH = settings.simulationInfoSPH;
   simulationInfo.simulationInfoGridFluid = settings.simulationInfoGridFluid;
+  simulationInfo.coeafficientA = settings.coefficientA;
+  simulationInfo.coeafficientB = settings.coefficientB;
   bufferUniformSimulationInfo->fill(simulationInfo);
 }

@@ -21,6 +21,9 @@ layout(push_constant) uniform GridSimulationInfoUniform {
   float heatConductivity;
   float heatCapacity;
   float specificGasConstant;
+    float ambientTemperature;
+  float buoyancyAlpha;
+  float buoyancyBeta;
 }
 simulationInfo;
 

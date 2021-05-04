@@ -29,7 +29,30 @@ layout(push_constant) uniform GridInfo {
   uint particleCount;
 };
 
+struct ParticleRecord {
+  vec4 position;
+  vec4 velocity;
+  vec4 previousVelocity;
+  vec4 massDensityCenter;
+  vec4 force;
+  float massDensity;
+  float pressure;
+  float temperature;
+  int gridID;
+  float pressureForceLength;
+  float surfaceArea;
+  float weightingKernelFraction;
+  float weight;
+};
+
+struct KeyValue {
+  int key;  //Particle ID
+  int value;//Cell ID
+};
+
 layout(std430, binding = 0) buffer Indexes { CellInfo cellInfos[]; };
+layout(std430, binding = 2) buffer GridSPH { KeyValue gridSPH[]; };
+layout(std430, binding = 1) buffer PositionBuffer { ParticleRecord particleRecords[]; };
 
 layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 
@@ -46,38 +69,74 @@ int neighbours[] = {-VEC_TO_INDEX(vec3(1, 0, 0)), VEC_TO_INDEX(vec3(1, 0, 0)),
                     -VEC_TO_INDEX(vec3(0, 0, 1)), VEC_TO_INDEX(vec3(0, 0, 1))};
 ivec3 neighbours3D[] = {-(ivec3(1, 0, 0)), (ivec3(1, 0, 0)),  -(ivec3(0, 1, 0)),
                         (ivec3(0, 1, 0)),  -(ivec3(0, 0, 1)), (ivec3(0, 0, 1))};
-
+bool neighboursEmpty[] = {
+    true, true, true, true, true, true,
+};
 void main() {
   const uint myId = gl_GlobalInvocationID.x;
   const uint myIndex = cellInfos[myId].indexes;
-
+  bool isEmpty = true;
   if (myId < cellCount) {
 
-    if (myIndex == -1)
+    if (myIndex == -1){
+      isEmpty = true;
       cellInfos[myId].tags =
           bitfieldInsert(cellInfos[myId].tags, CELL_TYPE_AIR, TAG_CELL_TYPE_BIT, 1);
-    else
-      cellInfos[myId].tags =
-          bitfieldInsert(cellInfos[myId].tags, CELL_TYPE_FLUID, TAG_CELL_TYPE_BIT, 1);
-
-    uint myGridID = myId;
-    uint myGridIDxy = myGridID - ((myGridID / (gridSize.x * gridSize.y)) * gridSize.x * gridSize.y);
-    ivec3 myGridID3D = ivec3(myGridIDxy % gridSize.x, myGridIDxy / gridSize.x,
-                             myGridID / (gridSize.x * gridSize.y));
-    bool isInterface = false;
-
-    for (int i = 0; i < 6; ++i) {
-      if (isOnEdge(myGridID3D + neighbours3D[i])) { continue; }
-      isInterface = isInterface
-          || (cellInfos[myGridID + neighbours[i]].indexes == -1 && myIndex != -1)
-          || (cellInfos[myGridID + neighbours[i]].indexes != -1 && myIndex == -1);
-
-      if (isInterface)
+    }
+    else {
+      uint sortedID = myIndex;
+      int currentGridID = int(myId);
+      while (gridSPH[sortedID].value == currentGridID && sortedID < particleCount) {
+        if(myId == 0)
+              debugPrintfEXT("myId: %d, sortedID: %d, ", myId, sortedID );
+        if (particleRecords[sortedID].weight > 0) {
+          isEmpty = false;
+          break;
+        }
+        ++sortedID;
+      }
+      if (isEmpty) {
         cellInfos[myId].tags =
-            bitfieldInsert(cellInfos[myId].tags, IS_INTERFACE, TAG_IS_INTERFACE_BIT, 1);
-      else
+            bitfieldInsert(cellInfos[myId].tags, CELL_TYPE_AIR, TAG_CELL_TYPE_BIT, 1);
+      } else {
         cellInfos[myId].tags =
-            bitfieldInsert(cellInfos[myId].tags, IS_NOT_INTERFACE, TAG_IS_INTERFACE_BIT, 1);
+            bitfieldInsert(cellInfos[myId].tags, CELL_TYPE_FLUID, TAG_CELL_TYPE_BIT, 1);
+      }
+
+      uint myGridID = myId;
+      uint myGridIDxy =
+          myGridID - ((myGridID / (gridSize.x * gridSize.y)) * gridSize.x * gridSize.y);
+      ivec3 myGridID3D = ivec3(myGridIDxy % gridSize.x, myGridIDxy / gridSize.x,
+                               myGridID / (gridSize.x * gridSize.y));
+
+      for (int i = 0; i < 6; ++i) {
+
+        int sortedID = cellInfos[myId + neighbours[i]].indexes;
+        int currentGridID = int(myId) + neighbours[i];
+        while (gridSPH[sortedID].value == currentGridID && sortedID < particleCount) {
+          if (particleRecords[sortedID].weight > 0) {
+            neighboursEmpty[i] = false;
+            break;
+          }
+          ++sortedID;
+        }
+      }
+
+      bool isInterface = false;
+
+      for (int i = 0; i < 6; ++i) {
+        if (isOnEdge(myGridID3D + neighbours3D[i])) { continue; }
+        isInterface = isInterface
+            || (isEmpty && !neighboursEmpty[i])
+            || (!isEmpty && neighboursEmpty[i]);
+
+        if (isInterface)
+          cellInfos[myId].tags =
+              bitfieldInsert(cellInfos[myId].tags, IS_INTERFACE, TAG_IS_INTERFACE_BIT, 1);
+        else
+          cellInfos[myId].tags =
+              bitfieldInsert(cellInfos[myId].tags, IS_NOT_INTERFACE, TAG_IS_INTERFACE_BIT, 1);
+      }
     }
   }
 }

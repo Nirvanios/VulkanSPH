@@ -12,6 +12,7 @@
 #include <string>
 #include <tiny_obj_loader.h>
 #include <vector>
+#include <numbers>
 
 namespace Utilities {
 
@@ -156,7 +157,7 @@ class Flags {
     for (const auto &item : flagBits) { *this | item; }
   }
   Flags(){};
-  void clear(){ flags = 0;}
+  void clear() { flags = 0; }
   bool has(T flagBit) const { return (flags & magic_enum::enum_integer(flagBit)) != 0; };
   bool hasAnyOf(const std::vector<T> &flagBit) const {
     for (const auto &item : flagBit)
@@ -203,6 +204,52 @@ class Flags {
     return *this;
   }
 };
+
+inline std::vector<ParticleRecord> generateParticles(float fluidVolume, int particleCount,
+                                                     glm::ivec3 particleModelSize,
+                                                     float temperature, int n = 20) {
+  auto particleSize = glm::vec3(std::cbrt(fluidVolume / static_cast<float>(particleCount)));
+  particleSize =
+      glm::vec3(1.1 * std::cbrt((3 * fluidVolume * n) / (4 * std::numbers::pi * particleCount)))
+      / 2.0f;
+  std::vector<ParticleRecord> data{static_cast<size_t>(particleCount)};
+
+  for (int z = 0; z < particleModelSize.z; ++z) {
+    for (int y = 0; y < particleModelSize.y; ++y) {
+      for (int x = 0; x < particleModelSize.x; ++x) {
+        const auto id = (z * particleModelSize.y * particleModelSize.x) + (y * particleModelSize.x) + x;
+        data[id].position = glm::vec4{0.01, 0.01f, 0.01, 0}
+            + (glm::vec4{x, y, z, 0.0f} * glm::vec4(particleSize, 0.0f));
+        data[id].currentVelocity = glm::vec4{0.0f};
+        data[id].velocity = glm::vec4{0.0f};
+        data[id].massDensity = -1.0f;
+        data[id].pressure = -1.0f;
+        data[id].temperature = temperature;
+        data[id].surfaceArea = 0.0f;
+        data[id].weight = 1.f;
+      }
+    }
+  }
+  return data;
+}
+
+template <typename T>
+std::vector<T> loadDataFromFile(const std::filesystem::path &path){
+    auto fileSize = std::filesystem::file_size(path);
+    auto data = std::vector<T>{fileSize / sizeof(T)};
+    std::ifstream file(path, std::ios::binary);
+
+    file.read(reinterpret_cast<char*>(data.data()), fileSize);
+
+    return data;
+}
+
+template <typename T>
+void saveDataToFile(const std::filesystem::path &path, std::vector<T> &data){
+  std::ofstream file(path, std::ios::binary | std::ios::trunc);
+
+  file.write(reinterpret_cast<char*>(data.data()), data.size() * sizeof(T));
+}
 
 }// namespace Utilities
 

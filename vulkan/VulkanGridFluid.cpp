@@ -279,7 +279,7 @@ VulkanGridFluid::VulkanGridFluid(const Config &config,
 
 void VulkanGridFluid::createBuffers() {
   auto cellCountBorder = glm::compMul(simulationInfo.gridSize.xyz() + glm::ivec3(2));
-  auto initialDensity = std::vector<glm::vec2>(cellCountBorder, glm::vec2(0.0, 50.0));
+  auto initialDensity = std::vector<glm::vec2>(cellCountBorder, glm::vec2(0.0, simulationInfo.ambientTemperature));
   auto sources = std::vector<glm::vec2>(simulationInfo.cellCount, glm::vec2(0));
   [[maybe_unused]] auto positionSources =
       ((simulationInfo.gridSize.z / 2) * simulationInfo.gridSize.x * simulationInfo.gridSize.y)
@@ -301,7 +301,7 @@ void VulkanGridFluid::createBuffers() {
   //initialDensity[44].x = 1.0;
 
   auto bufferBuilder = BufferBuilder()
-                           .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
+                           .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc
                                           | vk::BufferUsageFlagBits::eStorageBuffer)
                            .setMemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal);
   bufferValuesNew = std::make_shared<Buffer>(
@@ -436,7 +436,7 @@ const std::shared_ptr<Buffer> &VulkanGridFluid::getBufferVelocitiesNew() const {
 }
 void VulkanGridFluid::resetBuffers() {
   auto cellCountBorder = glm::compMul(simulationInfo.gridSize.xyz() + glm::ivec3(2));
-  auto initialDensity = std::vector<glm::vec2>(cellCountBorder, glm::vec2(0.0, 50.0));
+  auto initialDensity = std::vector<glm::vec2>(cellCountBorder, glm::vec2(0.0, simulationInfo.ambientTemperature));
   auto sources = std::vector<glm::vec2>(simulationInfo.cellCount, glm::vec2(0));
   auto initialVelocities = std::vector<glm::vec4>(cellCountBorder, glm::vec4(0, 0, 0, 0));
 
@@ -465,4 +465,10 @@ void VulkanGridFluid::resetBuffers() {
   bufferVelocitiesNew->fill(initialVelocities);
   bufferVelocitiesOld->fill(glm::vec4(0, 0, 0, 0));
   bufferVelocitySources->fill(glm::vec4(0, 0, 0, 0));
+}
+const std::shared_ptr<Buffer> &VulkanGridFluid::getBufferValuesSources() const {
+  return bufferValuesSources;
+}
+const std::shared_ptr<Buffer> &VulkanGridFluid::getBufferVelocitySources() const {
+  return bufferVelocitySources;
 }

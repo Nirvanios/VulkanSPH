@@ -266,8 +266,9 @@ void SimulationUI::initSettingsSimulationSPHSubtree(pf::ui::ig::Tree &parent) {
       parent.createChild<ig::Tree>("tree_settingsSimulationSPH", "SPH");
 
   /***/
-  treeSettingsSimulationSPH.createChild<ig::Input<float>>("input_volume", "Volume", 0.1, 1.0, 2.0,
-                                                          ig::Persistent::No);
+  /*  treeSettingsSimulationSPH
+      .createChild<ig::Input<float>>("input_volume", "Volume", 0.1, 1.0, 2.0, ig::Persistent::No)
+      .addValueListener([this](auto value) { settings.volumeSPH = value; });*/
   treeSettingsSimulationSPH
       .createChild<ig::Input<float>>("input_density", "Rest density", 0, 0,
                                      settings.simulationInfoSPH.restDensity, ig::Persistent::Yes)
@@ -278,9 +279,12 @@ void SimulationUI::initSettingsSimulationSPHSubtree(pf::ui::ig::Tree &parent) {
                                      ig::Persistent::Yes)
       .addValueListener(
           [this](auto value) { settings.simulationInfoSPH.viscosityCoefficient = value; });
+
+  treeSettingsSimulationSPH
+      .createChild<ig::Input<float>>("input_temp", "Temperature", 0, 0,
+                                     settings.initialSPHTemperature, ig::Persistent::Yes)
+      .addValueListener([this](auto value) { settings.initialSPHTemperature = value; });
   ;
-  treeSettingsSimulationSPH.createChild<ig::Input<float>>("input_temp", "Temperature", 0, 0, 0,
-                                                          ig::Persistent::Yes);
   treeSettingsSimulationSPH
       .createChild<ig::Input<float>>("input_gasStiff", "Gas stiffnes", 0, 0,
                                      settings.simulationInfoSPH.gasStiffnessConstant,
@@ -308,16 +312,15 @@ void SimulationUI::initSettingsSimulationSPHSubtree(pf::ui::ig::Tree &parent) {
                                      ig::Persistent::Yes)
       .addValueListener(
           [this](auto value) { settings.simulationInfoSPH.tensionCoefficient = value; });
-  ;
 
-  treeSettingsSimulationSPH.createChild<ig::Text>("group_fluidSize", "Initial fluid size");
+  /*  treeSettingsSimulationSPH.createChild<ig::Text>("group_fluidSize", "Initial fluid size");
   treeSettingsSimulationSPH.createChild<ig::Input<int>>("input_fluidSizeX", "x", 1, 5, 20,
                                                         ig::Persistent::Yes);
   treeSettingsSimulationSPH.createChild<ig::Input<int>>("input_fluidSizeY", "y", 1, 5, 20,
                                                         ig::Persistent::Yes);
   treeSettingsSimulationSPH.createChild<ig::Input<int>>("input_fluidSizeZ", "z", 1, 5, 20,
                                                         ig::Persistent::Yes);
-  treeSettingsSimulationSPH.createChild<ig::Text>("text_particleCount", "Particle count ");
+  treeSettingsSimulationSPH.createChild<ig::Text>("text_particleCount", "Particle count ");*/
 }
 void SimulationUI::initRecordingGroup(pf::ui::ig::Window &parent) {
   using namespace pf::ui;
@@ -348,6 +351,13 @@ void SimulationUI::initRecordingGroup(pf::ui::ig::Window &parent) {
   groupRecording.createChild<ig::Button>("button_takeScreenshot", "Take Screenshot")
       .addClickListener(
           [this] { onButtonScreenshotClick(recordingStateFlags | RecordingState::Screenshot); });
+
+  groupRecording.createChild<ig::Button>("button_saveState", "Save State").addClickListener([this] {
+    onButtonSaveState();
+  });
+  groupRecording.createChild<ig::Button>("button_loadState", "Load State").addClickListener([this] {
+    onButtonLoadState();
+  });
 }
 void SimulationUI::initVisualizationGroup(pf::ui::ig::Window &parent,
                                           const std::shared_ptr<Swapchain> &swapchain) {
@@ -391,7 +401,7 @@ void SimulationUI::initSettingsSimulationOtherSubtree(pf::ui::ig::Tree &parent) 
                                      "%.4f")
       .addValueListener([this](auto value) { settings.simulationInfoSPH.timeStep = value; });
 
-  treeSettingsOtherSimulation.createChild<ig::Text>("label_gridSize", "Grid size");
+  /*  treeSettingsOtherSimulation.createChild<ig::Text>("label_gridSize", "Grid size");
 
   treeSettingsOtherSimulation
       .createChild<ig::Input<int>>("input_gridSizeX", "x", 1, 5,
@@ -422,7 +432,7 @@ void SimulationUI::initSettingsSimulationOtherSubtree(pf::ui::ig::Tree &parent) 
             settings.simulationInfoSPH.gridSize.z = value;
         settings.simulationInfoGridFluid.cellCount =
             glm::compMul(settings.simulationInfoSPH.gridSize);
-      });
+      });*/
 }
 void SimulationUI::initSettingsSimulationGridSubtree(pf::ui::ig::Tree &parent) {
   using namespace pf::ui;
@@ -430,12 +440,25 @@ void SimulationUI::initSettingsSimulationGridSubtree(pf::ui::ig::Tree &parent) {
   auto &treeSettingsSimulationGrid =
       parent.createChild<ig::Tree>("tree_settingsSimulationGrid", "Euler grid");
 
-  treeSettingsSimulationGrid.createChild<ig::Input<float>>("input_ambient", "Ambient temperature",
-                                                           0, 0, 0, ig::Persistent::Yes);
-  treeSettingsSimulationGrid.createChild<ig::Input<float>>("input_bouyancyA", "Bouyancy alpha", 0,
-                                                           0, 0, ig::Persistent::Yes);
-  treeSettingsSimulationGrid.createChild<ig::Input<float>>("input_bouyancyB", "Bouyancy beta", 0, 0,
-                                                           0, ig::Persistent::Yes);
+  treeSettingsSimulationGrid
+      .createChild<ig::Input<float>>("input_ambient", "Ambient temperature", 0, 0,
+                                     settings.simulationInfoGridFluid.ambientTemperature,
+                                     ig::Persistent::Yes)
+      .addValueListener(
+          [this](auto value) { settings.simulationInfoGridFluid.ambientTemperature = value; });
+  treeSettingsSimulationGrid
+      .createChild<ig::Input<float>>("input_bouyancyA", "Bouyancy alpha", 0, 0,
+                                     settings.simulationInfoGridFluid.buoyancyAlpha,
+                                     ig::Persistent::Yes)
+      .addValueListener(
+          [this](auto value) { settings.simulationInfoGridFluid.buoyancyAlpha = value; });
+  treeSettingsSimulationGrid
+      .createChild<ig::Input<float>>("input_bouyancyB", "Bouyancy beta", 0, 0,
+                                     settings.simulationInfoGridFluid.buoyancyBeta,
+                                     ig::Persistent::Yes)
+      .addValueListener(
+          [this](auto value) { settings.simulationInfoGridFluid.buoyancyBeta = value; });
+  ;
   treeSettingsSimulationGrid
       .createChild<ig::Input<float>>("input_diff", "Diffusion coefficient", 0, 0,
                                      settings.simulationInfoGridFluid.diffusionCoefficient,
@@ -470,20 +493,28 @@ void SimulationUI::initSettingsSimulationEvaporationSubtree(pf::ui::ig::Tree &pa
   auto &treeSettingsSimulationEvaporation =
       parent.createChild<ig::Tree>("tree_settingsSimulationEvaporation", "Evaporation");
 
-  treeSettingsSimulationEvaporation.createChild<ig::Input<float>>("input_coeffA", "A (rate)", 0, 0,
-                                                                  0, ig::Persistent::Yes);
-  treeSettingsSimulationEvaporation.createChild<ig::Input<float>>(
-      "input_coeffB", "B (rate velocity)", 0, 0, 0, ig::Persistent::Yes);
+  treeSettingsSimulationEvaporation
+      .createChild<ig::Input<float>>("input_coeffA", "A (rate)", 0, 0, settings.coefficientA,
+                                     ig::Persistent::Yes)
+      .addValueListener([this](auto value) { settings.coefficientA = value; });
+  treeSettingsSimulationEvaporation
+      .createChild<ig::Input<float>>("input_coeffB", "B (rate velocity)", 0, 0,
+                                     settings.coefficientB, ig::Persistent::Yes)
+      .addValueListener([this](auto value) { settings.coefficientB = value; });
 }
 void SimulationUI::setOnSettingsSave(const std::function<void(Settings)> &onSettingsSaveCallback) {
   SimulationUI::onSettingsSave = onSettingsSaveCallback;
 }
 void SimulationUI::fillSettings(const SimulationInfoSPH &simulationInfoSph,
                                 const SimulationInfoGridFluid &simulationInfoGridFluid,
-                                const GridInfoMC &gridInfoMc, const FragmentInfo &inFragmentInfo) {
+                                const GridInfoMC &gridInfoMc, const FragmentInfo &inFragmentInfo,
+                                float initialTempSPH, float coefficientA, float coefficientB) {
   settings.simulationInfoSPH = simulationInfoSph;
   settings.simulationInfoGridFluid = simulationInfoGridFluid;
   settings.gridInfoMC = gridInfoMc;
+  settings.initialSPHTemperature = initialTempSPH;
+  settings.coefficientA = coefficientA;
+  settings.coefficientB = coefficientB;
   fragmentInfo = inFragmentInfo;
 }
 void SimulationUI::setOnLightSettingsChanged(
@@ -493,4 +524,10 @@ void SimulationUI::setOnLightSettingsChanged(
 void SimulationUI::setOnMcSettingsChanged(
     const std::function<void(GridInfoMC)> &onMcSettingsChangedCallback) {
   onMCSettingsChanged = onMcSettingsChangedCallback;
+}
+void SimulationUI::setOnButtonSaveState(const std::function<void()> &onButtonSaveStateCallback) {
+  SimulationUI::onButtonSaveState = onButtonSaveStateCallback;
+}
+void SimulationUI::setOnButtonLoadState(const std::function<void()> &onButtonLoadStateCallback) {
+  SimulationUI::onButtonLoadState = onButtonLoadStateCallback;
 }

@@ -34,6 +34,8 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
   fragmentInfo = FragmentInfo{.cameraPosition = glm::vec4(config.getApp().cameraPos, 0.0),
                               .lightPosition = glm::vec4(config.getApp().lightPos, 0.0),
                               .lightColor = glm::vec4(config.getApp().lightColor, 0.0)};
+  temperatureSPH = config.getApp().simulationSPH.temperature;
+  volume = config.getApp().simulationSPH.fluidVolume;
   framesToSkip = std::rint((1 / simulationInfoSPH.timeStep) / 60.0);
   spdlog::debug("Vulkan initialization...");
   instance = std::make_shared<Instance>(window.getWindowName(), config.getApp().DEBUG);
@@ -163,7 +165,10 @@ void VulkanCore::mainLoop() {
     drawFrame();
     fpsCounter.newFrame();
     simulationUi.getFPScallback()(fpsCounter, simStep, yaw, pitch);
-    if (simulationState == SimulationState::Reset) { resetSimulation(); }
+    if (simulationState == SimulationState::Reset) {
+      resetSimulation();
+      simulationState = SimulationState::Stopped;
+    }
     fragmentInfo.cameraPosition = glm::vec4{cameraPos, 0.0};
   }
   device->getDevice()->waitIdle();
@@ -494,7 +499,11 @@ void VulkanCore::drawFrame() {
     semaphoreAfterSort[currentFrame] = vulkanGridSPH->run(semaphoreImageAvailable[currentFrame]);
     semaphoreAfterMassDensity[currentFrame] =
         vulkanSPH->run(semaphoreAfterSort[currentFrame], SPHStep::massDensity);
-    semaphoreSPHRenderIn = &semaphoreAfterMassDensity[currentFrame];
+    if (simulationType == SimulationType::SPH) {
+      semaphoreSPHRenderIn = &semaphoreAfterMassDensity[currentFrame];
+    } else {
+      semaphoreGridRenderIn = &semaphoreAfterMassDensity[currentFrame];
+    }
   }
 
   vk::SubmitInfo submitInfoRender{.waitSemaphoreCount = 1,
@@ -770,8 +779,10 @@ void VulkanCore::initGui() {
         textureSampler->getSampler().get(), imageColorTexture[currentFrame]->getImageView().get(),
         static_cast<VkImageLayout>(imageColorTexture[currentFrame]->getLayout()));
   });
-  simulationUi.fillSettings(simulationInfoSPH, simulationInfoGridFluid,
-                            vulkanSphMarchingCubes->getGridInfoMC(), fragmentInfo);
+  simulationUi.fillSettings(
+      simulationInfoSPH, simulationInfoGridFluid, vulkanSphMarchingCubes->getGridInfoMC(),
+      fragmentInfo, config.getApp().simulationSPH.temperature,
+      config.getApp().evaportaion.coefficientA, config.getApp().evaportaion.coefficientB);
   simulationUi.init(device, instance, pipelineGraphics->getRenderPass("toSwapchain"), surface,
                     swapchain, window);
   simulationUi.setOnButtonSimulationControlClick([this](auto state) { simulationState = state; });
@@ -807,16 +818,51 @@ void VulkanCore::initGui() {
     fragmentInfo.lightPosition = data.lightPosition;
     fragmentInfo.lightColor = data.lightColor;
   });
-  simulationUi.setOnMcSettingsChanged([this](auto data){
-                device->getDevice()->template waitIdle();
-                vulkanSphMarchingCubes->updateInfo(Settings{.simulationInfoSPH = simulationInfoSPH, .simulationInfoGridFluid = {}, .gridInfoMC = data});
-                vulkanSphMarchingCubes->recreateBuffer();
-                computeColors = true;
-              });
+  simulationUi.setOnMcSettingsChanged([this](auto data) {
+    device->getDevice()->template waitIdle();
+    vulkanSphMarchingCubes->updateInfo(
+        Settings{.simulationInfoSPH = simulationInfoSPH,
+                 .simulationInfoGridFluid = {},
+                 .gridInfoMC = data,
+                 .initialSPHTemperature = config.getApp().simulationSPH.temperature,
+                 .coefficientA = config.getApp().evaportaion.coefficientA,
+                 .coefficientB = config.getApp().evaportaion.coefficientB
+
+        });
+    vulkanSphMarchingCubes->recreateBuffer();
+    computeColors = true;
+  });
   simulationUi.setOnSettingsSave([this](auto settings) {
     simulationState = SimulationState::Stopped;
     updateInfos(settings);
-    resetSimulation();
+    resetSimulation(settings);
+  });
+  simulationUi.setOnButtonSaveState([this]() {
+    auto particles = vulkanSPH->getBufferParticles()->read<ParticleRecord>();
+    auto values = vulkanGridFluid->getBufferValuesNew()->read<glm::vec2>();
+    auto valuesSources = vulkanGridFluid->getBufferValuesSources()->read<glm::vec2>();
+    auto velocities = vulkanGridFluid->getBufferVelocitiesNew()->read<glm::vec4>();
+    auto velocitiesSources = vulkanGridFluid->getBufferVelocitySources()->read<glm::vec4>();
+    Utilities::saveDataToFile("./particles.dat", particles);
+    Utilities::saveDataToFile("./velocities.dat", velocities);
+    Utilities::saveDataToFile("./velocitySrc.dat", velocitiesSources);
+    Utilities::saveDataToFile("./values.dat", values);
+    Utilities::saveDataToFile("./valuesSrc.dat", valuesSources);
+  });
+  simulationUi.setOnButtonLoadState([this] {
+    auto particles = Utilities::loadDataFromFile<ParticleRecord>("./particles.dat");
+    auto values = Utilities::loadDataFromFile<glm::vec2>("./values.dat");
+    auto valuesSources = Utilities::loadDataFromFile<glm::vec2>("./valuesSrc.dat");
+    auto velocities = Utilities::loadDataFromFile<glm::vec4>("./velocities.dat");
+    auto velocitiesSources = Utilities::loadDataFromFile<glm::vec4>("./velocitySrc.dat");
+
+    device->getDevice()->waitIdle();
+
+    vulkanSPH->getBufferParticles()->fill(particles);
+    vulkanGridFluid->getBufferValuesNew()->fill(values);
+    vulkanGridFluid->getBufferValuesSources()->fill(valuesSources);
+    vulkanGridFluid->getBufferVelocitiesNew()->fill(velocities);
+    vulkanGridFluid->getBufferVelocitySources()->fill(velocitiesSources);
   });
 
   fpsCounter.setOnNewFrameCallback([] {});
@@ -880,8 +926,17 @@ void VulkanCore::rebuildRenderPipelines() {
 
   vulkanGridFluidRender->rebuildPipeline(true);
 }
-void VulkanCore::resetSimulation() {
-  vulkanSPH->resetBuffers();
+void VulkanCore::resetSimulation(std::optional<Settings> settings) {
+  if (settings.has_value() && temperatureSPH != settings->initialSPHTemperature) {
+    vulkanSPH->resetBuffers(settings->initialSPHTemperature);
+    temperatureSPH = settings->initialSPHTemperature;
+  } else {
+    vulkanSPH->resetBuffers();
+  }
+  /*  if(settings.has_value() && volume != settings->volumeSPH){
+    volume = settings->volumeSPH;
+    //TODO recreate grid/sph
+  }*/
   vulkanGridFluid->resetBuffers();
   initSPH = true;
   computeColors = true;
@@ -890,6 +945,9 @@ void VulkanCore::resetSimulation() {
 void VulkanCore::updateInfos(const Settings &settings) {
   simulationInfoSPH = settings.simulationInfoSPH;
   simulationInfoGridFluid = settings.simulationInfoGridFluid;
+  simulationInfoSPH.particleMass = simulationInfoSPH.restDensity
+      * (config.getApp().simulationSPH.fluidVolume
+         / static_cast<float>(simulationInfoSPH.particleCount));
   framesToSkip = std::rint((1 / simulationInfoSPH.timeStep) / 60.0);
   vulkanGridSPH->updateInfo(settings);
   vulkanSphMarchingCubes->updateInfo(settings);

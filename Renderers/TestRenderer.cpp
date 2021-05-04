@@ -10,8 +10,8 @@
 #include <spdlog/spdlog.h>
 
 TestRenderer::TestRenderer(Config &config)
-    : config(config), camera(config.getApp().cameraPos, glm::vec3(0,1,0),
-                             config.getApp().yaw, config.getApp().pitch),
+    : config(config), camera(config.getApp().cameraPos, glm::vec3(0, 1, 0), config.getApp().yaw,
+                             config.getApp().pitch),
       window(config.getVulkan().window.name, config.getVulkan().window.width,
              config.getVulkan().window.height),
       vulkanCore(config, window, camera.Position, camera.Yaw, camera.Pitch),
@@ -69,34 +69,17 @@ void TestRenderer::cameraMouseButton(MouseButtonMessage message) {
 
 std::vector<ParticleRecord> TestRenderer::createParticles() {
   const auto &simConfig = config.getApp().simulationSPH;
-  auto particleSize =
-      glm::vec3(std::cbrt(simConfig.fluidVolume / static_cast<float>(simConfig.particleCount)));
-  particleSize = glm::vec3(1.1
-                           * std::cbrt((3 * simConfig.fluidVolume * 20)
-                                       / (4 * std::numbers::pi * simConfig.particleCount)))
-      / 2.0f;
-  std::vector<ParticleRecord> data{
-      static_cast<size_t>(config.getApp().simulationSPH.particleCount)};
-
-  int sizeZ = config.getApp().simulationSPH.particleSize.z;
-  int sizeY = config.getApp().simulationSPH.particleSize.y;
-  int sizeX = config.getApp().simulationSPH.particleSize.x;
-  for (int z = 0; z < sizeZ; ++z) {
-    for (int y = 0; y < sizeY; ++y) {
-      for (int x = 0; x < sizeX; ++x) {
-        data[(z * sizeY * sizeX) + (y * sizeX) + x].position = glm::vec4{0.01, 0.01f, 0.01, 0}
-            + (glm::vec4{x, y, z, 0.0f} * glm::vec4(particleSize, 0.0f) );
-        data[(z * sizeY * sizeX) + (y * sizeX) + x].currentVelocity = glm::vec4{0.0f};
-        data[(z * sizeY * sizeX) + (y * sizeX) + x].velocity = glm::vec4{0.0f};
-        data[(z * sizeY * sizeX) + (y * sizeX) + x].massDensity = -1.0f;
-        data[(z * sizeY * sizeX) + (y * sizeX) + x].pressure = -1.0f;
-        data[(z * sizeY * sizeX) + (y * sizeX) + x].temperature = 100.f;// TODO from config
-        data[(z * sizeY * sizeX) + (y * sizeX) + x].surfaceArea = 0.0f; // TODO from config
-        data[(z * sizeY * sizeX) + (y * sizeX) + x].weight = 1.f;      // TODO from config
-      }
+  if(!std::empty(simConfig.dataFiles.particles)) {
+    if (std::filesystem::exists(simConfig.dataFiles.particles)
+        && std::filesystem::is_regular_file(simConfig.dataFiles.particles)){
+      return Utilities::loadDataFromFile<ParticleRecord>(simConfig.dataFiles.particles);
+    }
+    else{
+      throw std::runtime_error(fmt::format("File {} does not exist.", simConfig.dataFiles.particles));
     }
   }
-  return data;
+  return Utilities::generateParticles(simConfig.fluidVolume, simConfig.particleCount,
+                                      simConfig.particleSize, simConfig.temperature);
 }
 
 TestRenderer::~TestRenderer() {
@@ -159,16 +142,20 @@ Model TestRenderer::createGrid(const SimulationInfoSPH &simulationInfo) {
   return {.vertices = gridVertices, .indices = gridIndices};
 }
 SimulationInfoGridFluid TestRenderer::getSimulationInfoGridFluid(float supportRadius) {
-  return SimulationInfoGridFluid{.gridSize = glm::ivec4(config.getApp().simulationSPH.gridSize, 0),
-                                 .gridOrigin =
-                                     glm::vec4(config.getApp().simulationSPH.gridOrigin, 0),
-                                 .timeStep = config.getApp().simulationSPH.timeStep,
-                                 .cellCount = glm::compMul(config.getApp().simulationSPH.gridSize),
-                                 .cellSize = supportRadius,
-                                 .diffusionCoefficient = 0.001,
-                                 .boundaryScale = 1,
-                                 .specificInfo = 0,
-                                 .heatConductivity = 0.62,//TODO config
-                                 .heatCapacity = 4.179,
-                                 .specificGasConstant = 461.5};
+  return SimulationInfoGridFluid{
+      .gridSize = glm::ivec4(config.getApp().simulationSPH.gridSize, 0),
+      .gridOrigin = glm::vec4(config.getApp().simulationSPH.gridOrigin, 0),
+      .timeStep = config.getApp().simulationSPH.timeStep,
+      .cellCount = glm::compMul(config.getApp().simulationSPH.gridSize),
+      .cellSize = supportRadius,
+      .diffusionCoefficient = 0.001,
+      .boundaryScale = 1,
+      .specificInfo = 0,
+      .heatConductivity = 0.62,//TODO config
+      .heatCapacity = 4.179,
+      .specificGasConstant = 461.5,
+      .ambientTemperature = config.getApp().simulationGridFluid.ambientTemperature,
+      .buoyancyAlpha = config.getApp().simulationGridFluid.buoyancyAlpha,
+      .buoyancyBeta = config.getApp().simulationGridFluid.buoyancyBeta,
+  };
 }

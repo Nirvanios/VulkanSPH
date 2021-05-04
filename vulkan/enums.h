@@ -11,7 +11,7 @@ enum class RecordingState { Stopped = 1 << 0 , Recording= 1 << 1, Screenshot= 1 
 
 enum class DrawType { Particles = 1 << 0, Grid = 1 << 1, ToTexture = 1 << 2, ToFile = 1 << 3};
 
-enum class Visualization { None, Density, PressureForce, Velocity};
+enum class Visualization { None, Density, PressureForce, Velocity, Temperature};
 
 enum class SPHStep { advect, massDensity, force};
 

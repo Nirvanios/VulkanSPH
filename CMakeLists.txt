@@ -109,6 +109,11 @@ CPMAddPackage(
         GITHUB_REPOSITORY PetrFlajsingr/pf_imgui
         GIT_TAG v0.4.2
 )
+CPMAddPackage(
+        NAME argparse
+        GITHUB_REPOSITORY p-ranav/argparse
+        GIT_TAG v2.1
+)
 
 include_directories("Third Party/")
 
@@ -153,6 +158,6 @@ target_link_libraries(VulkanApp PUBLIC
         -lbfd -ldl
         ${Vulkan_LIBRARIES} glfw spdlog::spdlog fmt::fmt stb::stb
         shaderc_combined glslang toml11 range-v3 tinyobjloader ${AVCODEC_LIBRARY} avutil avformat swscale
-        pf_imgui::pf_imgui pf_common::pf_common magic_enum)
+        pf_imgui::pf_imgui pf_common::pf_common magic_enum argparse::argparse)
 #add_backward(VulkanApp)
 target_compile_options(VulkanApp PRIVATE ${flags})

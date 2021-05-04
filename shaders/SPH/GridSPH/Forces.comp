@@ -122,6 +122,7 @@ void main() {
 
 #if defined(GRID)
     int neighbourCount = 0;
+    int neighbourCountSamelvl = 0;
 
     for (int z = -1; z < 2; ++z) {
       if (myGridID3D.z + z < 0 || myGridID3D.z + z > gridSize.z) { continue; }
@@ -206,6 +207,7 @@ void main() {
                   } */
 
                   ++neighbourCount;
+                  if(y > -1){++neighbourCountSamelvl;}
                 }
               }
             }
@@ -240,7 +242,7 @@ void main() {
     particleRecords[myId].pressureForceLength = length(pressureForce);
     particleRecords[myId].surfaceArea =
         (myWeightedMass / particleRecords[myId].massDensity) * surfaceArea
-        + (int(neighbourCount < 3) * 4 * M_PI * pow(particleRadius * 0.5, 2) * 0.25);
+        + (int(neighbourCount < 3 || neighbourCountSamelvl < 3) * 4 * M_PI * pow(particleRadius * 0.5, 2) * 0.25);
 
     /**
         * EXTERNAL FORCES

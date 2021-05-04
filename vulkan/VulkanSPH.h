@@ -17,7 +17,7 @@ class VulkanSPH {
             const std::vector<ParticleRecord> &inParticles, std::shared_ptr<Buffer> bufferIndexes,
             std::shared_ptr<Buffer> bufferSortedPairs);
   vk::UniqueSemaphore run(const vk::UniqueSemaphore &semaphoreWait, SPHStep step);
-  void resetBuffers();
+  void resetBuffers(std::optional<float> newTemp = std::nullopt);
 
   [[nodiscard]] const std::shared_ptr<Buffer> &getBufferParticles() const;
 

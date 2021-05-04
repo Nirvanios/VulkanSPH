@@ -30,6 +30,9 @@ layout(push_constant) uniform GridSimulationInfoUniform {
   float heatConductivity;
   float heatCapacity;
   float specificGasConstant;
+  float ambientTemperature;
+  float buoyancyAlpha;
+  float buoyancyBeta;
 }
 simulationInfo;
 
@@ -100,7 +103,7 @@ int getAlignedAxis() {
 const float cellScale = 0.022 * 0.5;
 
 void main() {
-  vec3 color = vec3(0);
+  vec3 color = vec3(1.0);
   mat4 rotMatrix = mat4(1.0);
   const int axis = getAlignedAxis();
   switch (axis) {
@@ -120,7 +123,7 @@ void main() {
     case AXIS_Z:
       rotMatrix *= mat4(vec4(1, 0, 0, 0), vec4(0, 0, -1, 0), vec4(0, 1, 0, 0), vec4(0, 0, 0, 1));
       break;
-    default: color = vec3(0, 0, 0); break;
+    default: color = vec3(1); break;
   }
 
   uint cellType = bitfieldExtract(cellInfos[gl_InstanceIndex].tags, TAG_CELL_TYPE_BIT, 1);
@@ -135,18 +138,18 @@ void main() {
   const uint vertexId = (vertexId3D.x + 1) + (vertexId3D.y + 1) * gridSizeWithBorders.x
       + (vertexId3D.z + 1) * gridSizeWithBorders.x * gridSizeWithBorders.y;
 
-/*   if(gl_InstanceIndex == 0){
+  /*   if(gl_InstanceIndex == 0){
     debugPrintfEXT("myId: %d-%d, vertexId3D: %v3d", gl_InstanceIndex, gl_VertexIndex, vertexId3D);
   } */
 
   position +=
       vec4(myId3D * simulationInfo.cellSize, 0) + vec4(vec3(0.5 * simulationInfo.cellSize), 0);
 
-  const float volume = pow(simulationInfo.cellSize,3) * 10;
+  const float volume = pow(simulationInfo.cellSize, 3) * 500;
 
-      gl_Position = ubo.proj * ubo.view * ubo.model * position;
+  gl_Position = ubo.proj * ubo.view * ubo.model * position;
   //gl_Position *= int(density[myId].x != 0);
-  fragColor = vec4(color, (density[vertexId].x / volume) * int(cellType == CELL_TYPE_AIR) );
+  fragColor = vec4(color, (density[vertexId].x / volume) * int(cellType == CELL_TYPE_AIR));
   outPosition = gl_Position.xyz;
   outNormal = inNormal;
 }

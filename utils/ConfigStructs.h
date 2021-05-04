@@ -21,6 +21,10 @@ struct VulkanConfig {
   std::filesystem::path shaderFolder;
 };
 
+struct SPHDataFiles{
+  std::filesystem::path particles;
+};
+
 struct SimulationSPHConfig {
   float timeStep;
   float viscosityCoefficient;
@@ -30,16 +34,37 @@ struct SimulationSPHConfig {
   float fluidVolume;
   float fluidDensity;
   int particleCount;
+  float temperature;
   glm::ivec3 particleSize;
   std::string particleModel;
   glm::vec3 gridOrigin;
   glm::ivec3 gridSize;
   bool useNNS;
+  SPHDataFiles dataFiles;
+};
+
+struct GridFluidDataFiles{
+  std::filesystem::path velocities;
+  std::filesystem::path velocitySources;
+  std::filesystem::path values;
+  std::filesystem::path valuesSources;
 };
 
 struct SimulationGridFluidConfig {
   std::filesystem::path cellModel;
   float ambientTemperature;
+  float buoyancyAlpha;
+  float buoyancyBeta;
+  float diffusionCoefficient;
+  float heatConductivity;
+  float heatCapacity;
+  float specificGasConstant;
+  GridFluidDataFiles datafiles;
+};
+
+struct Evaportaion{
+  float coefficientA;
+  float coefficientB;
 };
 
 struct MarchingCubes{
@@ -57,6 +82,7 @@ struct AppConfig {
   float pitch;
   SimulationSPHConfig simulationSPH;
   SimulationGridFluidConfig simulationGridFluid;
+  Evaportaion evaportaion;
   MarchingCubes marchingCubes;
 };
 

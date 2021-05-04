@@ -9,6 +9,7 @@
 #define TEXTURE_VIZUALIZE_MASSDENSITY 1
 #define TEXTURE_VIZUALIZE_PRESSUREFORCE 2
 #define TEXTURE_VIZUALIZE_VELOCITY 3
+#define TEXTURE_VIZUALIZE_TEMPERATURE 4
 
 layout(push_constant) uniform DrawType {
   int drawType;
@@ -90,7 +91,13 @@ void main() {
           break;
         case TEXTURE_VIZUALIZE_VELOCITY:
           fragColor = vec4(
-              hsv2rgb(vec3(map2hue(length(particleRecords[gl_InstanceIndex].velocity), 1300, 700),
+              hsv2rgb(vec3(map2hue(length(particleRecords[gl_InstanceIndex].velocity), 20, 0),
+                           1.0, 1.0)),
+              1.0f);
+          break;
+        case TEXTURE_VIZUALIZE_TEMPERATURE:
+          fragColor = vec4(
+              hsv2rgb(vec3(map2hue(length(particleRecords[gl_InstanceIndex].velocity), 100, 0),
                            1.0, 1.0)),
               1.0f);
           break;
