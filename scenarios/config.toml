@@ -14,14 +14,17 @@ gridSize = [20,20,20]
 gasStiffness = 10.0
 heatCapacity = 4.1790000000000003
 timeStep = 0.001
-fluidVolume = 2.0
 useNNS = true
+fluidVolume = 2.0
 particleModel = "/home/aka/CLionProjects/VulkanSPH/resources/sphere.obj"
 heatConductivity = 0.62
-fluidDensity = 998.28999999999996
 gridOrigin = [0.0,0.0,0.0]
-datafiles = {}
-Model = [{particleModelOrigin = [0.0,0.0,0.0], particleModelSize = [37,4,37]}]
+fluidDensity = 998.28999999999996
+Model = [
+{particleModelOrigin=[0.0,0.0,0.0],particleModelSize=[37,4,37]},
+]
+[App.simulationSPH.datafiles]
+
 [App.Evaporation]
 coefficientA = 0.001
 coefficientB = 0.0
