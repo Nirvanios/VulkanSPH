@@ -21,7 +21,7 @@ VulkanGridSPH::VulkanGridSPH(const vk::UniqueSurfaceKHR &surface, std::shared_pt
               .gridOrigin = glm::vec4(config.getApp().simulationSPH.gridOrigin, 0),
               .cellSize = simulationInfo.supportRadius,
               .particleCount =
-                  static_cast<unsigned int>(config.getApp().simulationSPH.particleCount)};
+                  static_cast<unsigned int>(simulationInfo.particleCount)};
 
   pipeline =
       PipelineBuilder{this->config, this->device, swapchain}
@@ -108,7 +108,7 @@ void VulkanGridSPH::recordCommandBuffer(const std::shared_ptr<Pipeline> &pipelin
                                       vk::ShaderStageFlagBits::eCompute, 0, sizeof(GridInfo),
                                       &gridInfo);
   commandBufferCompute->dispatch(
-      static_cast<int>(std::ceil(config.getApp().simulationSPH.particleCount / 32.0)), 1, 1);
+      static_cast<int>(std::ceil(simulationInfo.particleCount / 32.0)), 1, 1);
   commandBufferCompute->end();
 }
 const GridInfo &VulkanGridSPH::getGridInfo() const { return gridInfo; }

@@ -118,29 +118,44 @@ void main() {
     vec3 maxBorder =
         minBorder + gridSize * simulationInfo.supportRadius - simulationInfo.supportRadius * 0.2;
 
-    if (newPosition.x < minBorder.x) {
-      newPosition.x = minBorder.x;
-      newVelocity.x *= -1 * WALL_DAMPING;
+/*     if (newPosition.x < minBorder.x) {
+      //newPosition.x = minBorder.x;
+      //newVelocity.x *= -1 * WALL_DAMPING;
     }
     if (newPosition.x > maxBorder.x) {
       newPosition.x = maxBorder.x;
       newVelocity.x *= -1 * WALL_DAMPING;
     }
     if (newPosition.y < minBorder.y) {
-      newPosition.y = minBorder.y;
-      newVelocity.y *= -1 * WALL_DAMPING;
+      //newPosition.y = minBorder.y;
+      //newVelocity.y *= -1 * WALL_DAMPING;
     }
     if (newPosition.y > maxBorder.y) {
       newPosition.y = maxBorder.y;
       newVelocity.y *= -1 * WALL_DAMPING;
     }
     if (newPosition.z < minBorder.z) {
-      newPosition.z = minBorder.z;
-      newVelocity.z *= -1 * WALL_DAMPING;
+      //newPosition.z = minBorder.z;
+      //newVelocity.z *= -1 * WALL_DAMPING;
     }
     if (newPosition.z > maxBorder.z) {
       newPosition.z = maxBorder.z;
       newVelocity.z *= -1 * WALL_DAMPING;
+    } */
+
+    if (any(lessThan(newPosition.xyz, minBorder))) {
+      ivec3 less = ivec3(lessThan(newPosition.xyz, minBorder));
+      ivec3 lessInv = ivec3(not(lessThan(newPosition.xyz, minBorder)));
+
+      newPosition.xyz = (newPosition.xyz * lessInv) + (minBorder * less);
+      newVelocity.xyz = (newVelocity.xyz * lessInv) + (newVelocity.xyz * less * -1 * WALL_DAMPING);
+    }
+    if (any(greaterThan(newPosition.xyz, maxBorder))) {
+      ivec3 greater = ivec3(greaterThan(newPosition.xyz, maxBorder));
+      ivec3 greaterInv = ivec3(not(greaterThan(newPosition.xyz, maxBorder)));
+
+      newPosition.xyz = (newPosition.xyz * greaterInv) + (maxBorder * greater);
+      newVelocity.xyz = (newVelocity.xyz * greaterInv) + (newVelocity.xyz * greater * -1 * WALL_DAMPING);
     }
 
     particleRecords[myId].velocity = (newVelocity + particleRecords[myId].velocity) / 2;

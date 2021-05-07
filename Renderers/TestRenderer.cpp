@@ -7,6 +7,8 @@
 #include "glm/gtx/component_wise.hpp"
 #include "glm/gtx/string_cast.hpp"
 #include <numbers>
+#include <range/v3/view/for_each.hpp>
+#include <range/v3/view/join.hpp>
 #include <spdlog/spdlog.h>
 
 TestRenderer::TestRenderer(Config &config)
@@ -69,17 +71,27 @@ void TestRenderer::cameraMouseButton(MouseButtonMessage message) {
 
 std::vector<ParticleRecord> TestRenderer::createParticles() {
   const auto &simConfig = config.getApp().simulationSPH;
-  if(!std::empty(simConfig.dataFiles.particles)) {
+  if (!std::empty(simConfig.dataFiles.particles)) {
     if (std::filesystem::exists(simConfig.dataFiles.particles)
-        && std::filesystem::is_regular_file(simConfig.dataFiles.particles)){
+        && std::filesystem::is_regular_file(simConfig.dataFiles.particles)) {
       return Utilities::loadDataFromFile<ParticleRecord>(simConfig.dataFiles.particles);
-    }
-    else{
-      throw std::runtime_error(fmt::format("File {} does not exist.", simConfig.dataFiles.particles));
+    } else {
+      throw std::runtime_error(
+          fmt::format("File {} does not exist.", simConfig.dataFiles.particles));
     }
   }
-  return Utilities::generateParticles(simConfig.fluidVolume, simConfig.particleCount,
-                                      simConfig.particleSize, simConfig.temperature);
+  auto particleCount = 0;
+  std::for_each(simConfig.models.begin(), simConfig.models.end(), [&particleCount](const auto &model){particleCount += glm::compMul(model.modelSize.xyz());});
+
+  auto particles = std::vector<ParticleRecord>{};
+  for (auto &model : simConfig.models) {
+    auto volume = simConfig.fluidVolume * (glm::compMul(model.modelSize.xyz()) / static_cast<float>(particleCount));
+  auto tmp = Utilities::generateParticles(volume, glm::compMul(model.modelSize.xyz()),
+                                 model.modelSize, simConfig.temperature, model.modelOrigin);
+  particles.insert(particles.end(), tmp.begin(), tmp.end());
+  }
+
+  return particles;
 }
 
 TestRenderer::~TestRenderer() {
@@ -92,11 +104,13 @@ TestRenderer::~TestRenderer() {
 }
 SimulationInfoSPH TestRenderer::getSimulationInfoSPH() {
   const auto &simConfig = config.getApp().simulationSPH;
+  auto particleCount = 0;
+  std::for_each(simConfig.models.begin(), simConfig.models.end(), [&particleCount](const auto &model){particleCount += glm::compMul(model.modelSize.xyz());});
   const auto mass = simConfig.fluidDensity
-      * (simConfig.fluidVolume / static_cast<float>(simConfig.particleCount));
+      * (simConfig.fluidVolume / static_cast<float>(particleCount));
   const auto x = 20;
   const auto supportRadius =
-      std::cbrt((3 * simConfig.fluidVolume * x) / (4 * std::numbers::pi * simConfig.particleCount));
+      std::cbrt((3 * simConfig.fluidVolume * x) / (4 * std::numbers::pi * particleCount));
   return SimulationInfoSPH{
       .gridSize = glm::ivec4(
           config.getApp().simulationSPH.gridSize,
@@ -113,7 +127,7 @@ SimulationInfoSPH TestRenderer::getSimulationInfoSPH() {
       .supportRadius = static_cast<float>(supportRadius),
       .tensionThreshold = 7.065,
       .tensionCoefficient = 0.0728,
-      .particleCount = static_cast<unsigned int>(simConfig.particleCount)
+      .particleCount = static_cast<unsigned int>(particleCount)
       /*.cellCount = static_cast<unsigned int>(glm::compMul(config.getApp().simulationSPH.gridSize))*/};
 }
 Model TestRenderer::createGrid(const SimulationInfoSPH &simulationInfo) {

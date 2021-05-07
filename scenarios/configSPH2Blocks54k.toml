@@ -1,27 +1,31 @@
 [App]
 DEBUG = true
 outputToFile = true
-pitch = -33.099952697753906
-yaw = 992.9002685546875
-cameraPos = [0.55711692571640015,2.5135376453399658,5.0251641273498535]
+pitch = -28.400026321411133
+yaw = 306.29806518554688
+cameraPos = [-0.93055689334869385,3.0488166809082031,3.3169665336608887]
 lightPos = [0.0,5.0,0.0]
 lightColor = [1.0,1.0,1.0]
 MarchingCubes = {threshold=0.5,detail=2}
 [App.simulationSPH]
-viscosityCoefficient = 3.5
-temperature = 100.0
-gridSize = [20,20,20]
+gridSize = [55,20,17]
 gasStiffness = 10.0
 heatCapacity = 4.1790000000000003
 timeStep = 0.001
-fluidVolume = 2.0
 useNNS = true
 particleModel = "/home/aka/CLionProjects/VulkanSPH/resources/sphere.obj"
 heatConductivity = 0.62
-fluidDensity = 998.28999999999996
 gridOrigin = [0.0,0.0,0.0]
-datafiles = {}
-Model = [{particleModelOrigin = [0.0,0.0,0.0], particleModelSize = [37,4,37]}]
+fluidDensity = 998.28999999999996
+viscosityCoefficient = 3.5
+temperature = 100.0
+fluidVolume = 4.0
+Model = [
+{particleModelOrigin=[0.0,0.0,0.0],particleModelSize=[30,30,30]},
+{particleModelOrigin=[2.7000000000000002,0.0,0.0],particleModelSize=[30,30,30]},
+]
+[App.simulationSPH.datafiles]
+
 [App.Evaporation]
 coefficientA = 0.001
 coefficientB = 0.0

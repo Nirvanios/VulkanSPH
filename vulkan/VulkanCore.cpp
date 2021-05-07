@@ -82,7 +82,7 @@ void VulkanCore::initVulkan(const std::vector<Model> &modelParticle,
 
   bufferCellParticlePair = std::make_shared<Buffer>(
       BufferBuilder()
-          .setSize(sizeof(KeyValue) * config.getApp().simulationSPH.particleCount)
+          .setSize(sizeof(KeyValue) * simulationInfoSPH.particleCount)
           .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst
                          | vk::BufferUsageFlagBits::eTransferSrc
                          | vk::BufferUsageFlagBits::eStorageBuffer)
@@ -256,7 +256,7 @@ void VulkanCore::recordCommandBuffers(uint32_t imageIndex, Utilities::Flags<Draw
                                            &drawInfo);
 
       commandBufferGraphics->drawIndexed(indicesSizes[0],
-                                         config.getApp().simulationSPH.particleCount, 0, 0, 0);
+                                         simulationInfoSPH.particleCount, 0, 0, 0);
     }
 
     if (stageRecord.has(DrawType::Grid)) {
@@ -306,7 +306,7 @@ void VulkanCore::recordCommandBuffers(uint32_t imageIndex, Utilities::Flags<Draw
                                            &drawInfo);
 
       commandBufferGraphics->drawIndexed(indicesSizes[0],
-                                         config.getApp().simulationSPH.particleCount, 0, 0, 0);
+                                         simulationInfoSPH.particleCount, 0, 0, 0);
       commandBufferGraphics->endRenderPass();
 
       imageColorTexture[imageIndex]->transitionImageLayout(

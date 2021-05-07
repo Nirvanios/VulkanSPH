@@ -6,9 +6,9 @@
 #define VULKANAPP_CONFIGSTRUCTS_H
 
 #include "glm/glm.hpp"
-#include <string>
 #include <filesystem>
-
+#include <string>
+#include <vector>
 
 struct WindowConfig {
   std::string name;
@@ -25,6 +25,11 @@ struct SPHDataFiles{
   std::filesystem::path particles;
 };
 
+struct SPHModel{
+  glm::ivec3 modelSize;
+  glm::vec3 modelOrigin;
+};
+
 struct SimulationSPHConfig {
   float timeStep;
   float viscosityCoefficient;
@@ -33,14 +38,13 @@ struct SimulationSPHConfig {
   float heatCapacity;
   float fluidVolume;
   float fluidDensity;
-  int particleCount;
   float temperature;
-  glm::ivec3 particleSize;
   std::string particleModel;
   glm::vec3 gridOrigin;
   glm::ivec3 gridSize;
   bool useNNS;
   SPHDataFiles dataFiles;
+  std::vector<SPHModel> models;
 };
 
 struct GridFluidDataFiles{

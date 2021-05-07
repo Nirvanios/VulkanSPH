@@ -207,7 +207,7 @@ class Flags {
 
 inline std::vector<ParticleRecord> generateParticles(float fluidVolume, int particleCount,
                                                      glm::ivec3 particleModelSize,
-                                                     float temperature, int n = 20) {
+                                                     float temperature, glm::vec3 modelOrigin, int n = 20) {
   auto particleSize = glm::vec3(std::cbrt(fluidVolume / static_cast<float>(particleCount)));
   particleSize =
       glm::vec3(1.1 * std::cbrt((3 * fluidVolume * n) / (4 * std::numbers::pi * particleCount)))
@@ -218,7 +218,7 @@ inline std::vector<ParticleRecord> generateParticles(float fluidVolume, int part
     for (int y = 0; y < particleModelSize.y; ++y) {
       for (int x = 0; x < particleModelSize.x; ++x) {
         const auto id = (z * particleModelSize.y * particleModelSize.x) + (y * particleModelSize.x) + x;
-        data[id].position = glm::vec4{0.01, 0.01f, 0.01, 0}
+        data[id].position = glm::vec4{0.01, 0.01f, 0.01, 0} + glm::vec4{modelOrigin, 0.0}
             + (glm::vec4{x, y, z, 0.0f} * glm::vec4(particleSize, 0.0f));
         data[id].currentVelocity = glm::vec4{0.0f};
         data[id].velocity = glm::vec4{0.0f};
