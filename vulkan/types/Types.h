@@ -130,7 +130,6 @@ struct alignas(16) SimulationInfoGridFluid {
   int cellCount;
   float cellSize;
   float diffusionCoefficient;
-  int boundaryScale;
   unsigned int specificInfo;
   float heatConductivity;
   float heatCapacity;

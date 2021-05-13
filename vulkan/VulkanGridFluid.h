@@ -17,8 +17,8 @@ class VulkanGridFluid {
   [[nodiscard]] const std::shared_ptr<Buffer> &getBufferValuesOld() const;
   [[nodiscard]] const vk::UniqueFence &getFenceAfterCompute() const;
   [[nodiscard]] const std::shared_ptr<Buffer> &getBufferVelocitiesNew() const;
-  const std::shared_ptr<Buffer> &getBufferValuesSources() const;
-  const std::shared_ptr<Buffer> &getBufferVelocitySources() const;
+  [[nodiscard]] const std::shared_ptr<Buffer> &getBufferValuesSources() const;
+  [[nodiscard]] const std::shared_ptr<Buffer> &getBufferVelocitySources() const;
   void resetBuffers();
 
  private:

@@ -5,10 +5,6 @@
 #define gridSize simulationInfo.gridSizeXYZcountW.xyz
 #define cellCount simulationInfo.gridSizeXYZcountW.w
 
-#if !defined(BRUTE) && !defined(GRID)
-#define GRID
-#endif
-
 float M_PI = 3.1415;
 
 float defaultKernel(in vec4 position, in float positionNorm, in float supportRadius) {
@@ -120,7 +116,6 @@ void main() {
     float temperature = 0.0f;
     float surfaceArea = 0.0;
 
-#if defined(GRID)
     int neighbourCount = 0;
     int neighbourCountSamelvl = 0;
 
@@ -216,26 +211,6 @@ void main() {
         }
       }
     }
-
-#elif defined(BRUTE)
-    for (int i = 0; i < simulationInfo.particleCount; ++i) {
-      vec4 positionDiff = particleRecords[myId].position - particleRecords[i].position;
-      if (i != myId && length(positionDiff) < simulationInfo.supportRadius) {
-        pressureForce -= simulationInfo.particleMass
-            * (particleRecords[myId].pressure + particleRecords[i].pressure)
-            / (2.f * particleRecords[i].massDensity)
-            * spikyGradientKernel(positionDiff, length(positionDiff), simulationInfo.supportRadius);
-        viscosityForce += (particleRecords[i].velocity - particleRecords[myId].velocity)
-            * (simulationInfo.particleMass / particleRecords[i].massDensity)
-            * viscosityLaplacianKernel(positionDiff, length(positionDiff),
-                                       simulationInfo.supportRadius);
-        colorField += (simulationInfo.particleMass / particleRecords[i].massDensity)
-            * laplacianKernel(positionDiff, length(positionDiff), simulationInfo.supportRadius);
-        inwardSurfaceNormal += (simulationInfo.particleMass / particleRecords[i].massDensity)
-            * gradientKernel(positionDiff, length(positionDiff), simulationInfo.supportRadius);
-      }
-    }
-#endif
 
     viscosityForce *= simulationInfo.viscosityCoefficient;
     vec4 internalForces = pressureForce + viscosityForce;

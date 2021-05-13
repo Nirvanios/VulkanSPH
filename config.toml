@@ -7,23 +7,22 @@ lightPos = [0.0,5.0,0.0]
 cameraPos = [-0.045747857540845871,1.6160701513290405,1.7924566268920898]
 yaw = 281.89715576171875
 pitch = -27.700149536132812
-outputToFile = true
 DEBUG = true
 [App.simulationSPH]
 heatCapacity = 4.1790000000000003
 timeStep = 0.001
 fluidVolume = 2.0
-useNNS = true
-particleCount = 27000
 particleModel = "/home/aka/CLionProjects/VulkanSPH/resources/sphere.obj"
 heatConductivity = 0.62
 gridOrigin = [0.0,0.0,0.0]
 fluidDensity = 998.28999999999996
-particleModelSize = [30,30,30]
 viscosityCoefficient = 3.5
 temperature = 100.0
 gridSize = [20,20,20]
 gasStiffness = 10.0
+Model = [
+    {particleModelOrigin=[0.0,0.0,0.0],particleModelSize=[30,30,30]},
+]
 [App.simulationSPH.datafiles]
 particles = "/home/aka/CLionProjects/VulkanSPH/cmake-build-debug/particles.dat"
 [App.MarchingCubes]

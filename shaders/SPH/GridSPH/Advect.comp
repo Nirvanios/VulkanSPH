@@ -5,9 +5,6 @@
 #define gridSize simulationInfo.gridSizeXYZcountW.xyz
 #define cellCount simulationInfo.gridSizeXYZcountW.w
 
-#if !defined(BRUTE) && !defined(GRID)
-#define GRID
-#endif
 
 float M_PI = 3.1415;
 
@@ -117,31 +114,6 @@ void main() {
     vec3 minBorder = simulationInfo.GridOrigin.xyz + simulationInfo.supportRadius * 0.1;
     vec3 maxBorder =
         minBorder + gridSize * simulationInfo.supportRadius - simulationInfo.supportRadius * 0.2;
-
-/*     if (newPosition.x < minBorder.x) {
-      //newPosition.x = minBorder.x;
-      //newVelocity.x *= -1 * WALL_DAMPING;
-    }
-    if (newPosition.x > maxBorder.x) {
-      newPosition.x = maxBorder.x;
-      newVelocity.x *= -1 * WALL_DAMPING;
-    }
-    if (newPosition.y < minBorder.y) {
-      //newPosition.y = minBorder.y;
-      //newVelocity.y *= -1 * WALL_DAMPING;
-    }
-    if (newPosition.y > maxBorder.y) {
-      newPosition.y = maxBorder.y;
-      newVelocity.y *= -1 * WALL_DAMPING;
-    }
-    if (newPosition.z < minBorder.z) {
-      //newPosition.z = minBorder.z;
-      //newVelocity.z *= -1 * WALL_DAMPING;
-    }
-    if (newPosition.z > maxBorder.z) {
-      newPosition.z = maxBorder.z;
-      newVelocity.z *= -1 * WALL_DAMPING;
-    } */
 
     if (any(lessThan(newPosition.xyz, minBorder))) {
       ivec3 less = ivec3(lessThan(newPosition.xyz, minBorder));

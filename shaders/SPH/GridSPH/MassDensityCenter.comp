@@ -5,10 +5,6 @@
 #define gridSize simulationInfo.gridSizeXYZcountW.xyz
 #define cellCount simulationInfo.gridSizeXYZcountW.w
 
-#if !defined(BRUTE) && !defined(GRID)
-#define GRID
-#endif
-
 float M_PI = 3.1415;
 
 float defaultKernel(in vec4 position, in float positionNorm, in float supportRadius) {

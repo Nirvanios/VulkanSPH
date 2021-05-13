@@ -23,7 +23,6 @@ Config::Config(const std::string &configFile) : file(configFile) {
   const auto &tomlWindow = toml::find(tomlVulkan, "window");
 
   app.DEBUG = toml::find<bool>(tomlApp, "DEBUG");
-  app.outputToFile = toml::find<bool>(tomlApp, "outputToFile");
   app.cameraPos = glm::make_vec3(toml::find<std::vector<float>>(tomlApp, "cameraPos").data());
   app.yaw = toml::find<float>(tomlApp, "yaw");
   app.pitch = toml::find<float>(tomlApp, "pitch");
@@ -44,7 +43,6 @@ Config::Config(const std::string &configFile) : file(configFile) {
   app.simulationSPH.viscosityCoefficient =
       toml::find<float>(tomlSimulationSPH, "viscosityCoefficient");
   app.simulationSPH.timeStep = toml::find<float>(tomlSimulationSPH, "timeStep");
-  app.simulationSPH.useNNS = toml::find<bool>(tomlSimulationSPH, "useNNS");
 
   for (auto &table : tomlSPHModels) {
     app.simulationSPH.models.emplace_back(SPHModel{

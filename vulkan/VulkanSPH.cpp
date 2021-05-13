@@ -21,8 +21,7 @@ VulkanSPH::VulkanSPH(const vk::UniqueSurfaceKHR &surface, std::shared_ptr<Device
                                     .setPipelineType(PipelineType::Compute)
                                     .addPushConstant(vk::ShaderStageFlagBits::eCompute,
                                                      sizeof(SimulationInfoSPH));
-  if(config.getApp().simulationSPH.useNNS)
-    computePipelineBuilder.addShaderMacro("GRID");
+
   pipelineComputeMassDensity =
       computePipelineBuilder
           .setComputeShaderPath(this->config.getVulkan().shaderFolder / "SPH/GridSPH/MassDensity.comp")
@@ -175,4 +174,9 @@ void VulkanSPH::resetBuffers(std::optional<float> newTemp) {
                           [&newTemp](auto &item) { item.temperature = newTemp.value(); });
   }
   bufferParticles->fill(particles);
+}
+void VulkanSPH::setWeight(float weight) {
+  auto tmp = bufferParticles->read<ParticleRecord>();
+  std::for_each(tmp.begin(), tmp.end(), [&weight](auto &particle){particle.weight = weight;});
+  bufferParticles->fill(tmp);
 }

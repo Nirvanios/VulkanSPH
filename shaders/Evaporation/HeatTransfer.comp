@@ -55,12 +55,12 @@ struct SimulationInfoGrid {
   int cellCount;
   float cellSize;
   float diffusionCoefficient;
-  int boundaryScale;
+
   uint specificInfo;
   float heatConductivity;
   float heatCapacity;
   float specificGasConstant;
-    float ambientTemperature;
+  float ambientTemperature;
   float buoyancyAlpha;
   float buoyancyBeta;
 };
@@ -86,7 +86,7 @@ layout(binding = 6) uniform SimulationInfo {
   SimulationInfoSPH simulationInfoSPH;
   SimulationInfoGrid simulationInfoGrid;
   float coefficientA;
-float coefficientB;
+  float coefficientB;
 };
 
 layout(std430, binding = 0) buffer Indexes { CellInfo cellInfos[]; };

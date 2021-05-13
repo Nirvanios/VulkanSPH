@@ -2,10 +2,6 @@
 
 #extension GL_EXT_debug_printf : enable
 
-#if !defined(BRUTE) && !defined(GRID)
-#define GRID
-#endif
-
 float M_PI = 3.1415;
 
 int count = 0;
@@ -85,7 +81,6 @@ void main() {
     //Compute mass-density
     float massDensity = 0.0f;
 
-#if defined(GRID)
     for (int z = -1; z < 2; ++z) {
       if (myGridID3D.z + z < 0 || myGridID3D.z + z > gridSize.z) continue;
       for (int y = -1; y < 2; ++y) {
@@ -111,18 +106,6 @@ void main() {
         }
       }
     }
-
-#else
-    count *= -1;
-    float massDensity2 = 0;
-    for (int i = 0; i < simulationInfo.particleCount; ++i) {
-      vec4 positionDiff =
-          particleRecords[gl_GlobalInvocationID.x].position - particleRecords[i].position;
-      if (gl_GlobalInvocationID.x != i)
-        massDensity += simulationInfo.particleMass
-            * defaultKernel(positionDiff, length(positionDiff), simulationInfo.supportRadius);
-    }
-#endif
 
     particleRecords[myId].massDensity = massDensity;
     particleRecords[myId].pressure =

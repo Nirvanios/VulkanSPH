@@ -42,7 +42,6 @@ struct SimulationSPHConfig {
   std::string particleModel;
   glm::vec3 gridOrigin;
   glm::ivec3 gridSize;
-  bool useNNS;
   SPHDataFiles dataFiles;
   std::vector<SPHModel> models;
 };
@@ -78,7 +77,6 @@ struct MarchingCubes{
 
 struct AppConfig {
   bool DEBUG;
-  bool outputToFile;
   glm::vec3 cameraPos;
   glm::vec3 lightPos;
   glm::vec3 lightColor;

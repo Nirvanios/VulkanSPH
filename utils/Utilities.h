@@ -226,7 +226,7 @@ inline std::vector<ParticleRecord> generateParticles(float fluidVolume, int part
         data[id].pressure = -1.0f;
         data[id].temperature = temperature;
         data[id].surfaceArea = 0.0f;
-        data[id].weight = 1.f;
+        data[id].weight = modelOrigin.y > 1 ? 1.f : 1.f;
       }
     }
   }

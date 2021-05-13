@@ -7,8 +7,6 @@
 #include "glm/gtx/component_wise.hpp"
 #include "glm/gtx/string_cast.hpp"
 #include <numbers>
-#include <range/v3/view/for_each.hpp>
-#include <range/v3/view/join.hpp>
 #include <spdlog/spdlog.h>
 
 TestRenderer::TestRenderer(Config &config)
@@ -33,7 +31,6 @@ TestRenderer::TestRenderer(Config &config)
                          gridModel},
                         particles, simulationInfoSPH,
                         getSimulationInfoGridFluid(simulationInfoSPH.supportRadius));
-  //vulkanCore.setSimulationInfo(getSimulationInfoSPH());
 }
 
 void TestRenderer::run() { vulkanCore.run(); }
@@ -163,7 +160,6 @@ SimulationInfoGridFluid TestRenderer::getSimulationInfoGridFluid(float supportRa
       .cellCount = glm::compMul(config.getApp().simulationSPH.gridSize),
       .cellSize = supportRadius,
       .diffusionCoefficient = 0.001,
-      .boundaryScale = 1,
       .specificInfo = 0,
       .heatConductivity = 0.62,//TODO config
       .heatCapacity = 4.179,

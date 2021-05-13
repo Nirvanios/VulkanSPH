@@ -9,7 +9,7 @@ layout(push_constant) uniform GridSimulationInfoUniform {
   int cellCount;
   float cellSize;
   float diffusionCoefficient;
-  int boundaryScale;
+
   uint specificInfo;
   float heatConductivity;
   float heatCapacity;

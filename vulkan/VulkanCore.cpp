@@ -598,6 +598,9 @@ void VulkanCore::drawFrame() {
   if (simulationState == SimulationState::SingleStep) {
     simulationState = SimulationState::Stopped;
   }
+/*  if(simStep == 1){
+    vulkanSPH->setWeight(1.0);
+  }*/
 }
 void VulkanCore::recreateSwapchain() {
   window.checkMinimized();

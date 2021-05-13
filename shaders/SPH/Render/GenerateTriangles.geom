@@ -229,9 +229,9 @@ void main() {
               uint currentGridID = VEC_TO_INDEX_SPH(currentGridID3D);
               int sortedID = cellInfos[currentGridID].indexes;
 
-              if (myIdmc == idToCheck)
+/*               if (myIdmc == idToCheck)
                 debugPrintfEXT("myIdmc: %u, currentGridID: %d, currentGridID3D: %v3d", myIdmc,
-                               currentGridID, currentGridID3D);
+                               currentGridID, currentGridID3D); */
 
               if (sortedID == -1) { continue; }
 
@@ -243,11 +243,11 @@ void main() {
 
                   const vec4 neighbourPosition = particleRecords[neighbourID].position;
                   vec4 positionDiff = myPosition - neighbourPosition;
-
+/* 
                   if (myIdmc == idToCheck)
                     debugPrintfEXT(
                         "myIdsph: %u, myPosition: %v4f, neighbourPosition: %v4f, positionDiff: %f",
-                        myIdmc, myPosition, neighbourPosition, length(positionDiff.xyz));
+                        myIdmc, myPosition, neighbourPosition, length(positionDiff.xyz)); */
                   if (length(positionDiff.xyz) < simulationInfoSph.supportRadius) {
 
                     float neighbourWeightedMass =
@@ -281,11 +281,11 @@ void main() {
         }
       }
       normal[j % 3] = -normalize(positiveGradient - negativeGradient);
-      if (myIdmc == idToCheck)
+     /*  if (myIdmc == idToCheck)
         debugPrintfEXT("myIdmc: %u, negativeGradient: %v3f", myIdmc, negativeGradient);
       if (myIdmc == idToCheck)
         debugPrintfEXT("myIdmc: %u, positiveGradient: %v3f", myIdmc, positiveGradient);
-      if (myIdmc == idToCheck) debugPrintfEXT("myIdmc: %d, normal: %v3f", myIdmc, normal[j % 3]);
+      if (myIdmc == idToCheck) debugPrintfEXT("myIdmc: %d, normal: %v3f", myIdmc, normal[j % 3]); */
     }
 
     /*     vec3 normal =
