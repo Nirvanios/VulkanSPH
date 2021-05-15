@@ -9,7 +9,7 @@ lightColor = [1.0,1.0,1.0]
 MarchingCubes = {threshold=0.5,detail=2}
 [App.simulationSPH]
 gridSize = [20,20,20]
-gasStiffness = 10.0
+gasStiffness = 100.0
 heatCapacity = 4.1790000000000003
 timeStep = 0.001
 useNNS = true

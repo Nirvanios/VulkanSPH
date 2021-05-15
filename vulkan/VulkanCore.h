@@ -88,6 +88,10 @@ class VulkanCore {
   Utilities::Flags<RecordingState> recordingStateFlags{{RecordingState::Stopped}};
   Visualization textureVisualization = Visualization::None;
 
+  plf::nanotimer timer;
+  double avgTimeSPH;
+  double avgTimeGrid;
+
   double time = 0;
   uint steps = 0;
   bool initSPH = true;

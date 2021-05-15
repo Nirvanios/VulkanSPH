@@ -20,6 +20,7 @@ class SimulationUI {
   using ObserverPtrText = std::experimental::observer_ptr<pf::ui::ig::Text>;
   using ObserverPtrButton = std::experimental::observer_ptr<pf::ui::ig::Button>;
   using ObserverPtrWindow = std::experimental::observer_ptr<pf::ui::ig::Window>;
+  using ObserverPtrTabBar = std::experimental::observer_ptr<pf::ui::ig::TabBar>;
 
  public:
   SimulationUI();
@@ -67,6 +68,9 @@ class SimulationUI {
  private:
   std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> imgui;
   ObserverPtrWindow windowMain;
+  ObserverPtrWindow windowSettingsSimulation;
+  ObserverPtrTabBar tabBarSettingsSimulation;
+  ObserverPtrWindow windowSettingsVisualization;
   ObserverPtrText labelFPS;
   ObserverPtrText labelFrameTime;
   ObserverPtrText labelSimStep;
@@ -107,13 +111,13 @@ class SimulationUI {
   void initRecordingGroup(pf::ui::ig::Window &parent);
   void initVisualizationGroup(pf::ui::ig::Window &parent,
                               const std::shared_ptr<Swapchain> &swapchain);
-  void initSettingsGroup(pf::ui::ig::Window &parent);
-  void initSettingsSimulationSubtree(pf::ui::ig::Group &parent);
-  void initSettingsVisualSubtree(pf::ui::ig::Group &parent);
-  void initSettingsSimulationSPHSubtree(pf::ui::ig::Tree &parent);
-  void initSettingsSimulationGridSubtree(pf::ui::ig::Tree &parent);
-  void initSettingsSimulationEvaporationSubtree(pf::ui::ig::Tree &parent);
-  void initSettingsSimulationOtherSubtree(pf::ui::ig::Tree &parent);
+  void initSettingsGroup();
+  void initSettingsSimulationSubtree();
+  void initSettingsVisualSubtree();
+  void initSettingsSimulationSPHSubtree();
+  void initSettingsSimulationGridSubtree();
+  void initSettingsSimulationEvaporationSubtree();
+  void initSettingsSimulationOtherSubtree();
 };
 
 #endif//VULKANAPP_SIMULATIONUI_H

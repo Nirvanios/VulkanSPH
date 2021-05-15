@@ -6,7 +6,6 @@ cameraPos = [0.55711692571640015,2.5135376453399658,5.0251641273498535]
 lightPos = [0.0,5.0,0.0]
 lightColor = [1.0,1.0,1.0]
 MarchingCubes = {threshold=0.5,detail=2}
-
 [App.simulationSPH]
 viscosityCoefficient = 3.5
 temperature = 100.0
@@ -19,11 +18,10 @@ particleModel = "/home/aka/CLionProjects/VulkanSPH/resources/sphere.obj"
 heatConductivity = 0.62
 gridOrigin = [0.0,0.0,0.0]
 fluidDensity = 998.28999999999996
+datafiles = {}
 Model = [
 {particleModelOrigin=[0.0,0.0,0.0],particleModelSize=[37,4,37]},
 ]
-[App.simulationSPH.datafiles]
-
 [App.Evaporation]
 coefficientA = 0.001
 coefficientB = 0.0

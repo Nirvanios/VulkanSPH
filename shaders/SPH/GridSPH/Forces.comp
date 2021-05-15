@@ -157,7 +157,7 @@ void main() {
                       * viscosityLaplacianKernel(positionDiff, length(positionDiff),
                                                  simulationInfo.supportRadius);
                   colorField += (neighbourWeightedMass / particleRecords[neighbourID].massDensity)
-                      * defaultKernel(positionDiff, length(positionDiff),
+                      * laplacianKernel(positionDiff, length(positionDiff),
                                       simulationInfo.supportRadius);
                   inwardSurfaceNormal +=
                       (neighbourWeightedMass / particleRecords[neighbourID].massDensity)

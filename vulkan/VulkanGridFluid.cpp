@@ -97,6 +97,7 @@ vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &inSemaphore)
   waitFence();
 
   submit(Stages::boundaryHandleVec2, fence.get(), std::nullopt, outSemaphore);
+  //waitFence();
 
   return vk::UniqueSemaphore(outSemaphore, device->getDevice().get());
 }

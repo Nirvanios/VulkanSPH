@@ -1,29 +1,30 @@
 [Vulkan]
 pathToShaders = "/home/aka/CLionProjects/VulkanSPH/shaders/"
-window = {height=720,width=1280,name="VulkanApp"}
+window = { height = 720, width = 1280, name = "VulkanApp" }
 [App]
-lightColor = [1.0,1.0,1.0]
-lightPos = [0.0,5.0,0.0]
-cameraPos = [-5.0525660514831543,6.5159049034118652,5.8123760223388672]
+lightColor = [1.0, 1.0, 1.0]
+lightPos = [0.0, 5.0, 0.0]
+cameraPos = [-5.0525660514831543, 6.5159049034118652, 5.8123760223388672]
 yaw = 318.79898071289062
 pitch = -33.500045776367188
 DEBUG = true
-Evaporation = {coefficientB=0.0,coefficientA=0.001}
+Evaporation = { coefficientB = 0.0, coefficientA = 0.001 }
 [App.simulationSPH]
-fluidVolume = 4.0
+fluidVolume = 40.0
 temperature = 100.0
 viscosityCoefficient = 3.5
 fluidDensity = 998.28999999999996
-gridOrigin = [0.0,0.0,0.0]
+gridOrigin = [0.0, 0.0, 0.0]
 heatConductivity = 0.62
 particleModel = "/home/aka/CLionProjects/VulkanSPH/resources/sphere.obj"
-timeStep = 0.01
+timeStep = 0.001
 heatCapacity = 4.1790000000000003
-gasStiffness = 10.0
-gridSize = [20,60,20]
-datafiles = {}
+gasStiffness = 100.0
+gridSize = [20, 60, 20]
+datafiles = { }
 Model = [
-{particleModelSize=[10,10,10],particleModelOrigin=[0.75,3.0,0.75]},
+    { particleModelOrigin = [0.0, 0.0, 0.0], particleModelSize = [37, 15, 37], },
+    { particleModelSize = [10, 15, 10], particleModelOrigin = [0.75, 2.5, 0.75] },
 ]
 [App.MarchingCubes]
 detail = 2
@@ -38,6 +39,6 @@ buoyancyBeta = 0.10000000000000001
 heatCapacity = 4.1790000000000003
 specificGasConstant = 461.5
 cellModel = "/home/aka/CLionProjects/VulkanSPH/resources/plane.obj"
-datafiles = {}
+datafiles = { }
 
 

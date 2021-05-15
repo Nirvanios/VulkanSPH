@@ -455,6 +455,7 @@ void VulkanCore::drawFrame() {
   if (Utilities::isIn(simulationState,
                       {SimulationState::SingleStep, SimulationState::Simulating})) {
     if (Utilities::isIn(simulationType, {SimulationType::SPH, SimulationType::Combined})) {
+      timer.start();
       semaphoreAfterSort[currentFrame] = vulkanGridSPH->run(semaphoreBeforeSPH[currentFrame]);
 
       semaphoreAfterMassDensity[currentFrame] =
@@ -463,13 +464,20 @@ void VulkanCore::drawFrame() {
           vulkanSPH->run(semaphoreAfterMassDensity[currentFrame], SPHStep::force);
       semaphoreAfterSimulationSPH[currentFrame] =
           vulkanSPH->run(semaphoreAfterForces[currentFrame], SPHStep::advect);
+      double results = timer.get_elapsed_ms();
+      avgTimeSPH += results;
+      std::cout << "SPH: " << results << "ms. AVG: " << avgTimeSPH / simStep << "ms"  << std::endl;
     }
     if (Utilities::isIn(simulationType, {SimulationType::Grid, SimulationType::Combined})) {
       {
+        timer.start();
         semaphoreAfterSimulationGrid[currentFrame] =
             vulkanGridFluid->run(semaphoreBeforeGrid[currentFrame]);
         device->getDevice()->waitForFences(vulkanGridFluid->getFenceAfterCompute().get(), VK_TRUE,
                                            UINT64_MAX);
+        double results = timer.get_elapsed_ms();
+        avgTimeGrid += results;
+        std::cout << "Grid: " << results << "ms. AVG: " << avgTimeGrid / simStep << "ms"  << std::endl;
         vulkanGridFluidRender->updateDensityBuffer(vulkanGridFluid->getBufferValuesNew());
       }
       if (simulationType == SimulationType::Combined) {

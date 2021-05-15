@@ -12,7 +12,7 @@ GlfwWindow::GlfwWindow(const std::string &windowName, const int width, const int
   this->height = height;
   glfwInit();
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-  glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+  glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
   window = std::unique_ptr<GLFWwindow, DestroyglfwWin>(
       glfwCreateWindow(width, height, windowName.c_str(), nullptr, nullptr));
   glfwSetWindowUserPointer(window.get(), this);
@@ -61,4 +61,7 @@ void GlfwWindow::mousePositionCallback(GLFWwindow *window, double xpos, double y
   const auto windowPtr = reinterpret_cast<GlfwWindow *>(glfwGetWindowUserPointer(window));
 
   windowPtr->notifyMouseMovement({.xPosition = xpos, .yPosition = ypos});
+}
+void GlfwWindow::setCloseFlag() const {
+    glfwSetWindowShouldClose(window.get(), GL_TRUE);
 }

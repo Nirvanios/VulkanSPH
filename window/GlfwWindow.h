@@ -31,6 +31,7 @@ class GlfwWindow : public EventDispatchingWindow {
   [[nodiscard]] int getHeight() const;
   void setFramebufferCallback();
   void checkMinimized();
+  void setCloseFlag() const;
 
  private:
   Window window;
