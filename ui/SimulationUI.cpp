@@ -20,15 +20,16 @@ void SimulationUI::init(const std::shared_ptr<Device> &device,
                         const vk::UniqueSurfaceKHR &surface,
                         const std::shared_ptr<Swapchain> &swapchain, const GlfwWindow &window) {
   using namespace pf::ui;
+
+  windowSize = {swapchain->getExtentWidth(), swapchain->getExtentHeight()};
+
   imgui = std::make_shared<ig::ImGuiGlfwVulkan>(device, instance, renderPass, surface, swapchain,
                                                 window.getWindow().get(), ImGuiConfigFlags{},
                                                 toml::table{});
   /**Info window*/
-  windowMain = std::experimental::observer_ptr<ig::Window>(
+  windowMain = std::experimental::make_observer(
       &imgui->createWindow("window_main", "Simulation"));
-  windowMain->setPosition(ImVec2{5, 5});
-  windowMain->setSize(ImVec2{static_cast<float>(swapchain->getExtentWidth() - 10),
-                             static_cast<float>(swapchain->getExtentHeight() - 10)});
+
   auto &menuBar = windowMain->getMenuBar();
   auto &barFile = menuBar.addSubmenu("bar_File", "File");
   barFile.addItem("item_FileExit", "Exit").addClickListener([&] { window.setCloseFlag(); });
@@ -64,6 +65,7 @@ void SimulationUI::init(const std::shared_ptr<Device> &device,
   initSettingsGroup();
 
   initVisualizationGroup(*windowMain, swapchain);
+
 }
 std::function<void(const FPSCounter &, int, float, float)> SimulationUI::getFPScallback() const {
   return [this](auto fpsCounter, int simStep, float yaw, float pitch) {
@@ -122,7 +124,21 @@ void SimulationUI::setOnButtonSimulationResetClick(
 }
 bool SimulationUI::isHovered() { return imgui->isWindowHovered(); }
 bool SimulationUI::isKeyboardCaptured() { return imgui->isKeyboardCaptured(); }
-void SimulationUI::render() { imgui->render(); }
+void SimulationUI::render() {
+  imgui->render();
+  if(!rendered){
+    windowMain->setPosition(ImVec2{5, 5});
+    windowMain->setSize(ImVec2{static_cast<float>(300),
+                               static_cast<float>(windowSize.y - 10)});
+    windowSettingsSimulation->setVisibility(pf::ui::ig::Visibility::Invisible);
+    windowSettingsVisualization->setVisibility(pf::ui::ig::Visibility::Invisible);
+    windowSettingsSimulation->setSize(ImVec2{static_cast<float>(500),
+                                             static_cast<float>(255)});
+    windowSettingsVisualization->setSize(ImVec2{static_cast<float>(400),
+                                             static_cast<float>(320)});
+  }
+  rendered = true;
+}
 void SimulationUI::addToCommandBuffer(const vk::UniqueCommandBuffer &commandBuffer) {
   imgui->addToCommandBuffer(commandBuffer);
 }
@@ -215,7 +231,7 @@ void SimulationUI::initSettingsVisualSubtree() {
 
   windowSettingsVisualization = std::experimental::make_observer(
       &imgui->createWindow("window_visualSettings", "Visualization Settings"));
-  windowSettingsVisualization->setVisibility(ig::Visibility::Invisible);
+  //windowSettingsVisualization->setVisibility(ig::Visibility::Invisible);
 
   auto &tabBarVisual = windowSettingsVisualization->createChild<ig::TabBar>("tabBar_visual");
   auto &tabLight = tabBarVisual.addTab("tab_visualLight", "Light");
@@ -223,7 +239,7 @@ void SimulationUI::initSettingsVisualSubtree() {
 
   /**Light*/
   auto &boxLight = tabLight.createChild<ig::BoxLayout>(
-      ig::uniqueId(), ig::LayoutDirection::TopToBottom, ImVec2{-1, 260});
+      ig::uniqueId(), ig::LayoutDirection::TopToBottom, ImVec2{-1, 235});
   boxLight.setDrawBorder(true);
 
   boxLight.createChild<ig::Text>(ig::uniqueId(), "Light position");
@@ -293,7 +309,7 @@ void SimulationUI::initSettingsSimulationSubtree() {
 
   windowSettingsSimulation = std::experimental::make_observer(
       &imgui->createWindow("windowSettingsSimulation", "Settings"));
-  windowSettingsSimulation->setVisibility(ig::Visibility::Invisible);
+  //windowSettingsSimulation->setVisibility(ig::Visibility::Invisible);
   tabBarSettingsSimulation = std::experimental::make_observer(
       &windowSettingsSimulation->createChild<ig::TabBar>("tabBar_Settings"));
 

@@ -81,6 +81,8 @@ class SimulationUI {
   ObserverPtrButton buttonReset;
   ObserverPtrButton buttonControl;
 
+  glm::ivec2 windowSize;
+
   std::function<void(SimulationState)> onButtonSimulationControlClick;
   std::function<void(SimulationState)> onButtonSimulationStepClick;
   std::function<void(SimulationState)> onButtonSimulationResetClick;
@@ -99,6 +101,8 @@ class SimulationUI {
 
   Settings settings;
   FragmentInfo fragmentInfo;
+
+  bool rendered = false;
 
   SimulationState simulationState;
   SimulationType selectedSimulationType;
