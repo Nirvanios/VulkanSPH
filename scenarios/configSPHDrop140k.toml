@@ -1,0 +1,44 @@
+[App]
+DEBUG = true
+pitch = -29.800043106079102
+yaw = 321.19912719726562
+cameraPos = [-7.0719494819641113,7.66461181640625,6.842078685760498]
+lightPos = [0.0,5.0,0.0]
+lightColor = [1.0,1.0,1.0]
+MarchingCubes = {threshold=0.5,detail=2}
+[App.simulationSPH]
+gridSize = [40,200,40]
+gasStiffness = 100.0
+heatCapacity = 4.1790000000000003
+timeStep = 0.001
+particleModel = "/home/aka/CLionProjects/VulkanSPH/resources/sphere.obj"
+heatConductivity = 0.62
+gridOrigin = [0.0,0.0,0.0]
+fluidDensity = 998.28999999999996
+viscosityCoefficient = 3.5
+temperature = 100.0
+fluidVolume = 40.0
+datafiles = {}
+Model = [
+{particleModelSize=[65,33,65],particleModelOrigin=[0.0,0.0,0.0]},
+{particleModelOrigin=[1.5,10.0,1.5],particleModelSize=[10,15,10]},
+]
+[App.Evaporation]
+coefficientA = 0.001
+coefficientB = 0.0
+
+[App.simulationGridFluid]
+cellModel = "/home/aka/CLionProjects/VulkanSPH/resources/plane.obj"
+specificGasConstant = 461.5
+heatCapacity = 4.1790000000000003
+buoyancyBeta = 0.10000000000000001
+buoyancyAlpha = 9.8000000000000007
+heatConductivity = 0.62
+diffusionCoefficient = 0.001
+ambientTemperature = 25.0
+datafiles = {}
+
+[Vulkan]
+pathToShaders = "/home/aka/CLionProjects/VulkanSPH/shaders/"
+window = {name="VulkanApp",width=1280,height=720}
+

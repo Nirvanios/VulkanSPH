@@ -212,8 +212,9 @@ void main() {
                        vec3(inPosition[0] + (edgeInterpolation * halfEdge * gridInfoMC.cellSize)
                             + (fullEdge * gridInfoMC.cellSize))); */
 
-      const float d = simulationInfoSph.supportRadius
-          / (gridInfoMC.gridSize.x * gridInfoMC.gridSize.y * gridInfoMC.gridSize.z);
+      float d = (simulationInfoSph.supportRadius * gridInfoMC.detail)
+          / (gridInfoMC.gridSize.x * gridInfoMC.gridSize.y * gridInfoMC.gridSize.z); 
+      d = d  < 0.000003 ? 0.000003 : d;
 
       vec3 positiveGradient = vec3(0);
       vec3 negativeGradient = vec3(0);

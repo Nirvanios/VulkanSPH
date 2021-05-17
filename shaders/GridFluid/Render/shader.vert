@@ -149,7 +149,7 @@ void main() {
 
   gl_Position = ubo.proj * ubo.view * ubo.model * position;
   //gl_Position *= int(density[myId].x != 0);
-  fragColor = vec4(color, (density[vertexId].x / volume) * int(cellType == CELL_TYPE_AIR));
+  fragColor = vec4(color, (density[vertexId].x / volume) /* * int(cellType == CELL_TYPE_AIR) */);
   outPosition = gl_Position.xyz;
   outNormal = inNormal;
 }

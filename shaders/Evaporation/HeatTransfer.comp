@@ -147,6 +147,10 @@ void main() {
       vec3 alpha =
           (particleRecords[myId].position.xyz - particleGridIndex3D) / simulationInfoGrid.cellSize;
 
+                if (isnan(alpha.x)) {
+            debugPrintfEXT("myId: %d, v1: %v3f, v2: %v4f, TEMPERATURE IS NaN!!!!!", myId, particleRecords[myId].position.xyz, relativePosition);
+          }
+
       float particleHeatChange = 0.0;
       for (int i = 0; i < 6; ++i) {
         uint cellId = INDEX_TO_BOUNDARY_INDEX(particleRecords[myId].gridID + neighboursBoundary[i]);
@@ -157,7 +161,11 @@ void main() {
               ((4 * simulationInfoSPH.heatConductivity * simulationInfoGrid.heatConductivity)
                / (simulationInfoGrid.heatConductivity + simulationInfoSPH.heatConductivity))
               * (gridDensityHeatBufferOld[cellId].y - particleRecords[myId].temperature)
-              * (1 * int(i % 2 == 0) + (alpha[int(i / 2)]) * (1 - (2 * int(i % 2 == 0))));
+              //* (1 * int(i % 2 == 0) + (alpha[int(i / 2)]) * (1 - (2 * int(i % 2 == 0))));
+              * ((alpha[int(i / 2)]) * int(i % 2 == 0) + (1 - alpha[int(i / 2)]) * int(i % 2 == 1));
+/*           if (isnan(particleHeatChange)) {
+            debugPrintfEXT("myId: %d, i: %d, value1: %f, value2: %f, value3: %f, alpha: %v3f, TEMPERATURE IS NaN!!!!!", myId, i, (alpha[int(i / 2)]) * int(i % 2 == 0), (alpha[int(i / 2)]),  int(i % 2 == 1), alpha);
+          } */
         }
       }
 

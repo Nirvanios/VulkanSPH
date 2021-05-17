@@ -216,7 +216,7 @@ void VulkanCore::recordCommandBuffers(uint32_t imageIndex, Utilities::Flags<Draw
   auto &textureFramebuffers = framebuffersTexture->getFramebuffers();
   auto &commandBufferGraphics = commandBuffersGraphic[imageIndex];
   DrawInfo drawInfo{.drawType = magic_enum::enum_integer(DrawType::Particles),
-                    .visualization = magic_enum::enum_integer(Visualization::None),
+                    .visualization = magic_enum::enum_integer(Visualization::Density),
                     .supportRadius = simulationInfoSPH.supportRadius};
   vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse,
                                        .pInheritanceInfo = nullptr};
@@ -455,7 +455,7 @@ void VulkanCore::drawFrame() {
   if (Utilities::isIn(simulationState,
                       {SimulationState::SingleStep, SimulationState::Simulating})) {
     if (Utilities::isIn(simulationType, {SimulationType::SPH, SimulationType::Combined})) {
-      timer.start();
+      //timer.start();
       semaphoreAfterSort[currentFrame] = vulkanGridSPH->run(semaphoreBeforeSPH[currentFrame]);
 
       semaphoreAfterMassDensity[currentFrame] =
@@ -464,20 +464,20 @@ void VulkanCore::drawFrame() {
           vulkanSPH->run(semaphoreAfterMassDensity[currentFrame], SPHStep::force);
       semaphoreAfterSimulationSPH[currentFrame] =
           vulkanSPH->run(semaphoreAfterForces[currentFrame], SPHStep::advect);
-      double results = timer.get_elapsed_ms();
+/*      double results = timer.get_elapsed_ms();
       avgTimeSPH += results;
-      std::cout << "SPH: " << results << "ms. AVG: " << avgTimeSPH / simStep << "ms"  << std::endl;
+      std::cout << "SPH: " << results << "ms. AVG: " << avgTimeSPH / simStep << "ms"  << std::endl;*/
     }
     if (Utilities::isIn(simulationType, {SimulationType::Grid, SimulationType::Combined})) {
       {
-        timer.start();
+        //timer.start();
         semaphoreAfterSimulationGrid[currentFrame] =
             vulkanGridFluid->run(semaphoreBeforeGrid[currentFrame]);
         device->getDevice()->waitForFences(vulkanGridFluid->getFenceAfterCompute().get(), VK_TRUE,
                                            UINT64_MAX);
-        double results = timer.get_elapsed_ms();
+/*        double results = timer.get_elapsed_ms();
         avgTimeGrid += results;
-        std::cout << "Grid: " << results << "ms. AVG: " << avgTimeGrid / simStep << "ms"  << std::endl;
+        std::cout << "Grid: " << results << "ms. AVG: " << avgTimeGrid / simStep << "ms"  << std::endl;*/
         vulkanGridFluidRender->updateDensityBuffer(vulkanGridFluid->getBufferValuesNew());
       }
       if (simulationType == SimulationType::Combined) {
@@ -606,7 +606,7 @@ void VulkanCore::drawFrame() {
   if (simulationState == SimulationState::SingleStep) {
     simulationState = SimulationState::Stopped;
   }
-/*  if(simStep == 1){
+/*  if(simStep == 15000){
     vulkanSPH->setWeight(1.0);
   }*/
 }

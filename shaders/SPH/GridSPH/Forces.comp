@@ -233,12 +233,12 @@ void main() {
     particleRecords[myId].force = internalForces + externalForces;
     particleRecords[myId].temperature +=
         (temperature * simulationInfo.timeStep) / simulationInfo.heatCapacity;
-    if (isnan(particleRecords[myId].temperature)) {
+/*     if (isnan(particleRecords[myId].temperature)) {
       debugPrintfEXT("myId: %d, TEMPERATURE IS NaN!!!!!", myId);
     }
     if (isinf(particleRecords[myId].temperature)) {
       debugPrintfEXT("myId: %d, TEMPERATURE IS inf!!!!!", myId);
-    }
+    } */
     //if(colorField < -10)
     //debugPrintfEXT("myId: %d, colorField: %e", myId, colorField);
     //debugPrintfEXT("myId: %d, dTmp: %e, lastTmp: %e", myId, (temperature * simulationInfo.timeStep) / simulationInfo.heatCapacity, particleRecords[myId].temperature);

@@ -20,11 +20,11 @@ particleModel = "/home/aka/CLionProjects/VulkanSPH/resources/sphere.obj"
 timeStep = 0.001
 heatCapacity = 4.1790000000000003
 gasStiffness = 100.0
-gridSize = [55,20,17]
+gridSize = [110,40,25]
 datafiles = {}
 Model = [
-{particleModelSize=[30,30,31],particleModelOrigin=[0.0,0.0,0.0]},
-{particleModelSize=[30,30,31],particleModelOrigin=[2.725,0.0,0.0]},
+{particleModelSize=[45,45,46],particleModelOrigin=[0.0,0.0,0.0]},
+{particleModelSize=[45,45,46],particleModelOrigin=[4.0,0.0,0.0]},
 ]
 [App.MarchingCubes]
 detail = 2

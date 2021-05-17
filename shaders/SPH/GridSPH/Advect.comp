@@ -111,6 +111,11 @@ void main() {
     vec4 newPosition = particleRecords[myId].position + newVelocity * simulationInfo.timeStep;
     newVelocity = (particleRecords[myId].velocity + newVelocity) / 2.0;
 
+
+                if (isnan(newPosition.x)) {
+            debugPrintfEXT("myId: %d, force: %v4f, TEMPERATURE IS NaN!!!!!", myId, particleRecords[myId].massDensity);
+          }
+
     vec3 minBorder = simulationInfo.GridOrigin.xyz + simulationInfo.supportRadius * 0.1;
     vec3 maxBorder =
         minBorder + gridSize * simulationInfo.supportRadius - simulationInfo.supportRadius * 0.2;
