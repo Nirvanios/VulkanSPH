@@ -28,7 +28,7 @@ Pro jiné systémy, případně instalaci ze staženého balíčku, lze navští
 ## Kompilace
 ```bash
 cd src
-make -Bbuild -H. -DCMAKE_CXX_COMPILER="path_to_g++-10"
+cmake -Bbuild -H. -DCMAKE_CXX_COMPILER="path_to_g++-10"
 cmake --build build --target all
 ```
 Tímto vznikne v adresáři `src/build` spustitelný soubor. 
