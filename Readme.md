@@ -1,13 +1,13 @@
-#Kompilace
+# Kompilace
 
 ---
 Celá aplikace byla vyvýjena a kompilována na systému Ubuntu 20.04.
 
-##Potřebné nástroje
+## Potřebné nástroje
 
-###Cmake 3.17 nebo vyšší
-###g++-10
-###Vulkan SDK
+### Cmake 3.17 nebo vyšší
+### g++-10
+### Vulkan SDK
 Instalace pro Ubuntu 20.04
 
     wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
@@ -17,7 +17,7 @@ Instalace pro Ubuntu 20.04
 
 Pro jiné systémy, případně instalaci ze staženého balíčku lze navštívit stránku https://vulkan.lunarg.com/ .
 
-##Potřebné knihovny
+## Potřebné knihovny
 * libglfw3
 * ffmpeg
 * binutils-dev
@@ -25,7 +25,7 @@ Pro jiné systémy, případně instalaci ze staženého balíčku lze navštív
 * libavcodec-dev
 * libswscale
 
-##Kompilace
+## Kompilace
 ```bash
 cd src
 make -Bbuild -H. -DCMAKE_CXX_COMPILER="path_to_g++-10"
@@ -33,7 +33,7 @@ cmake --build build --target all
 ```
 Tímto vznikne v adresáří `src/build` spustitelný soubor. 
 
-#Spouštění
+# Spouštění
 
 ---
 
@@ -46,23 +46,23 @@ Pro správný běh programu je nutné mít spravně vyplněné cesty v konfigura
 Jedná se o parametry `pathToShaders`, `particleModel` a `cellModel`.
 Výchozí hodnoty počítají se složkami `resources` a `shaders` na stejné urovni jako je složka se spustitelným souborem.
 Program zároveň počítá s určitou strukturou těchto složek, takže po změně vnitřního uspořádání nebude program spustitelný.
-#Ovládání
+# Ovládání
 
 ---
 
 * Pohyb v prostrou pomocí šipek či kláves WSAD
 * Pohyb kamery pomocí stisku levého tlačítka a pohybu myši
 
-##GUI
+## GUI
 
-###Hlavní Panel
+### Hlavní Panel
 Hlavní panel obsahuje často používané prvky.
 Veškeré prvky jsou roztříděny do následujících skupin. 
 
-####Info
+#### Info
 Jedná se pouze o informační panel zobrazující několik důležitých informací, jako je počet snímků za sekundu, krok simulace a jiné.
 
-####Ovládání simulace
+#### Ovládání simulace
 Ovládání samotné simulace. 
 Zde může uživatel spouštět a krokovat samotnou simulaci. 
 Zároveň je zde možnost přepínat mezi jednotlivými druhy simulace a zobrazováním.
@@ -71,7 +71,7 @@ Poslední možností je uložení současného stavu simulace pro pozdější na
 Jedná se o poměrně primitivní metodu ukládání obsahu bufferů na disk,
 přičemž není kontrolováno zda uložená data patří k danému scénáři, a proto může dojít k nestabilitě simulace i případnému pádu aplikace.
 
-####Nahrávání
+#### Nahrávání
 Zde je možné pořídit záznam z probíhající simulace.
 Pokud není vyplněn název/cesta souboru je videosoubor vytvořen v aktuální složce s názvem `video.mp4`.
 Nedochází k přepisování souborů a případné duplíkáty dostávají pořadová čísla.
@@ -79,23 +79,23 @@ Nedochází k přepisování souborů a případné duplíkáty dostávají poř
 Je možné i uložit aktuální stav ve formě obrázku. 
 Ty jsou pak vždy ukládány do aktuální složky, přičemž v názvu obsahují aktuiální datum a čas.
 
-####Vizualizace
+#### Vizualizace
 Zde je možné případně vizualizovat hustotu částic za pomocí barevného rozložení.
 
 
-###Nastavení
+### Nastavení
 K nastavení lze přistoupit pomocí horního menu v hlavním panelu. 
-####Nastavení simulace
+#### Nastavení simulace
 Zde je možné měnit parametry simulace. Okno má záložky vztahující se k jednotlivým simulacím. 
 Výchozí hodnoty jsou načítány z konfiguračních souborů. Při změně je důležíté měnit i délku kroku simulace.
 Některá kombinace hodnot vyžadují malý krok, jiné jsou stabilní i s větším krokem.
 Změny se projeví až po uložení, při uložení dojde k resetování simulace.
 
-####Nastavení vykreslování
+#### Nastavení vykreslování
 V tomto okně je možné měnit vizuální stránku. 
 Je možné měnit pozici světla, ale i barvu kapaliny, či marametry algoritmu Marching cubes.
 
-#Scénáře
+# Scénáře
 K aplikaci je předpřipraveno několik scénářů/konfiguračních souborů.
 Lze samozřejmě připravit několik dalších, nicméně je nutné mít na mysli, 
 že některá kombinace parametrů nemusí produkovat správné výsledky.
