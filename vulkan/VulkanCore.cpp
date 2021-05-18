@@ -255,8 +255,7 @@ void VulkanCore::recordCommandBuffers(uint32_t imageIndex, Utilities::Flags<Draw
                                            vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawInfo),
                                            &drawInfo);
 
-      commandBufferGraphics->drawIndexed(indicesSizes[0],
-                                         simulationInfoSPH.particleCount, 0, 0, 0);
+      commandBufferGraphics->drawIndexed(indicesSizes[0], simulationInfoSPH.particleCount, 0, 0, 0);
     }
 
     if (stageRecord.has(DrawType::Grid)) {
@@ -305,8 +304,7 @@ void VulkanCore::recordCommandBuffers(uint32_t imageIndex, Utilities::Flags<Draw
                                            vk::ShaderStageFlagBits::eVertex, 0, sizeof(DrawInfo),
                                            &drawInfo);
 
-      commandBufferGraphics->drawIndexed(indicesSizes[0],
-                                         simulationInfoSPH.particleCount, 0, 0, 0);
+      commandBufferGraphics->drawIndexed(indicesSizes[0], simulationInfoSPH.particleCount, 0, 0, 0);
       commandBufferGraphics->endRenderPass();
 
       imageColorTexture[imageIndex]->transitionImageLayout(
@@ -434,8 +432,8 @@ void VulkanCore::drawFrame() {
     case SimulationType::Combined:
     case SimulationType::SPH:
       if (renderType == RenderType::MarchingCubes) {
-        drawFlags =
-            Utilities::Flags<DrawType>{std::vector<DrawType>{DrawType::Grid, DrawType::ToFile}};
+        drawFlags = Utilities::Flags<DrawType>{
+            std::vector<DrawType>{DrawType::Grid, DrawType::ToFile, DrawType::ToTexture}};
       } else {
         drawFlags = Utilities::Flags<DrawType>{std::vector<DrawType>{
             DrawType::Particles, DrawType::Grid, DrawType::ToTexture, DrawType::ToFile}};
@@ -464,7 +462,7 @@ void VulkanCore::drawFrame() {
           vulkanSPH->run(semaphoreAfterMassDensity[currentFrame], SPHStep::force);
       semaphoreAfterSimulationSPH[currentFrame] =
           vulkanSPH->run(semaphoreAfterForces[currentFrame], SPHStep::advect);
-/*      double results = timer.get_elapsed_ms();
+      /*      double results = timer.get_elapsed_ms();
       avgTimeSPH += results;
       std::cout << "SPH: " << results << "ms. AVG: " << avgTimeSPH / simStep << "ms"  << std::endl;*/
     }
@@ -475,7 +473,7 @@ void VulkanCore::drawFrame() {
             vulkanGridFluid->run(semaphoreBeforeGrid[currentFrame]);
         device->getDevice()->waitForFences(vulkanGridFluid->getFenceAfterCompute().get(), VK_TRUE,
                                            UINT64_MAX);
-/*        double results = timer.get_elapsed_ms();
+        /*        double results = timer.get_elapsed_ms();
         avgTimeGrid += results;
         std::cout << "Grid: " << results << "ms. AVG: " << avgTimeGrid / simStep << "ms"  << std::endl;*/
         vulkanGridFluidRender->updateDensityBuffer(vulkanGridFluid->getBufferValuesNew());
@@ -606,7 +604,7 @@ void VulkanCore::drawFrame() {
   if (simulationState == SimulationState::SingleStep) {
     simulationState = SimulationState::Stopped;
   }
-/*  if(simStep == 15000){
+  /*  if(simStep == 15000){
     vulkanSPH->setWeight(1.0);
   }*/
 }
@@ -932,7 +930,8 @@ void VulkanCore::rebuildRenderPipelines() {
   }
 
   pipelineBuilder.addRenderPass("toSwapchain", renderPassSPH.build())
-      .addRenderPass("toTexture", renderPassSPH.build());
+      .addRenderPass("toTexture",
+                     renderPassSPH.setColorAttachmentLoadOp(vk::AttachmentLoadOp::eClear).build());
   pipelineGraphics = pipelineBuilder.build();
 
   vulkanGridFluidRender->rebuildPipeline(true);
@@ -944,10 +943,7 @@ void VulkanCore::resetSimulation(std::optional<Settings> settings) {
   } else {
     vulkanSPH->resetBuffers();
   }
-  /*  if(settings.has_value() && volume != settings->volumeSPH){
-    volume = settings->volumeSPH;
-    //TODO recreate grid/sph
-  }*/
+
   vulkanGridFluid->resetBuffers();
   initSPH = true;
   computeColors = true;

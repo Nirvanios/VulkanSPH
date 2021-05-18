@@ -11,7 +11,7 @@
 #include <span>
 #include <vulkan/vulkan.hpp>
 
-struct PipelineLayoutBindingInfo {//TODO Separate
+struct PipelineLayoutBindingInfo {
   uint32_t binding;
   vk::DescriptorType descriptorType;
   uint32_t descriptorCount;

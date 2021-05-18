@@ -4,7 +4,7 @@
 
 #include "spdlog/spdlog.h"
 
-#include "Renderers/TestRenderer.h"
+#include "Renderers/SimulatorRenderer.h"
 #include "utils/Config.h"
 
 void setupLogger(bool debug = false) {
@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
   Config config(program.get<std::filesystem::path>("-c"));
   setupLogger(config.getApp().DEBUG);
 
-  TestRenderer testRenderer{config};
+  SimulatorRenderer testRenderer{config};
 
   try {
     testRenderer.run();

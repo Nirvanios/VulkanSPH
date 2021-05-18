@@ -40,8 +40,9 @@ class Image {
       throw std::runtime_error("Reading from image without accessible memory!");
     }
 
-    //TODO Fromat Size
-    auto size = 4 * width * height;
+    //TODO Image fromat Size
+    auto formatSize = 4;
+    auto size = formatSize * width * height;
     std::vector<std::byte> data{};
     data.resize(size);
     auto bufferData = device->getDevice()->mapMemory(imageMemory->get(), 0, VK_WHOLE_SIZE);

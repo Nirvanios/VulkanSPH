@@ -2,16 +2,16 @@
 // Created by Igor Frank on 01.11.20.
 //
 
-#ifndef VULKANAPP_TESTRENDERER_H
-#define VULKANAPP_TESTRENDERER_H
+#ifndef VULKANAPP_SIMULATORRENDERER_H
+#define VULKANAPP_SIMULATORRENDERER_H
 
 #include "../Third Party/Camera.h"
 #include "../utils/Config.h"
 #include "../vulkan/VulkanCore.h"
-class TestRenderer {
+class SimulatorRenderer {
  public:
-  explicit TestRenderer(Config &config);
-  virtual ~TestRenderer();
+  explicit SimulatorRenderer(Config &config);
+  virtual ~SimulatorRenderer();
   void run();
 
  private:
@@ -38,4 +38,4 @@ class TestRenderer {
   [[nodiscard]] SimulationInfoGridFluid getSimulationInfoGridFluid(float supportRadius);
 };
 
-#endif//VULKANAPP_TESTRENDERER_H
+#endif//VULKANAPP_SIMULATORRENDERER_H

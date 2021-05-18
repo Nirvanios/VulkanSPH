@@ -273,8 +273,8 @@ VulkanGridFluid::VulkanGridFluid(const Config &config,
 
   fence = device->getDevice()->createFenceUnique({});
 
-  semaphores.resize(10000);//TODO pool
-  std::generate_n(semaphores.begin(), 10000,
+  semaphores.resize(210);//TODO pool
+  std::generate_n(semaphores.begin(), 210,
                   [&] { return device->getDevice()->createSemaphoreUnique({}); });
 }
 

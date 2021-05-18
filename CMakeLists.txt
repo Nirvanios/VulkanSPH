@@ -138,11 +138,11 @@ add_executable(VulkanApp main.cpp
         vulkan/types/Pipeline.cpp vulkan/types/Pipeline.h vulkan/types/Framebuffers.cpp vulkan/types/Framebuffers.h
         window/Callbacks.h vulkan/types/Types.h vulkan/builders/BufferBuilder.cpp vulkan/builders/BufferBuilder.h
         vulkan/types/Buffer.cpp vulkan/types/Buffer.h vulkan/Utils/VulkanUtils.h window/EventDispatchingWindow.cpp
-        window/EventDispatchingWindow.h window/Messages.h Renderers/TestRenderer.cpp Renderers/TestRenderer.h
+        window/EventDispatchingWindow.h window/Messages.h Renderers/SimulatorRenderer.cpp Renderers/SimulatorRenderer.h
         utils/Config.cpp utils/Config.h utils/ConfigStructs.h vulkan/builders/PipelineBuilder.cpp
         vulkan/builders/PipelineBuilder.h vulkan/types/DescriptorSet.cpp vulkan/types/DescriptorSet.h
         vulkan/types/Image.cpp vulkan/types/Image.h vulkan/builders/ImageBuilder.cpp vulkan/builders/ImageBuilder.h
-        vulkan/Utils/ShaderIncluder.h utils/Encoder.cpp utils/Encoder.h utils/Capture.cpp utils/Capture.h
+        vulkan/Utils/ShaderIncluder.h utils/Encoder.cpp utils/Encoder.h
         utils/saver/ImageSaver.h utils/saver/StreamSaver.h utils/saver/ImageStreamSaver.h utils/saver/VideoDiskSaver.cpp
         utils/saver/VideoDiskSaver.h utils/saver/ScreenshotDiskSaver.cpp utils/saver/ScreenshotDiskSaver.h
         utils/saver/SaverTypes.h vulkan/VulkanSort.cpp vulkan/VulkanSort.h vulkan/VulkanSPH.cpp vulkan/VulkanSPH.h

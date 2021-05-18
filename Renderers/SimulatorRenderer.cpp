@@ -2,14 +2,14 @@
 // Created by Igor Frank on 01.11.20.
 //
 
-#include "TestRenderer.h"
+#include "SimulatorRenderer.h"
 
 #include "glm/gtx/component_wise.hpp"
 #include "glm/gtx/string_cast.hpp"
 #include <numbers>
 #include <spdlog/spdlog.h>
 
-TestRenderer::TestRenderer(Config &config)
+SimulatorRenderer::SimulatorRenderer(Config &config)
     : config(config), camera(config.getApp().cameraPos, glm::vec3(0, 1, 0), config.getApp().yaw,
                              config.getApp().pitch),
       window(config.getVulkan().window.name, config.getVulkan().window.width,
@@ -33,9 +33,9 @@ TestRenderer::TestRenderer(Config &config)
                         getSimulationInfoGridFluid(simulationInfoSPH.supportRadius));
 }
 
-void TestRenderer::run() { vulkanCore.run(); }
+void SimulatorRenderer::run() { vulkanCore.run(); }
 
-void TestRenderer::cameraKeyMovement(KeyMessage messgae) {
+void SimulatorRenderer::cameraKeyMovement(KeyMessage messgae) {
   switch (messgae.key) {
     case GLFW_KEY_W:
     case GLFW_KEY_UP: camera.ProcessKeyboard(Camera_Movement::FORWARD, 0.1); break;
@@ -47,7 +47,7 @@ void TestRenderer::cameraKeyMovement(KeyMessage messgae) {
     case GLFW_KEY_RIGHT: camera.ProcessKeyboard(Camera_Movement::RIGHT, 0.1); break;
   }
 }
-void TestRenderer::cameraMouseMovement(MouseMovementMessage message) {
+void SimulatorRenderer::cameraMouseMovement(MouseMovementMessage message) {
   if (leftMouseButtonPressed) {
     camera.ProcessMouseMovement(static_cast<float>(xMousePosition - message.xPosition),
                                 static_cast<float>(message.yPosition - yMousePosition));
@@ -55,7 +55,7 @@ void TestRenderer::cameraMouseMovement(MouseMovementMessage message) {
     yMousePosition = message.yPosition;
   }
 }
-void TestRenderer::cameraMouseButton(MouseButtonMessage message) {
+void SimulatorRenderer::cameraMouseButton(MouseButtonMessage message) {
   leftMouseButtonPressed =
       (message.button == GLFW_MOUSE_BUTTON_LEFT && message.action == MouseButtonAction::Press);
   if (leftMouseButtonPressed) {
@@ -66,7 +66,7 @@ void TestRenderer::cameraMouseButton(MouseButtonMessage message) {
   }
 }
 
-std::vector<ParticleRecord> TestRenderer::createParticles() {
+std::vector<ParticleRecord> SimulatorRenderer::createParticles() {
   const auto &simConfig = config.getApp().simulationSPH;
   if (!std::empty(simConfig.dataFiles.particles)) {
     if (std::filesystem::exists(simConfig.dataFiles.particles)
@@ -91,7 +91,7 @@ std::vector<ParticleRecord> TestRenderer::createParticles() {
   return particles;
 }
 
-TestRenderer::~TestRenderer() {
+SimulatorRenderer::~SimulatorRenderer() {
   mouseButtonSubscriber.unsubscribe();
   mouseMovementSubscriber.unsubscribe();
   keyMovementSubscriber.unsubscribe();
@@ -99,7 +99,7 @@ TestRenderer::~TestRenderer() {
   config.updateCameraPos(camera);
   config.save();
 }
-SimulationInfoSPH TestRenderer::getSimulationInfoSPH() {
+SimulationInfoSPH SimulatorRenderer::getSimulationInfoSPH() {
   const auto &simConfig = config.getApp().simulationSPH;
   auto particleCount = 0;
   std::for_each(simConfig.models.begin(), simConfig.models.end(), [&particleCount](const auto &model){particleCount += glm::compMul(model.modelSize.xyz());});
@@ -127,7 +127,7 @@ SimulationInfoSPH TestRenderer::getSimulationInfoSPH() {
       .particleCount = static_cast<unsigned int>(particleCount)
       /*.cellCount = static_cast<unsigned int>(glm::compMul(config.getApp().simulationSPH.gridSize))*/};
 }
-Model TestRenderer::createGrid(const SimulationInfoSPH &simulationInfo) {
+Model SimulatorRenderer::createGrid(const SimulationInfoSPH &simulationInfo) {
   auto gridSize = glm::vec3(simulationInfo.gridSize.xyz()) * simulationInfo.supportRadius;
   auto &gridOrigin = config.getApp().simulationSPH.gridOrigin;
   std::vector<glm::vec3> positions{gridOrigin,
@@ -152,18 +152,18 @@ Model TestRenderer::createGrid(const SimulationInfoSPH &simulationInfo) {
 
   return {.vertices = gridVertices, .indices = gridIndices};
 }
-SimulationInfoGridFluid TestRenderer::getSimulationInfoGridFluid(float supportRadius) {
+SimulationInfoGridFluid SimulatorRenderer::getSimulationInfoGridFluid(float supportRadius) {
   return SimulationInfoGridFluid{
       .gridSize = glm::ivec4(config.getApp().simulationSPH.gridSize, 0),
       .gridOrigin = glm::vec4(config.getApp().simulationSPH.gridOrigin, 0),
       .timeStep = config.getApp().simulationSPH.timeStep,
       .cellCount = glm::compMul(config.getApp().simulationSPH.gridSize),
       .cellSize = supportRadius,
-      .diffusionCoefficient = 0.001,
+      .diffusionCoefficient = config.getApp().simulationGridFluid.diffusionCoefficient,
       .specificInfo = 0,
-      .heatConductivity = 0.62,//TODO config
-      .heatCapacity = 4.179,
-      .specificGasConstant = 461.5,
+      .heatConductivity = config.getApp().simulationGridFluid.heatConductivity,
+      .heatCapacity = config.getApp().simulationGridFluid.heatCapacity,
+      .specificGasConstant = config.getApp().simulationGridFluid.specificGasConstant,
       .ambientTemperature = config.getApp().simulationGridFluid.ambientTemperature,
       .buoyancyAlpha = config.getApp().simulationGridFluid.buoyancyAlpha,
       .buoyancyBeta = config.getApp().simulationGridFluid.buoyancyBeta,
