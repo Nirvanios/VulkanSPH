@@ -54,11 +54,5 @@ void main() {
                 - pressureField[VEC_TO_INDEX_BOUNDARY((myGridID3D - ivec3(0, 1, 0)))]),//y
                (pressureField[VEC_TO_INDEX_BOUNDARY((myGridID3D + ivec3(0, 0, 1)))]
                 - pressureField[VEC_TO_INDEX_BOUNDARY((myGridID3D - ivec3(0, 0, 1)))]));//z
-    /*     if (myId == 31)
-      debugPrintfEXT("myId: %d, up: %f, donw: %f", myId,
-                     pressureField[VEC_TO_INDEX_BOUNDARY((myGridID3D + ivec3(0, 1, 0)))],
-                     pressureField[VEC_TO_INDEX_BOUNDARY((myGridID3D - ivec3(0, 1, 0)))]); */
-
-    //debugPrintfEXT("myId: %d, velocityField: %.3v4f", myId, velocityField[myId]);
   }
 }

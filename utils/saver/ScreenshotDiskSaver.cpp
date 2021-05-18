@@ -54,7 +54,7 @@ void ScreenshotDiskSaver::saveImageImpl(const std::filesystem::path &filename,
     case FilenameFormat::None: break;
     case FilenameFormat::WithDateTime:
       editedFilename = editedFilename.replace_filename(
-          fmt::format("{}_{:%y-%m-%d[%H:%M:%S]}{}",//editedFilename.parent_path().string(),
+          fmt::format("{}_{:%y-%m-%d[%H:%M:%S]}{}",
                       editedFilename.stem().string(), fmt::localtime(std::time(nullptr)),
                       editedFilename.extension().string()));
       break;

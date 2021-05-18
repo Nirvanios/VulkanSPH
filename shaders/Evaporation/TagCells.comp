@@ -87,8 +87,6 @@ void main() {
       uint sortedID = myIndex;
       int currentGridID = int(myId);
       while (gridSPH[sortedID].value == currentGridID && sortedID < particleCount) {
-        /* if(myId == 0)
-              debugPrintfEXT("myId: %d, sortedID: %d, ", myId, sortedID ); */
         if (particleRecords[sortedID].weight > 0) {
           isEmpty = false;
           break;

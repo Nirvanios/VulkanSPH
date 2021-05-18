@@ -128,7 +128,7 @@ VulkanSPHMarchingCubes::VulkanSPHMarchingCubes(
 
   fence = device->getDevice()->createFenceUnique({});
 
-  semaphores.resize(10);//TODO pool
+  semaphores.resize(10);
   std::generate_n(semaphores.begin(), 10,
                   [&] { return device->getDevice()->createSemaphoreUnique({}); });
 }
@@ -329,9 +329,6 @@ vk::UniqueSemaphore VulkanSPHMarchingCubes::run(const vk::UniqueSemaphore &inSem
          SubmitSemaphoreType::InOut);
 
   waitFence();
-
-  /*  [[maybe_unused]] auto colors = bufferGridColors->read<float>();
-  [[maybe_unused]] auto parts = bufferParticles->read<ParticleRecord>();*/
 
   return vk::UniqueSemaphore(outSemaphore, device->getDevice().get());
 }

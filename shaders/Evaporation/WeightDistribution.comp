@@ -84,8 +84,7 @@ void main() {
   uint myId = gl_GlobalInvocationID.x;
   uint cellCount =
       simulationInfoGrid.gridSize.x * simulationInfoGrid.gridSize.y * simulationInfoGrid.gridSize.z;
-  //debugPrintfEXT("gridSize %v4d", simulationInfoGrid.gridSize);
-
+  
   if (myId < cellCount) {
     int currentSortedID = cellInfos[myId].indexes;
     while (gridSPH[currentSortedID].value == myId
@@ -108,7 +107,7 @@ void main() {
              && currentSortedID < simulationInfoSPH.particleCount) {//walk all parts in cell
         const int currentParticleID = gridSPH[currentSortedID].key; //get part id
         int neighbourSortedID = cellInfos[myId].indexes;
-        //debugPrintfEXT("myId: %d, currentParticleID :%d", myId, currentParticleID);
+      
         if (particleRecords[currentParticleID].weight < 0.5
             && particleRecords[currentParticleID].weight > 0.0
             && hasPair[currentParticleID].value
@@ -122,8 +121,7 @@ void main() {
                 && particleRecords[neighbourParticleID].weight > 0.0
                 && particleRecords[neighbourParticleID].weight < 1.0
                 && hasPair[neighbourParticleID].value == -1) {//if not same and no pair
-              //debugPrintfEXT("myId: %d, neighbourID %d", currentParticleID, neighbourParticleID);
-
+            
               ++hasPair[neighbourParticleID].value;
               ++hasPair[currentParticleID].value;
               hasPair[neighbourParticleID].key = currentParticleID;
@@ -134,7 +132,6 @@ void main() {
           if (hasPair[currentParticleID].value > 0) {
             particleRecords[currentParticleID].weight = 0;
             particleRecords[currentParticleID].temperature = 0;
-            //debugPrintfEXT("myId: %d, weight 0", currentParticleID);
           }
         }
         ++currentSortedID;
@@ -144,12 +141,6 @@ void main() {
              && currentSortedID < simulationInfoSPH.particleCount) {
         const int currentParticleID = gridSPH[currentSortedID].key;
         if (hasPair[currentParticleID].key != -1) {
-          /* debugPrintfEXT(
-              "myId: %d, oldWeight: %e newWeight: %e, 1: %e, 2: %d", currentParticleID,
-              particleRecords[currentParticleID].weight,
-              particleRecords[currentParticleID].weight
-                  + (weightsNew[currentParticleID] / hasPair[hasPair[currentParticleID].key].value),
-              weightsNew[currentParticleID], hasPair[hasPair[currentParticleID].key].value); */
           particleRecords[currentParticleID].weight +=
               weightsNew[currentParticleID] / hasPair[hasPair[currentParticleID].key].value;
         }

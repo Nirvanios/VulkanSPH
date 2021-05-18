@@ -40,14 +40,6 @@ void Image::transitionImageLayoutNow(const std::shared_ptr<Device> &device,
                            .layerCount = 1},
   };
 
-  /*    if (newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
-        barrier.subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eDepth);
-
-        if (VulkanUtils::hasStencilComponent(imageFormat)) { barrier.subresourceRange.aspectMask |= vk::ImageAspectFlagBits::eStencil; }
-    } else {
-        barrier.subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
-    }*/
-
   vk::PipelineStageFlags sourceStage;
   vk::PipelineStageFlags destinationStage;
 

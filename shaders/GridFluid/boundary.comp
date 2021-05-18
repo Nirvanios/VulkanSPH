@@ -120,10 +120,5 @@ void main() {
       field[myGridID] = getFaceValue(myGridID3D, zeroesExtreme, maxExtreme);
     }
 
-    /*     debugPrintfEXT("myGridID: %d, newValue %3v4f, copiedValue: %3v4f", myGridID, field[myGridID],
-                   field[VEC_TO_INDEX_BOUNDARY(offsetID3D)]); */
-
-    /* debugPrintfEXT("invID: %d, myGridID: %d, myGridID3D: %v3d, offset: %v3d, fieldValue: %f, fieldOffsetValue %f, id: %d, offsetID: %d",
-     gl_GlobalInvocationID.x, myGridID, myGridID3D, offset, field[myGridID], field[VEC_TO_INDEX_BOUNDARY(myGridID3D + offset)], myGridID, VEC_TO_INDEX_BOUNDARY(offsetID3D)); */
   }
 }

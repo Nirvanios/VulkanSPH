@@ -126,7 +126,6 @@ void main() {
 
             const int neighbourID = grid[sortedID].key;
             if (particleRecords[neighbourID].weight > 0) {
-              //if (myId != neighbourID) {
               float neighbourWeightedMass =
                   simulationInfo.particleMass * particleRecords[neighbourID].weight;
               vec4 positionDiff =
@@ -139,7 +138,6 @@ void main() {
               weightingKernelFraction +=
                   (neighbourWeightedMass / particleRecords[neighbourID].massDensity)
                   * defaultKernel(positionDiff, length(positionDiff), simulationInfo.supportRadius);
-              //}
             }
             ++sortedID;
           }

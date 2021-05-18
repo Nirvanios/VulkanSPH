@@ -136,19 +136,6 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
   buffersUniformSort->fill(std::array<int, 2>{static_cast<int>(simulationInfoSph.particleCount), 0},
                            false);
 
-  [[maybe_unused]] int j = 0;
-  /*  auto a = bufferBins->read<KeyValue>();
-  spdlog::info("Unsorted");
-  j = 0;
-  std::for_each(a.begin(), a.end(), [&j](auto &in) {
-    std::cout << in << " ";
-    if (j++ == 31) {
-      std::cout << "| ";
-      j = 0;
-    }
-  });
-  spdlog::info("Unsorted end.");*/
-
   //zero count buffer
   device->getDevice()->resetFences(fence.get());
   recordCommandBuffersCompute(pipelinesSort[0], dispachCountCells);
@@ -172,8 +159,6 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
   device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
   device->getDevice()->resetFences(fence.get());
 
-  //  printBuffer(bufferCounter, "counter");
-
   //UpSweep
   recordCommandBuffersCompute(pipelinesSort[2], dispachCountCells);
   submitInfoCompute.pCommandBuffers = &commandBuffer.get();
@@ -183,8 +168,6 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
     device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
     device->getDevice()->resetFences(fence.get());
   }
-
-  //  printBuffer(bufferCounter, "UpSwepd");
 
   //DownSweep
   recordCommandBuffersCompute(pipelinesSort[3], dispachCountCells);
@@ -196,18 +179,6 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
     device->getDevice()->resetFences(fence.get());
   }
 
-  //  printBuffer(bufferCounter, "Prefix sum");
-
-  /*  recordCommandBuffersCompute(pipelinesSort[3]);
-  submitInfoCompute.pCommandBuffers = &commandBuffersCompute[imageindex].get();
-  submitInfoCompute.waitSemaphoreCount = 0;
-  submitInfoCompute.signalSemaphoreCount = 1;
-  submitInfoCompute.pSignalSemaphores = semaphoresAfterComputeMassDensity.data();
-  queueCompute.submit(submitInfoCompute, fence.get());
-
-  device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
-  device->getDevice()->resetFences(fence.get());*/
-
   //Create Indexes
   recordCommandBuffersCompute(pipelinesSort[5], dispachCountCells);
   buffersUniformSort->fill(
@@ -217,8 +188,6 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
 
   device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
   device->getDevice()->resetFences(fence.get());
-
-  //  printBuffer(bufferIndexes, "Indexes");
 
   // Create Soretd
   recordCommandBuffersCompute(pipelinesSort[6], dispachCountParticles);
@@ -232,30 +201,7 @@ vk::UniqueSemaphore VulkanSort::run(const vk::UniqueSemaphore &semaphoreWait) {
   device->getDevice()->waitForFences(fence.get(), VK_TRUE, UINT64_MAX);
   device->getDevice()->resetFences(fence.get());
 
-  /*auto b = bufferBinsSorted->read<KeyValue>();
-  spdlog::info("Sorted");
-  std::for_each(b.begin(), b.end(), [&j](auto &in) {
-    std::cout << in << " ";
-    if (j++ == 31) {
-      std::cout << "| ";
-      j = 0;
-    }
-  });
-  spdlog::info("Sorted end.");*/
-
   bufferBins->copy(bufferBins->getSize(), *bufferBinsSorted);
-  /*  printBuffer(bufferIndexes, "Indexes");
-  auto b = bufferBins->read<KeyValue>();
-  auto j = 0;
-  spdlog::info("Sorted");
-  std::for_each(b.begin(), b.end(), [&j](auto &in) {
-    std::cout << "K:" << in.key << " V:" << in.value << " ";
-    if (j++ == 31) {
-      std::cout << "| ";
-      j = 0;
-    }
-  });
-  spdlog::info("Sorted end.");*/
 
   return vk::UniqueSemaphore(semaphoreOut, this->device->getDevice().get());
 }

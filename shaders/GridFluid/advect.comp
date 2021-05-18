@@ -34,11 +34,6 @@ layout(std430, binding = 1) buffer advectedBufferOld { TYPENAME_T advectedFieldO
 
 layout(std430, binding = 2) buffer velocityBuffer { vec4 velocityFieldOld[]; };
 
-float linearInterpolation(float value1, float value2, float bias) {
-  if (bias > 1.0 || bias < 0.0) debugPrintfEXT("Bad bias, expect unexpected!!! *%f*", bias);
-  return value1 * (1.0f - bias) + value2 * bias;
-}
-
 TYPENAME_T trilinearInterpolation(TYPENAME_T pairsXYZ[2][2][2], vec3 bias) {
   if (any(lessThan(bias, vec3(-0.0))) || any(greaterThan(bias, vec3(1.0)))) {//Assert
     //debugPrintfEXT("Bad bias, expect unexpected!!! *%v3f*", bias);
@@ -60,20 +55,9 @@ void advect(ivec3 myCellPos, uint myId) {
 
   vec3 interpolationOrigin = min(simulationInfo.gridSize.xyz + 0.5, max(backwardVelocity, 0.5));
 
-  /* if (advectedFieldOld[myId] > 0)
-    debugPrintfEXT("myId: %d, myGridID3D: %v3d, backwardVelocity: %v3f, velocityFieldOld: %v4f",
-                   myId, myCellPos, backwardVelocity, velocityFieldOld[myId]); */
-
   ivec2 i = ivec2(interpolationOrigin.x, interpolationOrigin.x + 1);
   ivec2 j = ivec2(interpolationOrigin.y, interpolationOrigin.y + 1);
   ivec2 k = ivec2(interpolationOrigin.z, interpolationOrigin.z + 1);
-
-  /*   if (advectedFieldOld[myId] > 0)
-    debugPrintfEXT("myId: %d, myGridID3D: %v3d, i: %v2d, j: %v2d, k: %v2d", myId, myCellPos, i, j,
-                   k);
-  if (advectedFieldOld[myId] > 0)
-    debugPrintfEXT("myId: %d, myGridID3D: %v3d, TO_INDEX: %d", myId, myCellPos,
-                   TO_INDEX(i.x, j.x, k.x)); */
 
   TYPENAME_T pairsXYZ[2][2][2] = {
       {{advectedFieldOld[TO_INDEX(i.x, j.x, k.x)], advectedFieldOld[TO_INDEX(i.x, j.x, k.y)]},
@@ -96,10 +80,6 @@ void main() {
       + (myId3D.z + 1) * gridSizeWithBorders.x * gridSizeWithBorders.y;
 
   if (all(lessThan(myId3D, simulationInfo.gridSize.xyz))) {
-    /*     if (myId == 67 || myId == 62)
-      debugPrintfEXT("myId: %d advectedFieldOld: %.3f, advectedBufferNew: %.3f", myId,
-                     advectedFieldOld[myId], advectedFieldNew[myId]);
- */
     advect(myId3D + 1, myId);
   }
 }

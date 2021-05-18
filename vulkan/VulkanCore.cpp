@@ -205,8 +205,6 @@ void VulkanCore::createCommandBuffers() {
 
   commandBuffersGraphic =
       device->allocateCommandBuffer(commandPoolGraphics, commandBuffersGraphic.size());
-
-  //recordCommandBuffers();
 }
 
 void VulkanCore::recordCommandBuffers(uint32_t imageIndex, Utilities::Flags<DrawType> stageRecord) {
@@ -235,8 +233,6 @@ void VulkanCore::recordCommandBuffers(uint32_t imageIndex, Utilities::Flags<Draw
         .renderArea = {.offset = {0, 0}, .extent = swapchain->getSwapchainExtent()},
         .clearValueCount = static_cast<uint32_t>(clearValues.size()),
         .pClearValues = clearValues.data()};
-
-    //vulkanGridFluidRender->recordRenderpass(imageIndex, commandBufferGraphics);
 
     commandBufferGraphics->beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
     commandBufferGraphics->bindVertexBuffers(0, 1, vertexBuffers.data(), offsets.data());
@@ -279,11 +275,9 @@ void VulkanCore::recordCommandBuffers(uint32_t imageIndex, Utilities::Flags<Draw
     if (stageRecord.has(DrawType::ToTexture)) {
 
       imageColorTexture[imageIndex]->transitionImageLayout(
-          commandBufferGraphics,
-          /*selectedSimulationType != SimulationType::SPH ? vk::ImageLayout::eColorAttachmentOptimal
-                                              : */
-          vk::ImageLayout::eGeneral, vk::ImageLayout::eColorAttachmentOptimal,
-          vk::AccessFlagBits::eMemoryWrite, vk::AccessFlagBits::eMemoryRead);
+          commandBufferGraphics, vk::ImageLayout::eGeneral,
+          vk::ImageLayout::eColorAttachmentOptimal, vk::AccessFlagBits::eMemoryWrite,
+          vk::AccessFlagBits::eMemoryRead);
 
       renderPassBeginInfo.renderPass = pipelineGraphics->getRenderPass("toTexture");
       renderPassBeginInfo.framebuffer = textureFramebuffers[imageIndex].get();
@@ -453,7 +447,6 @@ void VulkanCore::drawFrame() {
   if (Utilities::isIn(simulationState,
                       {SimulationState::SingleStep, SimulationState::Simulating})) {
     if (Utilities::isIn(simulationType, {SimulationType::SPH, SimulationType::Combined})) {
-      //timer.start();
       semaphoreAfterSort[currentFrame] = vulkanGridSPH->run(semaphoreBeforeSPH[currentFrame]);
 
       semaphoreAfterMassDensity[currentFrame] =
@@ -462,20 +455,13 @@ void VulkanCore::drawFrame() {
           vulkanSPH->run(semaphoreAfterMassDensity[currentFrame], SPHStep::force);
       semaphoreAfterSimulationSPH[currentFrame] =
           vulkanSPH->run(semaphoreAfterForces[currentFrame], SPHStep::advect);
-      /*      double results = timer.get_elapsed_ms();
-      avgTimeSPH += results;
-      std::cout << "SPH: " << results << "ms. AVG: " << avgTimeSPH / simStep << "ms"  << std::endl;*/
     }
     if (Utilities::isIn(simulationType, {SimulationType::Grid, SimulationType::Combined})) {
       {
-        //timer.start();
         semaphoreAfterSimulationGrid[currentFrame] =
             vulkanGridFluid->run(semaphoreBeforeGrid[currentFrame]);
         device->getDevice()->waitForFences(vulkanGridFluid->getFenceAfterCompute().get(), VK_TRUE,
                                            UINT64_MAX);
-        /*        double results = timer.get_elapsed_ms();
-        avgTimeGrid += results;
-        std::cout << "Grid: " << results << "ms. AVG: " << avgTimeGrid / simStep << "ms"  << std::endl;*/
         vulkanGridFluidRender->updateDensityBuffer(vulkanGridFluid->getBufferValuesNew());
       }
       if (simulationType == SimulationType::Combined) {
@@ -489,7 +475,6 @@ void VulkanCore::drawFrame() {
     }
     switch (simulationType) {
       case SimulationType::Grid:
-        //semaphoreSPHRenderIn = &semaphoreAfterSimulationGrid[currentFrame];
         semaphoreGridRenderIn = &semaphoreAfterSimulationGrid[currentFrame];
         break;
       case SimulationType::SPH:
@@ -563,7 +548,9 @@ void VulkanCore::drawFrame() {
   if (recordingStateFlags.hasAnyOf(
           std::vector<RecordingState>{RecordingState::Recording, RecordingState::Screenshot})) {
     if (recordingStateFlags.has(RecordingState::Recording)) { ++capturedFrameCount; }
-    if (capturedFrameCount % framesToSkip == 0) {
+    if ((capturedFrameCount % framesToSkip == 0
+         && recordingStateFlags.has(RecordingState::Recording))
+        || recordingStateFlags.has(RecordingState::Screenshot)) {
 
       device->getDevice()->waitForFences(fencesInFlight[currentFrame].get(), VK_TRUE, UINT64_MAX);
 
@@ -634,7 +621,6 @@ void VulkanCore::recreateSwapchain() {
   framebuffersSwapchain->createFramebuffers();
   createUniformBuffers();
   createDescriptorPool();
-  //    createDescriptorSet();
   createCommandBuffers();
 }
 
@@ -872,6 +858,9 @@ void VulkanCore::initGui() {
     vulkanGridFluid->getBufferValuesSources()->fill(valuesSources);
     vulkanGridFluid->getBufferVelocitiesNew()->fill(velocities);
     vulkanGridFluid->getBufferVelocitySources()->fill(velocitiesSources);
+
+    computeColors = true;
+    initSPH = true;
   });
 
   fpsCounter.setOnNewFrameCallback([] {});

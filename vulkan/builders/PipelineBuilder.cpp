@@ -122,14 +122,6 @@ PipelineBuilder::createGraphicsPipeline(const vk::UniqueDescriptorSetLayout &des
       .pAttachments = &colorBlendAttachmentState,
       .blendConstants = std::array<float, 4>{0.0f, 0.0f, 0.0f, 0.0f}};
 
-  /*
-    std::array<vk::DynamicState, 2> dynamicStates{vk::DynamicState::eViewport,
-                                                  vk::DynamicState::eLineWidth};
-
-    vk::PipelineDynamicStateCreateInfo dynamicStateCreateInfo{.dynamicStateCount = dynamicStates.size(),
-                                                              .pDynamicStates = dynamicStates.data()};
-*/
-
   vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo{
       .setLayoutCount = 1,
       .pSetLayouts = &descriptorSetLayout.get(),

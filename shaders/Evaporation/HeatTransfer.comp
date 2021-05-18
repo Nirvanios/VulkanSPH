@@ -147,33 +147,22 @@ void main() {
       vec3 alpha =
           (particleRecords[myId].position.xyz - particleGridIndex3D) / simulationInfoGrid.cellSize;
 
-                if (isnan(alpha.x)) {
-            debugPrintfEXT("myId: %d, v1: %v3f, v2: %v4f, TEMPERATURE IS NaN!!!!!", myId, particleRecords[myId].position.xyz, relativePosition);
-          }
-
       float particleHeatChange = 0.0;
       for (int i = 0; i < 6; ++i) {
         uint cellId = INDEX_TO_BOUNDARY_INDEX(particleRecords[myId].gridID + neighboursBoundary[i]);
-        //if (myId == 1) debugPrintfEXT("myId: %d, cellId: %d, i: %d, isOnEdge :%d, densityGZ: %d, 3d: %v3d", myId, cellId, i, int(!isOnEdge(particleGridIndex3D + neighbours3D[i])), int(gridDensityHeatBufferOld[cellId].x > 0), particleGridIndex3D);
         if (!isOnEdge(particleGridIndex3D + neighbours3D[i]) && particleRecords[myId].weight > 0) {
-          //debugPrintfEXT("myId: %d, i %d", myId, i);
+
           particleHeatChange +=
               ((4 * simulationInfoSPH.heatConductivity * simulationInfoGrid.heatConductivity)
                / (simulationInfoGrid.heatConductivity + simulationInfoSPH.heatConductivity))
               * (gridDensityHeatBufferOld[cellId].y - particleRecords[myId].temperature)
-              //* (1 * int(i % 2 == 0) + (alpha[int(i / 2)]) * (1 - (2 * int(i % 2 == 0))));
               * ((alpha[int(i / 2)]) * int(i % 2 == 0) + (1 - alpha[int(i / 2)]) * int(i % 2 == 1));
-/*           if (isnan(particleHeatChange)) {
-            debugPrintfEXT("myId: %d, i: %d, value1: %f, value2: %f, value3: %f, alpha: %v3f, TEMPERATURE IS NaN!!!!!", myId, i, (alpha[int(i / 2)]) * int(i % 2 == 0), (alpha[int(i / 2)]),  int(i % 2 == 1), alpha);
-          } */
         }
       }
 
       particleHeatChange *= (particleRecords[myId].surfaceArea
                              / (particleRecords[myId].massDensity * simulationInfoSPH.heatCapacity))
           * simulationInfoSPH.timeStep;
-      // debugPrintfEXT("myId: %d, particleHeatChange %f", myId, particleHeatChange);
-      //debugPrintfEXT("myId: %d, alpha %v3f", myId, alpha);
       particleTempsNew[myId] += particleHeatChange;
     }
   }
@@ -193,8 +182,7 @@ void main() {
         int sortedID = cellInfos[myId + neighbours[i]].indexes;
         if (sortedID == -1) { continue; }
         int currentGridID = int(myId) + neighbours[i];
-        /* debugPrintfEXT("myId: %d, myGridID: %d, sortedID: %d, currentGridID: %d, i: %d", myId,
-                       myIdGrid, sortedID, currentGridID, i); */
+
         while (gridSPH[sortedID].value == currentGridID
                && sortedID < simulationInfoSPH.particleCount) {
           if (particleRecords[sortedID].weight > 0) {
@@ -214,12 +202,10 @@ void main() {
           ++sortedID;
         }
       }
-      //debugPrintfEXT("myId: %d, cellHeatChange: %f", myId, particleRecords[0].massDensity);
       cellHeatChange *=
           (1.0f / (gridDensityHeatBufferOld[myIdGrid].x * simulationInfoGrid.heatCapacity))
           * simulationInfoSPH.timeStep;
       gridDensityHeatBufferNew[myIdGrid].y += cellHeatChange;
-      // debugPrintfEXT("myId: %d, cellHeatChange: %f", myId, cellHeatChange);
     }
   }
 #endif

@@ -99,15 +99,9 @@ void main() {
   myId3Dmc -= ivec3(1 * gridInfoMC.detail);
   myId3Dsph -= ivec3(1);
 
-/*   if (myId == 242)
-    debugPrintfEXT("myId: %d, myId3Dmc: %v3d, myId3Dsph: %v3d", myId, myId3Dmc, myId3Dsph); */
-
   float color = 0.0f;
 
   vec4 myPosition = vec4(myId3Dmc * gridInfoMC.cellSize, 0);
-
-  /*   if (myId == 187)
-    debugPrintfEXT("myId: %u, myId3Dmc: %v3d, myId3Dsph: %v3d", myId, myId3Dmc, myId3Dsph); */
 
   for (int z = -1; z < 2; ++z) {
     for (int y = -1; y < 2; ++y) {
@@ -115,18 +109,9 @@ void main() {
         ivec3 currentGridID3D = myId3Dsph + ivec3(x, y, z);
         uint currentGridID = VEC_TO_INDEX(currentGridID3D);
 
-/*                 if (myId == 8) debugPrintfEXT("myId: %u, x: %d, y: %d, z: %d", myId, x, y, z);
-        if (myId == 8)
-          debugPrintfEXT("myId: %u, currentGridID: %d, currentGridID3D: %v3d", myId, currentGridID,
-                         currentGridID3D); */
-
         if (all(lessThan(currentGridID3D, simulationInfoSph.gridSizeXYZcountW.xyz))
             && all(greaterThanEqual(currentGridID3D, ivec3(0)))) {
           int sortedID = cellInfos[currentGridID].indexes;
-
-/*                     if (myId == 242)
-            debugPrintfEXT("myId: %u, currentGridID: %d, currentGridID3D: %v3d", myId,
-                           currentGridID, currentGridID3D); */
 
           if (sortedID == -1) { continue; }
 
@@ -137,15 +122,6 @@ void main() {
             if (particleRecords[neighbourID].weight > 0) {
 
               vec4 positionDiff = myPosition - particleRecords[neighbourID].position;
-              /* if(myId == 1)
-                    debugPrintfEXT(
-                        "myIdsph: %u, myPosition: %v4f, neighbourPosition: %v4f, positionDiff: %f",
-                        myId, myPosition, particleRecords[neighbourID].position, length(positionDiff)); */
-
-              /*                                         if (myId == 10)
-                    debugPrintfEXT(
-                        "myIdsph: %u, myPosition: %v4f, neighbourPosition: %v4f, positionDiff: %f",
-                        myId, myPosition, particleRecords[neighbourID].position, length(positionDiff.xyz)); */
 
               if (length(positionDiff) < simulationInfoSph.supportRadius) {
 
@@ -153,13 +129,6 @@ void main() {
                     simulationInfoSph.particleMass * particleRecords[neighbourID].weight;
 
                 color += computeColor(neighbourWeightedMass, neighbourID, positionDiff);
-
-                /*                 if (myId == 76) {
-                  debugPrintfEXT("myId: %d, particleID: %d, color: %e", myId, neighbourID,
-                                 (neighbourWeightedMass / particleRecords[neighbourID].massDensity)
-                                     * defaultKernel(positionDiff, length(positionDiff),
-                                                     simulationInfoSph.supportRadius)); 
-                }*/
               }
             }
             ++sortedID;

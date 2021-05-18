@@ -19,8 +19,6 @@ vk::UniqueSemaphore VulkanGridFluidRender::draw(const vk::UniqueSemaphore &inSem
   std::array<vk::PipelineStageFlags, 1> waitStagesRender{
       vk::PipelineStageFlagBits::eColorAttachmentOutput};
 
-  //device->getDevice()->waitForFences(fenceInFlight.get(), VK_TRUE, UINT64_MAX);
-
   recordCommandBuffers(imageIndex);
 
   vk::SubmitInfo submitInfoRender{.waitSemaphoreCount = 1,
@@ -78,10 +76,6 @@ VulkanGridFluidRender::VulkanGridFluidRender(
   commandPool = this->device->getDevice()->createCommandPoolUnique(commandPoolCreateInfoCompute);
 
   createDepthResources();
-
-  /*  framebuffersSwapchain = std::make_shared<Framebuffers>(device, swapchain->getSwapchainImages(),
-                                                         pipeline->getRenderPass("toSwapchain"),
-                                                         imageDepth->getImageView());*/
 
   commandBuffers.resize(swapchain->getSwapchainImageCount());
   commandBuffers = device->allocateCommandBuffer(commandPool, commandBuffers.size());

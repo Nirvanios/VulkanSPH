@@ -125,7 +125,7 @@ SimulationInfoSPH SimulatorRenderer::getSimulationInfoSPH() {
       .tensionThreshold = 7.065,
       .tensionCoefficient = 0.0728,
       .particleCount = static_cast<unsigned int>(particleCount)
-      /*.cellCount = static_cast<unsigned int>(glm::compMul(config.getApp().simulationSPH.gridSize))*/};
+  };
 }
 Model SimulatorRenderer::createGrid(const SimulationInfoSPH &simulationInfo) {
   auto gridSize = glm::vec3(simulationInfo.gridSize.xyz()) * simulationInfo.supportRadius;

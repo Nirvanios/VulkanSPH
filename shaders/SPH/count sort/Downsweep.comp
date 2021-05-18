@@ -30,7 +30,6 @@ void main() {
   const uint stride = 1 << (iteration + 1);
   const uint log2N = uint(log2(particleCount));
   if (myId == cellCount - 1 && iteration == log2N - 1) {
-    //sums[gl_WorkGroupID.x] = counter[myId];
     counter[myId] = 0;
   }
 

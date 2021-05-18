@@ -132,8 +132,6 @@ vk::UniqueSemaphore VulkanSPH::run(const vk::UniqueSemaphore &semaphoreWait, SPH
 
   }
 
-  //auto p = bufferParticles->read<ParticleRecord>();
-
   return vk::UniqueSemaphore(semaphoreOut, device->getDevice().get());
 }
 

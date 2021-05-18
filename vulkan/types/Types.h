@@ -39,10 +39,6 @@ struct Vertex {
                                             .binding = 0,
                                             .format = vk::Format::eR32G32B32Sfloat,
                                             .offset = offsetof(Vertex, pos)},
-/*        vk::VertexInputAttributeDescription{.location = 1,
-                                            .binding = 0,
-                                            .format = vk::Format::eR32G32B32Sfloat,
-                                            .offset = offsetof(Vertex, color)},*/
         vk::VertexInputAttributeDescription{.location = 2,
                                             .binding = 0,
                                             .format = vk::Format::eR32G32B32Sfloat,
@@ -120,7 +116,6 @@ struct alignas(16) SimulationInfoSPH {
   float tensionThreshold;
   float tensionCoefficient;
   unsigned int particleCount;
-  //unsigned int cellCount;
 };
 
 struct alignas(16) SimulationInfoGridFluid {

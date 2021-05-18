@@ -129,29 +129,94 @@ add_compile_definitions(
         ANKERL_NANOBENCH_IMPLEMENT
 )
 
-# doporucuji si udelat seznam cpp a h souboru, pak je to tu prehlednejsi, mrkni na muj projekt jak to tam mam
-add_executable(VulkanApp main.cpp
+set(SOURCES
+        main.cpp
+        vulkan/VulkanCore.cpp
+        window/GlfwWindow.cpp
+        vulkan/types/Instance.cpp
+        vulkan/types/Device.cpp
+        vulkan/types/Swapchain.cpp
+        vulkan/types/Pipeline.cpp
+        vulkan/types/Framebuffers.cpp
+        vulkan/builders/BufferBuilder.cpp
+        vulkan/types/Buffer.cpp
+        window/EventDispatchingWindow.cpp
+        Renderers/SimulatorRenderer.cpp
+        utils/Config.cpp
+        vulkan/builders/PipelineBuilder.cpp
+        vulkan/types/DescriptorSet.cpp
+        vulkan/types/Image.cpp
+        vulkan/builders/ImageBuilder.cpp
+        utils/Encoder.cpp
+        utils/saver/VideoDiskSaver.cpp
+        utils/saver/ScreenshotDiskSaver.cpp
+        vulkan/VulkanSort.cpp
+        vulkan/VulkanSPH.cpp
+        vulkan/VulkanGridSPH.cpp
+        ui/ImGuiGlfwVulkan.cpp
+        Third\ Party/imgui/imgui_impl_glfw.cpp
+        Third\ Party/imgui/imgui_impl_vulkan.cpp
+        utils/FPSCounter.cpp
+        vulkan/types/RenderPass.cpp
+        vulkan/builders/RenderPassBuilder.cpp
+        vulkan/types/TextureSampler.cpp
+        vulkan/VulkanGridFluid.cpp
+        vulkan/VulkanGridFluidRender.cpp
+        vulkan/VulkanGridFluidSPHCoupling.cpp
+        vulkan/VulkanSPHMarchingCubes.cpp
+        ui/SimulationUI.cpp
+        )
+
+SET(INCLUDES
         utils/Utilities.h
-        vulkan/VulkanCore.cpp vulkan/VulkanCore.h
-        window/GlfwWindow.cpp window/GlfwWindow.h vulkan/types/Instance.cpp vulkan/types/Instance.h
-        vulkan/types/Device.cpp vulkan/types/Device.h vulkan/types/Swapchain.cpp vulkan/types/Swapchain.h
-        vulkan/types/Pipeline.cpp vulkan/types/Pipeline.h vulkan/types/Framebuffers.cpp vulkan/types/Framebuffers.h
-        window/Callbacks.h vulkan/types/Types.h vulkan/builders/BufferBuilder.cpp vulkan/builders/BufferBuilder.h
-        vulkan/types/Buffer.cpp vulkan/types/Buffer.h vulkan/Utils/VulkanUtils.h window/EventDispatchingWindow.cpp
-        window/EventDispatchingWindow.h window/Messages.h Renderers/SimulatorRenderer.cpp Renderers/SimulatorRenderer.h
-        utils/Config.cpp utils/Config.h utils/ConfigStructs.h vulkan/builders/PipelineBuilder.cpp
-        vulkan/builders/PipelineBuilder.h vulkan/types/DescriptorSet.cpp vulkan/types/DescriptorSet.h
-        vulkan/types/Image.cpp vulkan/types/Image.h vulkan/builders/ImageBuilder.cpp vulkan/builders/ImageBuilder.h
-        vulkan/Utils/ShaderIncluder.h utils/Encoder.cpp utils/Encoder.h
-        utils/saver/ImageSaver.h utils/saver/StreamSaver.h utils/saver/ImageStreamSaver.h utils/saver/VideoDiskSaver.cpp
-        utils/saver/VideoDiskSaver.h utils/saver/ScreenshotDiskSaver.cpp utils/saver/ScreenshotDiskSaver.h
-        utils/saver/SaverTypes.h vulkan/VulkanSort.cpp vulkan/VulkanSort.h vulkan/VulkanSPH.cpp vulkan/VulkanSPH.h
-        vulkan/VulkanGridSPH.cpp vulkan/VulkanGridSPH.h ui/ImGuiGlfwVulkan.cpp ui/ImGuiGlfwVulkan.h
-        Third\ Party/imgui/imgui_impl_glfw.cpp Third\ Party/imgui/imgui_impl_vulkan.cpp utils/FPSCounter.cpp utils/FPSCounter.h
-        vulkan/types/RenderPass.cpp vulkan/types/RenderPass.h vulkan/builders/RenderPassBuilder.cpp vulkan/builders/RenderPassBuilder.h
-        vulkan/types/TextureSampler.cpp vulkan/types/TextureSampler.h vulkan/enums.h vulkan/VulkanGridFluid.cpp vulkan/VulkanGridFluid.h
-        vulkan/VulkanGridFluidRender.cpp vulkan/VulkanGridFluidRender.h vulkan/VulkanGridFluidSPHCoupling.cpp
-        vulkan/VulkanGridFluidSPHCoupling.h utils/Exceptions.h vulkan/VulkanSPHMarchingCubes.cpp vulkan/VulkanSPHMarchingCubes.h vulkan/lookuptables.h ui/SimulationUI.cpp ui/SimulationUI.h)
+        vulkan/VulkanCore.h
+        window/GlfwWindow.h
+        vulkan/types/Instance.h
+        vulkan/types/Device.h
+        vulkan/types/Swapchain.h
+        vulkan/types/Pipeline.h
+        vulkan/types/Framebuffers.h
+        window/Callbacks.h
+        vulkan/types/Types.h
+        vulkan/builders/BufferBuilder.h
+        vulkan/types/Buffer.h
+        vulkan/Utils/VulkanUtils.h
+        window/EventDispatchingWindow.h
+        window/Messages.h
+        Renderers/SimulatorRenderer.h
+        utils/Config.h
+        utils/ConfigStructs.h
+        vulkan/builders/PipelineBuilder.h
+        vulkan/types/DescriptorSet.h
+        vulkan/types/Image.h
+        vulkan/builders/ImageBuilder.h
+        vulkan/Utils/ShaderIncluder.h
+        utils/Encoder.h
+        utils/saver/ImageSaver.h
+        utils/saver/StreamSaver.h
+        utils/saver/ImageStreamSaver.h
+        utils/saver/VideoDiskSaver.h
+        utils/saver/ScreenshotDiskSaver.h
+        utils/saver/SaverTypes.h
+        vulkan/VulkanSort.h
+        vulkan/VulkanSPH.h
+        vulkan/VulkanGridSPH.h
+        ui/ImGuiGlfwVulkan.h
+        utils/FPSCounter.h
+        vulkan/types/RenderPass.h
+        vulkan/builders/RenderPassBuilder.h
+        vulkan/types/TextureSampler.h
+        vulkan/enums.h
+        vulkan/VulkanGridFluid.h
+        vulkan/VulkanGridFluidRender.h
+        vulkan/VulkanGridFluidSPHCoupling.h
+        utils/Exceptions.h
+        vulkan/VulkanSPHMarchingCubes.h
+        vulkan/lookuptables.h
+        ui/SimulationUI.h
+        )
+
+add_executable(VulkanApp ${SOURCES})
 
 
 target_link_libraries(VulkanApp PUBLIC
@@ -159,5 +224,5 @@ target_link_libraries(VulkanApp PUBLIC
         ${Vulkan_LIBRARIES} glfw spdlog::spdlog fmt::fmt stb::stb
         shaderc_combined glslang toml11 range-v3 tinyobjloader ${AVCODEC_LIBRARY} avutil avformat swscale
         pf_imgui::pf_imgui pf_common::pf_common magic_enum argparse::argparse)
-#add_backward(VulkanApp)
+
 target_compile_options(VulkanApp PRIVATE ${flags})

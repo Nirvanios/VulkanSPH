@@ -40,14 +40,11 @@ void main() {
   const uint myId = gl_GlobalInvocationID.x;
   if (myId < particleCount) {
     vec4 relativePosition = particleRecords[myId].position - gridOrigin;
-    //if (myId == 1) debugPrintfEXT("rPos: %v4f", relativePosition);
     ivec3 gridIndex3D = ivec3(floor(relativePosition.xyz / cellSize));
     int gridIndexFlatten =
         gridIndex3D.x + gridSize.x * (gridIndex3D.y + gridSize.y * gridIndex3D.z);
-    //if (myId == 6) debugPrintfEXT("grid3d: %f", cellSize);
     grid[myId].key = int(myId);
     grid[myId].value = gridIndexFlatten;
     particleRecords[myId].gridID = gridIndexFlatten;
-    //if (gridIndexFlatten < 0) debugPrintfEXT("!!!!%d!!!! %v4d", gridIndexFlatten, gridIndex3D);
   }
 }

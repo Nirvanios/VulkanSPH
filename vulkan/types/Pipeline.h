@@ -9,7 +9,7 @@
 #include "Device.h"
 #include "RenderPass.h"
 #include "Swapchain.h"
-#include <vulkan//vulkan.hpp>
+#include <vulkan/vulkan.hpp>
 
 enum class PipelineType { Graphics, Compute };
 

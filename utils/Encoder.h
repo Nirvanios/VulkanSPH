@@ -24,8 +24,6 @@ extern "C" {
 av_make_error_string((char*)__builtin_alloca(AV_ERROR_MAX_STRING_SIZE), AV_ERROR_MAX_STRING_SIZE, errnum)
 
 
-
-//TODO Memery leaks
 class Encoder {
   using AVFormatContextDeleter = void (*)(AVFormatContext *);
   using AVCodecContextDeleter = void (*)(AVCodecContext *);

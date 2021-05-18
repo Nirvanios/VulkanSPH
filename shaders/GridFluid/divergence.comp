@@ -59,28 +59,6 @@ void main() {
                * (velocityField[myId + VEC_TO_INDEX_BOUNDARY(vec3(0, 0, 1))].z
                   - velocityField[myId - VEC_TO_INDEX_BOUNDARY(vec3(0, 0, 1))].z));
 
-    /*         divergenceField[myId] = -(1.0/3.0) * (
-                ((velocityField[myId + VEC_TO_INDEX_BOUNDARY(vec3(1, 0, 0))].x
-                  - velocityField[myId - VEC_TO_INDEX_BOUNDARY(vec3(1, 0, 0))].x)) / simulationInfo.gridSize.x 
-                  + (velocityField[myId + VEC_TO_INDEX_BOUNDARY(vec3(0, 1, 0))].y
-                  - velocityField[myId - VEC_TO_INDEX_BOUNDARY(vec3(0, 1, 0))].y) / simulationInfo.gridSize.y 
-                  + (velocityField[myId + VEC_TO_INDEX_BOUNDARY(vec3(0, 0, 1))].z
-                  - velocityField[myId - VEC_TO_INDEX_BOUNDARY(vec3(0, 0, 1))].z) / simulationInfo.gridSize.z); */
-
-    /*     if (myId == 57) {
-      debugPrintfEXT("myId: %d, h: %.3v3f, velocityField %.3v4f, divergenceField: %f", myId, h,
-                     velocityField[myId], divergenceField[gl_GlobalInvocationID.x]);
-      debugPrintfEXT("myId: %d, velocityFieldUpID %.3v3f,velocityFieldDownID %.3v3f", myId,
-                     velocityField[myId + VEC_TO_INDEX_BOUNDARY(vec3(0, 1, 0))],
-                     velocityField[myId - VEC_TO_INDEX_BOUNDARY(vec3(0, 1, 0))]);
-    } */
-
-    /*     debugPrintfEXT("invID: %d, myId: %d, partialResult: %f", gl_GlobalInvocationID.x, myId,
-                   divergenceField[myId]);
-    if (divergenceField[myId] > 0)
-      debugPrintfEXT("invID: %d, myId: %d, up: %f, down: %f", gl_GlobalInvocationID.x, myId,
-                     velocityField[myId + VEC_TO_INDEX_BOUNDARY(vec3(0, 1, 0))].y,
-                     velocityField[myId - VEC_TO_INDEX_BOUNDARY(vec3(0, 1, 0))].y); */
     pressureField[myId] = 0.0f;
   }
 }

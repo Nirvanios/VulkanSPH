@@ -59,7 +59,6 @@ layout(std430, binding = 2) buffer densityBuffer { vec2 density[]; };
 layout(std430, binding = 3) buffer Indexes { CellInfo cellInfos[]; };
 
 layout(location = 0) in vec3 inPosition;
-//layout(location = 1) in vec3 inColor;
 layout(location = 2) in vec3 inNormal;
 
 layout(location = 3) out vec4 fragColor;
@@ -88,8 +87,6 @@ ivec3 getPosition(int index) {
 int getAlignedAxis() {
   float pitch = angles.pitch;
   float yaw = mod(angles.yaw, 360);
-  /*   if (angles.pitch < 0) { pitch *= -1; }
-  if (angles.yaw < 0) { yaw *= -1; } */
 
   if (pitch > 45) return AXIS_Y;
   if (pitch < -45) return AXIS_NY;
@@ -138,17 +135,13 @@ void main() {
   const uint vertexId = (vertexId3D.x + 1) + (vertexId3D.y + 1) * gridSizeWithBorders.x
       + (vertexId3D.z + 1) * gridSizeWithBorders.x * gridSizeWithBorders.y;
 
-  /*   if(gl_InstanceIndex == 0){
-    debugPrintfEXT("myId: %d-%d, vertexId3D: %v3d", gl_InstanceIndex, gl_VertexIndex, vertexId3D);
-  } */
-
   position +=
       vec4(myId3D * simulationInfo.cellSize, 0) + vec4(vec3(0.5 * simulationInfo.cellSize), 0);
 
   const float volume = pow(simulationInfo.cellSize, 3) * 500;
 
   gl_Position = ubo.proj * ubo.view * ubo.model * position;
-  //gl_Position *= int(density[myId].x != 0);
+
   fragColor = vec4(color, (density[vertexId].x / volume) /* * int(cellType == CELL_TYPE_AIR) */);
   outPosition = gl_Position.xyz;
   outNormal = inNormal;

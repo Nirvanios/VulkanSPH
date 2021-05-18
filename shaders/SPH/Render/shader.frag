@@ -18,7 +18,6 @@ layout(location = 3) flat in uint inGridID;
 
 
 void main() {
-  //debugPrintfEXT("gridID: %u", inGridID);
 
   const float ambientStrength = 0.4f;
   const float specularStrength = 0.4f;

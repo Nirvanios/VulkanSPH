@@ -95,8 +95,8 @@ void Swapchain::createSwapchain() {
     createInfo.pQueueFamilyIndices = queueFamilyIndices.data();
   } else {
     createInfo.imageSharingMode = vk::SharingMode::eExclusive;
-    createInfo.queueFamilyIndexCount = 0;    // Optional
-    createInfo.pQueueFamilyIndices = nullptr;// Optional
+    createInfo.queueFamilyIndexCount = 0;
+    createInfo.pQueueFamilyIndices = nullptr;
   }
   swapchain = device->getDevice()->createSwapchainKHRUnique(createInfo);
 

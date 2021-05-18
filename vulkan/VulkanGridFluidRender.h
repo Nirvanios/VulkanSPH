@@ -95,8 +95,6 @@ class VulkanGridFluidRender {
   vk::UniqueCommandPool commandPool;
   std::vector<vk::UniqueCommandBuffer> commandBuffers;
 
-  //std::vector<vk::UniqueSemaphore> semaphoreImageAvailable;
-
   std::vector<vk::UniqueFence> fencesInFlight;
   std::vector<std::optional<vk::Fence>> fencesImagesInFlight;
 

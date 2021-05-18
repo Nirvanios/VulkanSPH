@@ -131,9 +131,6 @@ uint getDensity(uint vertexOriginId) {
   for (int i = 7; i >= 0; --i) {
     density = density << 1;
     density += uint(colorField[vertexOriginId + verticesIDs[i]] > gridInfoMC.threshold);
-    /*     if (inGridID[0] == idToCheck)
-      debugPrintfEXT("vertexOriginId: %u, vertices: %u", inGridID[0],
-                     vertexOriginId + verticesIDs[i]); */
   }
   return density;
 }
@@ -157,23 +154,12 @@ void main() {
 
   const uint myIdsph = VEC_TO_INDEX_SPH(myId3Dsph);
 
-  /*   if (myIdsph >= 0) {
-    const bool isInterface =
-        bool(bitfieldExtract(cellInfos[myIdsph].tags, TAG_IS_INTERFACE_BIT, 1));
-
-    //if(!isInterface) return;
-  } */
-
   uint vertexOriginId = VEC_TO_INDEX_MC(myId3Dmc);
 
   const uint density = getDensity(vertexOriginId);
   const uint edgesIndex = density * 5 * 3;
 
-  /*   if (myIdmc == idToCheck)
-    debugPrintfEXT("myIdmc: %u, vertexOriginId: %u, density: %u", myIdmc, vertexOriginId, density); */
-
   const uint polyCount = polygonCountLUT[density];
-  //if(polyCount > 0) debugPrintfEXT("myIdmc: %u, polyCount: %u", myIdmc, polyCount);
 
   const vec3 scale = (gridInfoMC.gridSize.xyz - 1) / vec3(gridInfoMC.gridSize.xyz);
 
@@ -199,19 +185,6 @@ void main() {
       worldPolygon[j % 3] = ubo.proj * ubo.view * ubo.model
           * ((polygon + vec4(vec3(0.5 * gridInfoMC.cellSize * scale), 0)));
 
-      /*       if (myIdmc == idToCheck) debugPrintfEXT("myIdmc: %u, edge: %d", myIdmc, edge);
-      if (myIdmc == idToCheck)
-        debugPrintfEXT("myIdmc: %u, edgeVertices: %v2u", myIdmc, edgeVertices);
-      if (myIdmc == idToCheck) debugPrintfEXT("myIdmc: %u, halfEdge: %v3u", myIdmc, halfEdge);
-      if (myIdmc == idToCheck) debugPrintfEXT("myIdmc: %u, fullEdge: %v3u", myIdmc, fullEdge);
-      if (myIdmc == idToCheck) debugPrintfEXT("myIdmc: %u, v1: %f, v0: %f", myIdmc, v1, v0);
-      if (myIdmc == idToCheck)
-        debugPrintfEXT("myIdmc: %u, edgeInterpolation: %f", myIdmc, edgeInterpolation);
-      if (myIdmc == idToCheck)
-        debugPrintfEXT("myIdmc: %u, worldPolygon: %v3f", myIdmc,
-                       vec3(inPosition[0] + (edgeInterpolation * halfEdge * gridInfoMC.cellSize)
-                            + (fullEdge * gridInfoMC.cellSize))); */
-
       float d = (simulationInfoSph.supportRadius * gridInfoMC.detail)
           / (gridInfoMC.gridSize.x * gridInfoMC.gridSize.y * gridInfoMC.gridSize.z); 
       d = d  < 0.000003 ? 0.000003 : d;
@@ -230,10 +203,6 @@ void main() {
               uint currentGridID = VEC_TO_INDEX_SPH(currentGridID3D);
               int sortedID = cellInfos[currentGridID].indexes;
 
-/*               if (myIdmc == idToCheck)
-                debugPrintfEXT("myIdmc: %u, currentGridID: %d, currentGridID3D: %v3d", myIdmc,
-                               currentGridID, currentGridID3D); */
-
               if (sortedID == -1) { continue; }
 
               while (grid[sortedID].value == currentGridID
@@ -244,11 +213,7 @@ void main() {
 
                   const vec4 neighbourPosition = particleRecords[neighbourID].position;
                   vec4 positionDiff = myPosition - neighbourPosition;
-/* 
-                  if (myIdmc == idToCheck)
-                    debugPrintfEXT(
-                        "myIdsph: %u, myPosition: %v4f, neighbourPosition: %v4f, positionDiff: %f",
-                        myIdmc, myPosition, neighbourPosition, length(positionDiff.xyz)); */
+                  
                   if (length(positionDiff.xyz) < simulationInfoSph.supportRadius) {
 
                     float neighbourWeightedMass =
@@ -282,17 +247,7 @@ void main() {
         }
       }
       normal[j % 3] = -normalize(positiveGradient - negativeGradient);
-     /*  if (myIdmc == idToCheck)
-        debugPrintfEXT("myIdmc: %u, negativeGradient: %v3f", myIdmc, negativeGradient);
-      if (myIdmc == idToCheck)
-        debugPrintfEXT("myIdmc: %u, positiveGradient: %v3f", myIdmc, positiveGradient);
-      if (myIdmc == idToCheck) debugPrintfEXT("myIdmc: %d, normal: %v3f", myIdmc, normal[j % 3]); */
     }
-
-    /*     vec3 normal =
-        normalize(cross(worldPolygon[2].xyz - worldPolygon[0].xyz, worldPolygon[1].xyz - worldPolygon[0].xyz)); */
-
-    //if(myIdmc == 0) debugPrintfEXT("myIdmc: %u, norm: %v3f", myIdmc, normal);
 
     for (int j = 2; j >= 0; --j) {
       outPosition.xyz = worldPolygon[j].xyz;
@@ -301,7 +256,6 @@ void main() {
       outNormal = normal[j];
       outGridID = inGridID[0];
       EmitVertex();
-      //debugPrintfEXT("gridID: %u", myIdmc);
     }
 
     EndPrimitive();

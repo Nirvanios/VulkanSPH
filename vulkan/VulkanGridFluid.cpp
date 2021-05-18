@@ -42,7 +42,6 @@ vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &inSemaphore)
 
   /**Project*/
   for (auto i = 0; i < 1; ++i) { project(); }
-  //auto vel = bufferVelocitiesNew->read<glm::vec4>();
 
   /**Advect velocities*/
   swapBuffers(bufferVelocitiesNew, bufferVelocitiesOld);
@@ -55,8 +54,6 @@ vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &inSemaphore)
   /**Project*/
   for (auto i = 0; i < 1; ++i) { project(); }
   waitFence();
-
-  //vel = bufferVelocitiesNew->read<glm::vec4>();
 
   /**Add Density Sources*/
   submit(Stages::addSourceScalar, fence.get());
@@ -97,7 +94,6 @@ vk::UniqueSemaphore VulkanGridFluid::run(const vk::UniqueSemaphore &inSemaphore)
   waitFence();
 
   submit(Stages::boundaryHandleVec2, fence.get(), std::nullopt, outSemaphore);
-  //waitFence();
 
   return vk::UniqueSemaphore(outSemaphore, device->getDevice().get());
 }
@@ -273,7 +269,7 @@ VulkanGridFluid::VulkanGridFluid(const Config &config,
 
   fence = device->getDevice()->createFenceUnique({});
 
-  semaphores.resize(210);//TODO pool
+  semaphores.resize(210);
   std::generate_n(semaphores.begin(), 210,
                   [&] { return device->getDevice()->createSemaphoreUnique({}); });
 }
@@ -285,21 +281,11 @@ void VulkanGridFluid::createBuffers() {
   [[maybe_unused]] auto positionSources =
       ((simulationInfo.gridSize.z / 2) * simulationInfo.gridSize.x * simulationInfo.gridSize.y)
       + (simulationInfo.gridSize.x / 2) + (simulationInfo.gridSize.x * (20));
-  /*  sources[positionSources] = {1.0, 0.0};
-  sources[positionSources-1] = {1.0, 0.0};
-  sources[positionSources+1] = {1.0, 0.0};*/
+
   [[maybe_unused]] auto positionDensity =
       (((simulationInfo.gridSize.z + 2) / 2) * (simulationInfo.gridSize.x + 2)
        * (simulationInfo.gridSize.y + 2))
       + ((simulationInfo.gridSize.x + 2) / 2) + ((simulationInfo.gridSize.x + 2) * 1);
-  //initialDensity[positionDensity] = glm::vec2(0.0f, 0.0f);
-  /*  initialDensity[positionDensity-1] = {1.0, 100.0};
-  initialDensity[positionDensity+1] = {1.0, 100.0};
-  initialDensity[positionDensity] = {1.0, 100.0};*/
-
-  /*  initialDensity[positionDensity].x = 1.0;*/
-  //initialDensity[(22*22)+44+1].x = 1.0;
-  //initialDensity[44].x = 1.0;
 
   auto bufferBuilder = BufferBuilder()
                            .setUsageFlags(vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc
@@ -313,15 +299,13 @@ void VulkanGridFluid::createBuffers() {
       bufferBuilder.setSize(sizeof(glm::vec2) * cellCountBorder), this->device, commandPool, queue);
   bufferValuesOld->fill(initialDensity);
 
-  //sources[43].x = 1.f;
-
   bufferValuesSources =
       std::make_shared<Buffer>(bufferBuilder.setSize(sizeof(glm::vec2) * simulationInfo.cellCount),
                                this->device, commandPool, queue);
   bufferValuesSources->fill(sources);
 
   auto initialVelocities = std::vector<glm::vec4>(cellCountBorder, glm::vec4(0, 0, 0, 0));
-  //initialVelocities[positionDensity - (simulationInfoSPH.gridSize.x + 2)].y = -0.010;
+
   bufferVelocitiesNew = std::make_shared<Buffer>(
       bufferBuilder.setSize(sizeof(glm::vec4) * cellCountBorder), this->device, commandPool, queue);
   bufferVelocitiesNew->fill(glm::vec4(0));
@@ -444,21 +428,11 @@ void VulkanGridFluid::resetBuffers() {
   [[maybe_unused]] auto positionSources =
       ((simulationInfo.gridSize.z / 2) * simulationInfo.gridSize.x * simulationInfo.gridSize.y)
       + (simulationInfo.gridSize.x / 2) + (simulationInfo.gridSize.x * (20));
-  /*  sources[positionSources] = {1.0, 0.0};
-  sources[positionSources-1] = {1.0, 0.0};
-  sources[positionSources+1] = {1.0, 0.0};*/
+
   [[maybe_unused]] auto positionDensity =
       (((simulationInfo.gridSize.z + 2) / 2) * (simulationInfo.gridSize.x + 2)
        * (simulationInfo.gridSize.y + 2))
       + ((simulationInfo.gridSize.x + 2) / 2) + ((simulationInfo.gridSize.x + 2) * 1);
-  //initialDensity[positionDensity] = glm::vec2(0.0f, 0.0f);
-  /*  initialDensity[positionDensity-1] = {1.0, 100.0};
-  initialDensity[positionDensity+1] = {1.0, 100.0};
-  initialDensity[positionDensity] = {1.0, 100.0};*/
-
-  /*  initialDensity[positionDensity].x = 1.0;*/
-  //initialDensity[(22*22)+44+1].x = 1.0;
-  //initialDensity[44].x = 1.0;
 
   bufferValuesNew->fill(initialDensity);
   bufferValuesOld->fill(initialDensity);

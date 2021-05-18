@@ -231,7 +231,6 @@ void SimulationUI::initSettingsVisualSubtree() {
 
   windowSettingsVisualization = std::experimental::make_observer(
       &imgui->createWindow("window_visualSettings", "Visualization Settings"));
-  //windowSettingsVisualization->setVisibility(ig::Visibility::Invisible);
 
   auto &tabBarVisual = windowSettingsVisualization->createChild<ig::TabBar>("tabBar_visual");
   auto &tabLight = tabBarVisual.addTab("tab_visualLight", "Light");
@@ -278,7 +277,6 @@ void SimulationUI::initSettingsVisualSubtree() {
   boxMC.createChild<ig::Text>(ig::uniqueId(), "Marching cubes");
 
   /**MC*/
-  //auto &treeMC = windowSettingsVisualization->createChild<ig::Tree>("tree_MC", "Marching cubes");
   boxMC
       .createChild<ig::Slider<int>>("input_detailMC", "Deatil", 1, 5, settings.gridInfoMC.detail,
                                     ig::Persistent::Yes)
@@ -304,12 +302,9 @@ void SimulationUI::initSettingsVisualSubtree() {
 void SimulationUI::initSettingsSimulationSubtree() {
   using namespace pf::ui;
 
-  /*  auto &treeSettingsSimulation =
-      parent.createChild<ig::Tree>("tree_settingsSimulation", "Simulation Settings");*/
 
   windowSettingsSimulation = std::experimental::make_observer(
       &imgui->createWindow("windowSettingsSimulation", "Settings"));
-  //windowSettingsSimulation->setVisibility(ig::Visibility::Invisible);
   tabBarSettingsSimulation = std::experimental::make_observer(
       &windowSettingsSimulation->createChild<ig::TabBar>("tabBar_Settings"));
 

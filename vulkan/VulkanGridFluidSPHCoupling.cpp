@@ -93,7 +93,7 @@ VulkanGridFluidSPHCoupling::VulkanGridFluidSPHCoupling(
 
   fence = device->getDevice()->createFenceUnique({});
 
-  semaphores.resize(5);//TODO pool
+  semaphores.resize(5);
   std::generate_n(semaphores.begin(), 5,
                   [&] { return device->getDevice()->createSemaphoreUnique({}); });
 }
@@ -130,14 +130,6 @@ vk::UniqueSemaphore VulkanGridFluidSPHCoupling::run(const std::vector<vk::Semaph
 
       break;
   }
-
-//  [[maybe_unused]] auto ind = bufferIndexes->read<CellInfo>();
-//  [[maybe_unused]] auto gr = bufferGridSPH->read<KeyValue>();
-  //[[maybe_unused]] auto tempsCells = bufferGridValuesNew->read<glm::vec2>();
-  //[[maybe_unused]] auto tempsCellsOld = bufferGridValuesOld->read<glm::vec2>();
-  //[[maybe_unused]] auto particles = bufferParticles->read<ParticleRecord>();
-  //[[maybe_unused]] auto tempsParticle = bufferParticleTempsNew->read<float>();
-  //[[maybe_unused]] auto hasPair = bufferHasPair->read<KeyValue>();
 
   return vk::UniqueSemaphore(outSemaphore, device->getDevice().get());
 }

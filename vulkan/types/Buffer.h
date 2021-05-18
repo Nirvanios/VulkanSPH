@@ -11,19 +11,6 @@
 #include "../../utils/Utilities.h"
 #include <span>
 
-/*
-concept Pointer = std::is_pointer_v<T>;
-
-template<typename T>
-concept RawDataProvider = requires(T t) {
-  { t.data() }
-  ->Pointer;
-  { t.size() }
-  ->std::convertible_to<std::size_t>;
-};
-
-template<Pointer T>
-using ptr_val = decltype(*std::declval<T>());*/
 
 class Buffer {
  public:
@@ -75,11 +62,7 @@ class Buffer {
           reinterpret_cast<T*>(device->getDevice()->mapMemory(stagingBuffer.getDeviceMemory().get(), 0, size));
       auto dataSpan = std::span<T>{data, static_cast<size_t>(itemCount)};
       std::fill(dataSpan.begin(), dataSpan.end(), input);
-/*      int i = 0;
-      for ( ; i < itemCount; ++i, data += valueSize)
-      {
-        memcpy(cp, val, size);
-      }*/
+
       device->getDevice()->unmapMemory(stagingBuffer.getDeviceMemory().get());
 
       copy(size, stagingBuffer, offset);

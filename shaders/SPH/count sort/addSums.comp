@@ -1,4 +1,4 @@
-/*  */#version 460
+#version 460
 
 layout(binding = 0) uniform ParticleCount{
     int particleCount;
