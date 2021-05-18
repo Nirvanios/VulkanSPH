@@ -75,6 +75,7 @@ přičemž není kontrolováno, zda uložená data patří k danému scénáři,
 Zde je možné pořídit záznam z probíhající simulace.
 Pokud není vyplněn název/cesta souboru, je videosoubor vytvořen v aktuální složce s názvem `video.mp4`.
 Nedochází k přepisování souborů a případné duplikáty dostávají pořadová čísla.
+Pro nahrávání je podporován pouze kontejner mp4.
 
 Je možné i uložit aktuální stav ve formě obrázku. 
 Ty jsou pak vždy ukládány do aktuální složky, přičemž v názvu obsahují aktuální datum a čas.
