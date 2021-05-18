@@ -21,9 +21,9 @@ Pro jiné systémy, případně instalaci ze staženého balíčku, lze navští
 * libglfw3
 * ffmpeg
 * binutils-dev
-* libavformat
+* libavformat-dev
 * libavcodec-dev
-* libswscale
+* libswscale-dev
 
 ## Kompilace
 ```bash
@@ -31,7 +31,7 @@ cd src
 make -Bbuild -H. -DCMAKE_CXX_COMPILER="path_to_g++-10"
 cmake --build build --target all
 ```
-Tímto vznikne v adresáří `src/build` spustitelný soubor. 
+Tímto vznikne v adresáři `src/build` spustitelný soubor. 
 
 # Spouštění
 
