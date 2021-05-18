@@ -1,7 +1,7 @@
 # Kompilace
 
 ---
-Celá aplikace byla vyvýjena a kompilována na systému Ubuntu 20.04.
+Celá aplikace byla vyvíjena a kompilována na systému Ubuntu 20.04.
 
 ## Potřebné nástroje
 
@@ -50,7 +50,7 @@ Program zároveň počítá s určitou strukturou těchto složek, takže po zm�
 
 ---
 
-* Pohyb v prostrou pomocí šipek či kláves WSAD
+* Pohyb v prostoru pomocí šipek či kláves WSAD
 * Pohyb kamery pomocí stisku levého tlačítka a pohybu myši
 
 ## GUI
@@ -69,15 +69,15 @@ Zároveň je zde možnost přepínat mezi jednotlivými druhy simulace a zobrazo
 
 Poslední možností je uložení současného stavu simulace pro pozdější načtení, a to i po restartování programu. 
 Jedná se o poměrně primitivní metodu ukládání obsahu bufferů na disk,
-přičemž není kontrolováno zda uložená data patří k danému scénáři, a proto může dojít k nestabilitě simulace i případnému pádu aplikace.
+přičemž není kontrolováno, zda uložená data patří k danému scénáři, a proto může dojít k nestabilitě simulace i případnému pádu aplikace.
 
 #### Nahrávání
 Zde je možné pořídit záznam z probíhající simulace.
-Pokud není vyplněn název/cesta souboru je videosoubor vytvořen v aktuální složce s názvem `video.mp4`.
-Nedochází k přepisování souborů a případné duplíkáty dostávají pořadová čísla.
+Pokud není vyplněn název/cesta souboru, je videosoubor vytvořen v aktuální složce s názvem `video.mp4`.
+Nedochází k přepisování souborů a případné duplikáty dostávají pořadová čísla.
 
 Je možné i uložit aktuální stav ve formě obrázku. 
-Ty jsou pak vždy ukládány do aktuální složky, přičemž v názvu obsahují aktuiální datum a čas.
+Ty jsou pak vždy ukládány do aktuální složky, přičemž v názvu obsahují aktuální datum a čas.
 
 #### Vizualizace
 Zde je možné případně vizualizovat hustotu částic za pomocí barevného rozložení.
@@ -87,7 +87,7 @@ Zde je možné případně vizualizovat hustotu částic za pomocí barevného r
 K nastavení lze přistoupit pomocí horního menu v hlavním panelu. 
 #### Nastavení simulace
 Zde je možné měnit parametry simulace. Okno má záložky vztahující se k jednotlivým simulacím. 
-Výchozí hodnoty jsou načítány z konfiguračních souborů. Při změně je důležíté měnit i délku kroku simulace.
+Výchozí hodnoty jsou načítány z konfiguračních souborů. Při změně je důležité měnit i délku kroku simulace.
 Některé kombinace hodnot vyžadují malý krok, jiné jsou stabilní i s větším krokem.
 Změny se projeví až po uložení, při kterém zároveň dojde k resetování simulace.
 
