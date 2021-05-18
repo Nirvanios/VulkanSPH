@@ -398,15 +398,15 @@ void SimulationUI::initRecordingGroup(pf::ui::ig::Window &parent) {
   auto &buttonBox = boxRecording.createChild<ig::BoxLayout>(
       ig::uniqueId(), ig::LayoutDirection::LeftToRight, ImVec2{-1, 20});
 
-  auto &buttonRecording =
-      buttonBox.createChild<ig::Button>("button_startRecord", "Start Recording");
-  buttonRecording.addClickListener([this, &buttonRecording, &editFilename] {
+  buttonRecording = std::experimental::make_observer(
+      &buttonBox.createChild<ig::Button>("button_startRecord", "Start Recording"));
+  buttonRecording->addClickListener([this, &editFilename] {
     if (recordingStateFlags.has(RecordingState::Stopped)) {
-      buttonRecording.setLabel("Stop Recording");
+      buttonRecording->setLabel("Stop Recording");
       recordingStateFlags.clear();
       recordingStateFlags |= RecordingState::Recording;
     } else {
-      buttonRecording.setLabel("Start Recording");
+      buttonRecording->setLabel("Start Recording");
       recordingStateFlags.clear();
       recordingStateFlags |= RecordingState::Stopped;
     }
@@ -570,4 +570,9 @@ void SimulationUI::setOnButtonSaveState(const std::function<void()> &onButtonSav
 }
 void SimulationUI::setOnButtonLoadState(const std::function<void()> &onButtonLoadStateCallback) {
   SimulationUI::onButtonLoadState = onButtonLoadStateCallback;
+}
+void SimulationUI::stopRecording() {
+  buttonRecording->setLabel("Start Recording");
+  recordingStateFlags.clear();
+  recordingStateFlags |= RecordingState::Stopped;
 }

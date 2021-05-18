@@ -4,7 +4,7 @@ window = {height=720,width=1280,name="Default scenario (27k particles)"}
 [App]
 lightColor = [1.0,1.0,1.0]
 lightPos = [0.0,5.0,0.0]
-cameraPos = [-0.93055689334869385,3.0488166809082031,3.3169665336608887]
+cameraPos = [-1.1730337142944336,3.3298585414886475,3.6519596576690674]
 yaw = 305.89804077148438
 pitch = -34.200008392333984
 DEBUG = false

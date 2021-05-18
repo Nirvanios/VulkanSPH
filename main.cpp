@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
   argparse::ArgumentParser program("Fluid simulation");
   program.add_argument("-c", "--config")
       .help("Path to file with simulation configuration.")
-      .default_value(std::filesystem::path("../config.toml"))
+      .default_value(std::filesystem::path("./config.toml"))
       .action([](const auto &value) { return std::filesystem::path(value); });
 
   try {

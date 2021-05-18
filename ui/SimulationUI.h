@@ -38,6 +38,7 @@ class SimulationUI {
   [[nodiscard]] const std::shared_ptr<pf::ui::ig::ImGuiGlfwVulkan> &getImgui() const;
   [[nodiscard]] bool isHovered();
   [[nodiscard]] bool isKeyboardCaptured();
+  void stopRecording();
 
   void setImageProvider(const std::function<ImTextureID()> &imageProviderCallback);
   void setOnButtonSimulationControlClick(
@@ -80,6 +81,7 @@ class SimulationUI {
   ObserverPtrButton buttonStep;
   ObserverPtrButton buttonReset;
   ObserverPtrButton buttonControl;
+  ObserverPtrButton buttonRecording;
 
   glm::ivec2 windowSize;
 

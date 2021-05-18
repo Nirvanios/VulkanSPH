@@ -798,8 +798,16 @@ void VulkanCore::initGui() {
         recordingStateFlags = stateFlags;
         if (recordingStateFlags.has(RecordingState::Recording)) {
           capturedFrameCount = 0;
-          auto filename = path.empty() ? "video.mp4" : path.string();
-          videoDiskSaver.initStream(fmt::format("./{}", filename), 60, swapchain->getExtentWidth(),
+          auto filename = path;
+          if(path.empty()) { filename = "video.mp4"; }
+          else if(!filename.parent_path().empty() && !std::filesystem::exists(filename.parent_path())){
+            spdlog::error("Invalid path {}", filename.parent_path());
+            simulationUi.stopRecording();
+            recordingStateFlags.clear();
+            recordingStateFlags |= RecordingState::Stopped;
+            return;
+          }
+          videoDiskSaver.initStream(fmt::format("{}", filename.string()), 60, swapchain->getExtentWidth(),
                                     swapchain->getExtentHeight());
         } else {
           if (previousFrameVideo.valid()) { previousFrameVideo.wait(); }
