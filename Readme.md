@@ -18,7 +18,7 @@ Instalace pro Ubuntu 20.04
 Pro jiné systémy, případně instalaci ze staženého balíčku, lze navštívit stránku https://vulkan.lunarg.com/ .
 
 ## Potřebné knihovny
-* libglfw3
+* libglfw3-dev
 * ffmpeg
 * binutils-dev
 * libavformat-dev
