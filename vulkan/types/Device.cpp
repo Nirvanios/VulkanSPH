@@ -78,13 +78,19 @@ void Device::createLogicalDevice() {
                                               .pQueuePriorities = &priority};
     queueCreateInfos.emplace_back(queueCreateInfo);
   }
-  vk::PhysicalDeviceFeatures deviceFeatures{.geometryShader = VK_TRUE, .samplerAnisotropy = VK_TRUE};
+  vk::PhysicalDeviceShaderAtomicFloatFeaturesEXT deviceShaderAtomicFloatFeaturesExt{
+      .shaderBufferFloat32Atomics = true,
+      .shaderBufferFloat32AtomicAdd = true};
+  vk::PhysicalDeviceFeatures deviceFeatures{.geometryShader = VK_TRUE,
+                                            .samplerAnisotropy = VK_TRUE};
   vk::DeviceCreateInfo createInfo{
+      .pNext = &deviceShaderAtomicFloatFeaturesExt,
       .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
       .pQueueCreateInfos = queueCreateInfos.data(),
       .enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size()),
       .ppEnabledExtensionNames = deviceExtensions.data(),
-      .pEnabledFeatures = &deviceFeatures};
+      .pEnabledFeatures = &deviceFeatures,
+      };
 
   if (debug) {
     createInfo.enabledLayerCount = static_cast<uint32_t>(instance->getValidationLayers().size());
