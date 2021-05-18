@@ -17,7 +17,7 @@ Instalace pro Ubuntu 20.04
 
 Pro jiné systémy, případně instalaci ze staženého balíčku, lze navštívit stránku https://vulkan.lunarg.com/ .
 
-Použita byla verze vulkanu 1.2.176, s ovladačem Nvidia 460.80 podporujícím verzi 1.2.155. 
+Použita byla verze Vulkanu 1.2.176, s ovladačem Nvidia 460.80 podporujícím verzi 1.2.155. 
 Pro správný chod je nutné mít v zařízení podporu rozšíření `VK_EXT_shader_atomic_float`, které by mělo být podporováno od verze 1.2.148.
 
 ## Potřebné knihovny
@@ -33,7 +33,7 @@ cd src
 cmake -Bbuild -H. -DCMAKE_BUILD_TYPE=release -DCMAKE_CXX_COMPILER="path_to_g++-10"
 cmake --build build --target all
 ```
-Tímto vznikne v adresáři `src/build` spustitelný soubor. 
+Tímto vznikne v adresáři `src/build` spustitelný soubor s názvem `VulkanFluidSimulator`. 
 Pro urychlení překladu je možné k poslednímu příkazu nakonec přidat  `-- -j 4`, kde číslo značí počet vláken pro překlad.
 
 Je možné, že v druhém příkazu nastane chyba. Ta nastává při stahování knihoven a řešením je daný příkaz spustit znovu.
