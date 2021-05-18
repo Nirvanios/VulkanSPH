@@ -19,7 +19,6 @@ Pro jiné systémy, případně instalaci ze staženého balíčku, lze navští
 
 ## Potřebné knihovny
 * libglfw3-dev
-* ffmpeg
 * binutils-dev
 * libavformat-dev
 * libavcodec-dev
