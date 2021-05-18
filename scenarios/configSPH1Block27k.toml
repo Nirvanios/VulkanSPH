@@ -1,43 +1,43 @@
-[Vulkan]
-pathToShaders = "/home/aka/CLionProjects/VulkanSPH/shaders/"
-window = {height=720,width=1280,name="VulkanApp"}
 [App]
-lightColor = [1.0,1.0,1.0]
+DEBUG = false
+pitch = -16.800033569335938
+yaw = 221.49684143066406
+cameraPos = [4.1634912490844727,2.186596155166626,4.4259934425354004]
 lightPos = [0.0,5.0,0.0]
-cameraPos = [1.0925819873809814,1.1771324872970581,1.6544007062911987]
-yaw = 277.1962890625
-pitch = -34.100048065185547
-DEBUG = true
-Evaporation = {coefficientB=0.0,coefficientA=0.001}
+lightColor = [1.0,1.0,1.0]
+MarchingCubes = {threshold=0.5,detail=2}
 [App.simulationSPH]
-fluidVolume = 4.0
-temperature = 100.0
-viscosityCoefficient = 3.5
-fluidDensity = 998.28999999999996
-gridOrigin = [0.0,0.0,0.0]
-heatConductivity = 0.62
-particleModel = "/home/aka/CLionProjects/VulkanSPH/resources/sphere.obj"
-timeStep = 0.001
+gridSize = [55,55,55]
+gasStiffness = 100.0
 heatCapacity = 4.1790000000000003
-gasStiffness = 10.0
-gridSize = [55,20,17]
+timeStep = 0.001
+particleModel = "../resources/sphere.obj"
+heatConductivity = 0.62
+gridOrigin = [0.0,0.0,0.0]
+fluidDensity = 998.28999999999996
+viscosityCoefficient = 3.5
+temperature = 100.0
+fluidVolume = 4.0
 datafiles = {}
 Model = [
-    {particleModelSize=[30,30,31],particleModelOrigin=[0.0,0.0,0.0]},
+{particleModelOrigin=[0.0,0.0,0.0],particleModelSize=[30,30,31]},
 ]
-[App.MarchingCubes]
-detail = 2
-threshold = 0.5
+[App.Evaporation]
+coefficientA = 0.001
+coefficientB = 0.0
 
 [App.simulationGridFluid]
-ambientTemperature = 25.0
-diffusionCoefficient = 0.001
-heatConductivity = 0.62
-buoyancyAlpha = 9.8000000000000007
-buoyancyBeta = 0.10000000000000001
-heatCapacity = 4.1790000000000003
+cellModel = "../resources/plane.obj"
 specificGasConstant = 461.5
-cellModel = "/home/aka/CLionProjects/VulkanSPH/resources/plane.obj"
+heatCapacity = 4.1790000000000003
+buoyancyBeta = 0.10000000000000001
+buoyancyAlpha = 9.8000000000000007
+heatConductivity = 0.62
+diffusionCoefficient = 0.001
+ambientTemperature = 25.0
 datafiles = {}
 
+[Vulkan]
+pathToShaders = "../shaders/"
+window = {name="Fluid in tank (27K particles)",width=1280,height=720}
 

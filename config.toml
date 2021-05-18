@@ -1,5 +1,5 @@
 [App]
-DEBUG = true
+DEBUG = false
 pitch = -35.800136566162109
 yaw = 306.99868774414062
 cameraPos = [-2.7610044479370117,3.4554340839385986,3.3099830150604248]
@@ -16,7 +16,7 @@ viscosityCoefficient = 3.5
 fluidDensity = 998.28999999999996
 gridOrigin = [0.0,0.0,0.0]
 heatConductivity = 0.62
-particleModel = "/home/aka/CLionProjects/VulkanSPH/resources/sphere.obj"
+particleModel = "../resources/sphere.obj"
 fluidVolume = 2.0
 timeStep = 0.01
 heatCapacity = 4.1790000000000003
@@ -25,7 +25,7 @@ Model = [
 ]
 [App.simulationGridFluid]
 datafiles = []
-cellModel = "/home/aka/CLionProjects/VulkanSPH/resources/plane.obj"
+cellModel = "../resources/plane.obj"
 specificGasConstant = 461.5
 heatCapacity = 4.1790000000000003
 buoyancyBeta = 0.10000000000000001
@@ -35,6 +35,6 @@ diffusionCoefficient = 0.001
 ambientTemperature = 25.0
 
 [Vulkan]
-pathToShaders = "/home/aka/CLionProjects/VulkanSPH/shaders/"
+pathToShaders = "../shaders/"
 window = {name="VulkanApp",width=1280,height=720}
 

@@ -1,5 +1,5 @@
 [App]
-DEBUG = true
+DEBUG = false
 pitch = -29.800043106079102
 yaw = 321.19912719726562
 cameraPos = [-7.0719494819641113,7.66461181640625,6.842078685760498]
@@ -11,7 +11,7 @@ gridSize = [40,200,40]
 gasStiffness = 100.0
 heatCapacity = 4.1790000000000003
 timeStep = 0.001
-particleModel = "/home/aka/CLionProjects/VulkanSPH/resources/sphere.obj"
+particleModel = "../resources/sphere.obj"
 heatConductivity = 0.62
 gridOrigin = [0.0,0.0,0.0]
 fluidDensity = 998.28999999999996
@@ -28,7 +28,7 @@ coefficientA = 0.001
 coefficientB = 0.0
 
 [App.simulationGridFluid]
-cellModel = "/home/aka/CLionProjects/VulkanSPH/resources/plane.obj"
+cellModel = "../resources/plane.obj"
 specificGasConstant = 461.5
 heatCapacity = 4.1790000000000003
 buoyancyBeta = 0.10000000000000001
@@ -39,6 +39,6 @@ ambientTemperature = 25.0
 datafiles = {}
 
 [Vulkan]
-pathToShaders = "/home/aka/CLionProjects/VulkanSPH/shaders/"
-window = {name="VulkanApp",width=1280,height=720}
+pathToShaders = "../shaders/"
+window = {name="Drop (140K particles)",width=1280,height=720}
 

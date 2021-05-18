@@ -1,13 +1,13 @@
 [Vulkan]
-pathToShaders = "/home/aka/CLionProjects/VulkanSPH/shaders/"
-window = {height=720,width=1280,name="VulkanApp"}
+pathToShaders = "../shaders/"
+window = {height=720,width=1280,name="Collisions (186K particles)"}
 [App]
 lightColor = [1.0,1.0,1.0]
 lightPos = [0.0,5.0,0.0]
 cameraPos = [1.0925819873809814,1.1771324872970581,1.6544007062911987]
 yaw = 277.1962890625
 pitch = -34.100048065185547
-DEBUG = true
+DEBUG = false
 Evaporation = {coefficientB=0.0,coefficientA=0.001}
 [App.simulationSPH]
 fluidVolume = 4.0
@@ -16,7 +16,7 @@ viscosityCoefficient = 3.5
 fluidDensity = 998.28999999999996
 gridOrigin = [0.0,0.0,0.0]
 heatConductivity = 0.62
-particleModel = "/home/aka/CLionProjects/VulkanSPH/resources/sphere.obj"
+particleModel = "../resources/sphere.obj"
 timeStep = 0.001
 heatCapacity = 4.1790000000000003
 gasStiffness = 100.0
@@ -38,7 +38,7 @@ buoyancyAlpha = 9.8000000000000007
 buoyancyBeta = 0.10000000000000001
 heatCapacity = 4.1790000000000003
 specificGasConstant = 461.5
-cellModel = "/home/aka/CLionProjects/VulkanSPH/resources/plane.obj"
+cellModel = "../resources/plane.obj"
 datafiles = {}
 
 

@@ -1,5 +1,5 @@
 [App]
-DEBUG = true
+DEBUG = false
 pitch = -17.699899673461914
 yaw = 1132.6715087890625
 cameraPos = [-1.6957199573516846,2.5135376453399658,-3.7612974643707275]
@@ -14,7 +14,7 @@ gasStiffness = 100.0
 heatCapacity = 4.1790000000000003
 timeStep = 0.001
 fluidVolume = 2.0
-particleModel = "/home/aka/CLionProjects/VulkanSPH/resources/sphere.obj"
+particleModel = "../resources/sphere.obj"
 heatConductivity = 0.62
 gridOrigin = [0.0,0.0,0.0]
 fluidDensity = 998.28999999999996
@@ -27,7 +27,7 @@ coefficientA = 0.001
 coefficientB = 0.0
 
 [App.simulationGridFluid]
-cellModel = "/home/aka/CLionProjects/VulkanSPH/resources/plane.obj"
+cellModel = "../resources/plane.obj"
 specificGasConstant = 461.5
 heatCapacity = 4.1790000000000003
 buoyancyBeta = 0.10000000000000001
@@ -38,6 +38,6 @@ ambientTemperature = 25.0
 datafiles = {}
 
 [Vulkan]
-pathToShaders = "/home/aka/CLionProjects/VulkanSPH/shaders/"
-window = {name="VulkanApp",width=1280,height=720}
+pathToShaders = "../shaders/"
+window = {name="Evaporation (5K Particles)",width=1280,height=720}
 
