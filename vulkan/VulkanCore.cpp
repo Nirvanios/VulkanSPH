@@ -216,7 +216,7 @@ void VulkanCore::recordCommandBuffers(uint32_t imageIndex, Utilities::Flags<Draw
   auto &textureFramebuffers = framebuffersTexture->getFramebuffers();
   auto &commandBufferGraphics = commandBuffersGraphic[imageIndex];
   DrawInfo drawInfo{.drawType = magic_enum::enum_integer(DrawType::Particles),
-                    .visualization = magic_enum::enum_integer(Visualization::Density),
+                    .visualization = magic_enum::enum_integer(Visualization::None),
                     .supportRadius = simulationInfoSPH.supportRadius};
   vk::CommandBufferBeginInfo beginInfo{.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse,
                                        .pInheritanceInfo = nullptr};
