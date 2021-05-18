@@ -34,6 +34,9 @@ cmake -Bbuild -H. -DCMAKE_BUILD_TYPE=release -DCMAKE_CXX_COMPILER="path_to_g++-1
 cmake --build build --target all
 ```
 Tímto vznikne v adresáři `src/build` spustitelný soubor. 
+Pro urychlení překladu je možné k poslednímu příkazu nakonec přidat  `-- -j 4`, kde číslo značí počet vláken pro překlad.
+
+Je možné, že v druhém příkazu nastane chyba. Ta nastává při stahování knihoven a řešením je daný příkaz spustit znovu.
 
 # Spouštění
 
