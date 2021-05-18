@@ -17,6 +17,9 @@ Instalace pro Ubuntu 20.04
 
 Pro jiné systémy, případně instalaci ze staženého balíčku, lze navštívit stránku https://vulkan.lunarg.com/ .
 
+Použita byla verze vulkanu 1.2.176, s ovladačem Nvidia 460.80 podporujícím verzi 1.2.155. 
+Pro správný chod je nutné mít v zařízení podporu rozšíření `VK_EXT_shader_atomic_float`, které by mělo být podporováno od verze 1.2.148.
+
 ## Potřebné knihovny
 * libglfw3-dev
 * binutils-dev
