@@ -107,3 +107,6 @@ Předpřipravené scénáře obsahují testované a ve videu nahrané konfigurac
 Jedná se o kolizi dvou mas kapalin, kapalinu v akváriu, vypařování. 
 Jednotlivé konfigurace jsou poskytnuty ve více verzích, s rozdílným počtem částic.
 
+
+---
+odkaz na github https://github.com/Nirvanios/VulkanSPH/tree/MasterThesis_Final
