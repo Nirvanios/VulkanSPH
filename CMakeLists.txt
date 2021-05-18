@@ -22,7 +22,7 @@ endif ()
 include(${CPM_DOWNLOAD_LOCATION})
 
 
-project(VulkanApp)
+project(VulkanFluidSimulator)
 
 set(CMAKE_CXX_STANDARD 20)
 list(APPEND flags "-fconcepts" "-fconcepts-diagnostics-depth=10")
@@ -216,13 +216,13 @@ SET(INCLUDES
         ui/SimulationUI.h
         )
 
-add_executable(VulkanApp ${SOURCES})
+add_executable(VulkanFluidSimulator ${SOURCES})
 
 
-target_link_libraries(VulkanApp PUBLIC
+target_link_libraries(VulkanFluidSimulator PUBLIC
         -lbfd -ldl
         ${Vulkan_LIBRARIES} glfw spdlog::spdlog fmt::fmt stb::stb
         shaderc_combined glslang toml11 range-v3 tinyobjloader ${AVCODEC_LIBRARY} avutil avformat swscale
         pf_imgui::pf_imgui pf_common::pf_common magic_enum argparse::argparse)
 
-target_compile_options(VulkanApp PRIVATE ${flags})
+target_compile_options(VulkanFluidSimulator PRIVATE ${flags})

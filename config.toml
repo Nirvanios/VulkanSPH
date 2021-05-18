@@ -36,5 +36,5 @@ ambientTemperature = 25.0
 
 [Vulkan]
 pathToShaders = "../shaders/"
-window = {name="VulkanApp",width=1280,height=720}
+window = {name="Default scenario (27k particles)",width=1280,height=720}
 
