@@ -38,11 +38,11 @@ Tímto vznikne v adresáři `src/build` spustitelný soubor.
 ---
 
 Program má jediný argument pro spuštění. Jedná se o cestu ke konfiguračnímu souboru. 
-Pokud není poskytnut pomocí argumentu, načítá se výchozí soubor `./config.toml`. 
+Pokud není soubor poskytnut pomocí argumentu, načítá se výchozí soubor `./config.toml`. 
 
     -c --config "path_to_config"
 
-Pro správný běh programu je nutné mít spravně vyplněné cesty v konfiguračním souboru.
+Pro správný běh programu je nutné mít správně vyplněné cesty v konfiguračním souboru.
 Jedná se o parametry `pathToShaders`, `particleModel` a `cellModel`.
 Výchozí hodnoty počítají se složkami `resources` a `shaders` na stejné úrovni, jako je složka se spustitelným souborem.
 Program zároveň počítá s určitou strukturou těchto složek, takže po změně vnitřního uspořádání nebude program spustitelný.
