@@ -15,7 +15,7 @@ Instalace pro Ubuntu 20.04
     sudo apt update
     sudo apt install vulkan-sdk
 
-Pro jiné systémy, případně instalaci ze staženého balíčku lze navštívit stránku https://vulkan.lunarg.com/ .
+Pro jiné systémy, případně instalaci ze staženého balíčku, lze navštívit stránku https://vulkan.lunarg.com/ .
 
 ## Potřebné knihovny
 * libglfw3
@@ -44,7 +44,7 @@ Pokud není poskytnut pomocí argumentu, načítá se výchozí soubor `./config
 
 Pro správný běh programu je nutné mít spravně vyplněné cesty v konfiguračním souboru.
 Jedná se o parametry `pathToShaders`, `particleModel` a `cellModel`.
-Výchozí hodnoty počítají se složkami `resources` a `shaders` na stejné urovni jako je složka se spustitelným souborem.
+Výchozí hodnoty počítají se složkami `resources` a `shaders` na stejné úrovni, jako je složka se spustitelným souborem.
 Program zároveň počítá s určitou strukturou těchto složek, takže po změně vnitřního uspořádání nebude program spustitelný.
 # Ovládání
 
@@ -67,7 +67,7 @@ Ovládání samotné simulace.
 Zde může uživatel spouštět a krokovat samotnou simulaci. 
 Zároveň je zde možnost přepínat mezi jednotlivými druhy simulace a zobrazováním.
 
-Poslední možností je uložení současného stavu simulace pro pozdější načtení a to i po restartování programu. 
+Poslední možností je uložení současného stavu simulace pro pozdější načtení, a to i po restartování programu. 
 Jedná se o poměrně primitivní metodu ukládání obsahu bufferů na disk,
 přičemž není kontrolováno zda uložená data patří k danému scénáři, a proto může dojít k nestabilitě simulace i případnému pádu aplikace.
 
@@ -88,12 +88,12 @@ K nastavení lze přistoupit pomocí horního menu v hlavním panelu.
 #### Nastavení simulace
 Zde je možné měnit parametry simulace. Okno má záložky vztahující se k jednotlivým simulacím. 
 Výchozí hodnoty jsou načítány z konfiguračních souborů. Při změně je důležíté měnit i délku kroku simulace.
-Některá kombinace hodnot vyžadují malý krok, jiné jsou stabilní i s větším krokem.
-Změny se projeví až po uložení, při uložení dojde k resetování simulace.
+Některé kombinace hodnot vyžadují malý krok, jiné jsou stabilní i s větším krokem.
+Změny se projeví až po uložení, při kterém zároveň dojde k resetování simulace.
 
 #### Nastavení vykreslování
 V tomto okně je možné měnit vizuální stránku. 
-Je možné měnit pozici světla, ale i barvu kapaliny, či marametry algoritmu Marching cubes.
+Je možné měnit pozici světla, ale i barvu kapaliny, či parametry algoritmu Marching cubes.
 
 # Scénáře
 K aplikaci je předpřipraveno několik scénářů/konfiguračních souborů.
@@ -102,7 +102,7 @@ Lze samozřejmě připravit několik dalších, nicméně je nutné mít na mysl
 Především je dobré si dávat pozor při zvýšené viskozitě či tuhosti plynu na dostatečně malý krok simulace.
 Vypařování pak správně funguje pouze v prostoru o stejných rozměrech.
 
-Předpřipravené scénáře pak obsahují testované a ve videu nahrané konfigurace. 
+Předpřipravené scénáře obsahují testované a ve videu nahrané konfigurace. 
 Jedná se o kolizi dvou mas kapalin, kapalinu v akváriu, vypařování. 
 Jednotlivé konfigurace jsou poskytnuty ve více verzích, s rozdílným počtem částic.
 
