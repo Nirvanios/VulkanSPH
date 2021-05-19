@@ -37,6 +37,7 @@ Tímto vznikne v adresáři `src/build` spustitelný soubor s názvem `VulkanFlu
 Pro urychlení překladu je možné k poslednímu příkazu nakonec přidat  `-- -j 4`, kde číslo značí počet vláken pro překlad.
 
 Je možné, že v druhém příkazu nastane chyba. Ta nastává při stahování knihoven a řešením je daný příkaz spustit znovu.
+Zároveň je nutné nemít zdrojové soubory ve složce s mezerou.
 
 # Spouštění
 
